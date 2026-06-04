@@ -1,0 +1,477 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-slate-955: var(--slate-955);
+  --color-slate-950: var(--slate-950);
+  --color-slate-900: var(--slate-900);
+  --color-slate-850: var(--slate-850);
+  --color-slate-800: var(--slate-800);
+  --color-slate-700: var(--slate-700);
+  --color-slate-500: var(--slate-500);
+  --color-slate-450: var(--slate-450);
+  --color-slate-400: var(--slate-400);
+  --color-slate-350: var(--slate-350);
+  --color-slate-300: var(--slate-300);
+  --color-slate-200: var(--slate-200);
+  --color-slate-100: var(--slate-100);
+  --color-slate-50: var(--slate-50);
+  --color-slate-455: var(--slate-455);
+
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-950: var(--blue-950);
+
+  --color-emerald-300: var(--emerald-300);
+  --color-emerald-400: var(--emerald-400);
+  --color-emerald-450: var(--emerald-450);
+  --color-emerald-500: var(--emerald-500);
+  --color-emerald-950: var(--emerald-950);
+
+  --color-amber-300: var(--amber-300);
+  --color-amber-400: var(--amber-400);
+  --color-amber-500: var(--amber-500);
+  --color-amber-950: var(--amber-950);
+
+  --color-red-300: var(--red-300);
+  --color-red-400: var(--red-400);
+  --color-red-500: var(--red-500);
+  --color-red-950: var(--red-950);
+
+  --color-purple-300: var(--purple-300);
+  --color-purple-400: var(--purple-400);
+  --color-purple-500: var(--purple-500);
+  --color-purple-950: var(--purple-950);
+
+  --color-violet-400: var(--violet-400);
+
+  --color-indigo-300: var(--indigo-300);
+  --color-indigo-400: var(--indigo-400);
+
+  --color-cyan-400: var(--cyan-400);
+}
+
+:root {
+  /* Light Mode Palette - Light backgrounds, dark text */
+  --slate-955: #f8fafc; /* page background */
+  --slate-950: #f1f5f9; /* card container background */
+  --slate-900: #ffffff; /* card background */
+  --slate-850: #e2e8f0; /* table/divider borders */
+  --slate-800: #cbd5e1; /* inputs/toggle borders */
+  --slate-700: #94a3b8; /* active/hover borders */
+  --slate-500: #5b6c80; /* medium gray - enhanced contrast */
+  --slate-450: #475569;
+  --slate-400: #475569; /* labels/muted text */
+  --slate-350: #475569; /* secondary table cell text - added for visibility */
+  --slate-300: #334155; /* secondary body text */
+  --slate-200: #1e293b; /* headings */
+  --slate-100: #0f172a; /* primary body text */
+  --slate-50: #020617;  /* extra dark text */
+  --slate-455: #334155; /* form labels - added for visibility */
+
+  /* Blue colors */
+  --blue-300: #1d4ed8;
+  --blue-400: #2563eb;
+  --blue-500: #1e40af;
+  --blue-950: #eff6ff;
+
+  /* Emerald colors */
+  --emerald-300: #047857;
+  --emerald-400: #059669;
+  --emerald-450: #059669;
+  --emerald-500: #065f46;
+  --emerald-950: #ecfdf5;
+
+  /* Amber colors */
+  --amber-300: #b45309;
+  --amber-400: #d97706;
+  --amber-500: #92400e;
+  --amber-950: #fffbeb;
+
+  /* Red colors */
+  --red-300: #b91c1c;
+  --red-400: #dc2626;
+  --red-500: #991b1b;
+  --red-950: #fef2f2;
+
+  /* Purple / Violet / Indigo / Cyan */
+  --purple-300: #6d28d9;
+  --purple-400: #7c3aed;
+  --purple-500: #581c87;
+  --purple-950: #faf5ff;
+  --violet-400: #7c3aed;
+  --indigo-300: #4338ca;
+  --indigo-400: #4f46e5;
+  --cyan-400: #0891b2;
+}
+
+.dark {
+  /* Dark Mode Palette - Original dark navy/deep blue colors */
+  --slate-955: #020617;
+  --slate-950: #030712;
+  --slate-900: #0f172a;
+  --slate-850: #1e293b;
+  --slate-800: #334155;
+  --slate-700: #475569;
+  --slate-500: #64748b;
+  --slate-450: #64748b;
+  --slate-400: #94a3b8;
+  --slate-350: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+  --slate-50: #f8fafc;
+  --slate-455: #94a3b8;
+
+  /* Blue colors */
+  --blue-300: #90c5ff;
+  --blue-400: #54a2ff;
+  --blue-500: #3080ff;
+  --blue-950: #162456;
+
+  /* Emerald colors */
+  --emerald-300: #5ee9b5;
+  --emerald-400: #00d294;
+  --emerald-450: #34d399;
+  --emerald-500: #00bb7f;
+  --emerald-950: #002c22;
+
+  /* Amber colors */
+  --amber-300: #ffd236;
+  --amber-400: #fcbb00;
+  --amber-500: #f99c00;
+  --amber-950: #461901;
+
+  /* Red colors */
+  --red-300: #ffa3a3;
+  --red-400: #ff6568;
+  --red-500: #fb2c36;
+  --red-950: #460809;
+
+  /* Purple / Violet / Indigo / Cyan */
+  --purple-300: #d9b3ff;
+  --purple-400: #c07eff;
+  --purple-500: #ac4bff;
+  --purple-950: #3c0366;
+  --violet-400: #a685ff;
+  --indigo-300: #a4b3ff;
+  --indigo-400: #7d87ff;
+  --cyan-400: #00d2ef;
+}
+
+body {
+  background: var(--color-slate-955);
+  color: var(--color-slate-300);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Smooth theme transition for backgrounds, borders and text colors */
+body, header, main, section, table, tr, td, th, button, input, select, textarea, p, span, h1, h2, h3, h4, h5, h6, a {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, text-decoration-color 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
+}
+
+/* Make date and time picker calendar/clock icons inverted only in dark mode */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Light mode overrides for text-white headings so they are readable on light background */
+:root:not(.dark) .text-white {
+  color: #0f172a !important;
+}
+
+/* Exclude buttons, badges, or colored/filled containers in light mode to keep their contrast text as white */
+:root:not(.dark) button.text-white,
+:root:not(.dark) button .text-white,
+:root:not(.dark) a.text-white,
+:root:not(.dark) .bg-blue-600.text-white,
+:root:not(.dark) .bg-blue-600 .text-white,
+:root:not(.dark) .bg-purple-600.text-white,
+:root:not(.dark) .bg-purple-600 .text-white,
+:root:not(.dark) .bg-emerald-600.text-white,
+:root:not(.dark) .bg-emerald-600 .text-white,
+:root:not(.dark) .bg-red-600.text-white,
+:root:not(.dark) .bg-red-600 .text-white,
+:root:not(.dark) .bg-amber-600.text-white,
+:root:not(.dark) .bg-amber-600 .text-white,
+:root:not(.dark) .bg-indigo-600.text-white,
+:root:not(.dark) .bg-indigo-600 .text-white,
+:root:not(.dark) .bg-blue-650.text-white,
+:root:not(.dark) .bg-blue-650 .text-white,
+:root:not(.dark) .bg-amber-650.text-white,
+:root:not(.dark) .bg-amber-650 .text-white,
+:root:not(.dark) .bg-purple-950.text-white,
+:root:not(.dark) .bg-purple-950 .text-white,
+:root:not(.dark) [class*="bg-blue-"] .text-white,
+:root:not(.dark) [class*="bg-purple-"] .text-white,
+:root:not(.dark) [class*="bg-emerald-"] .text-white,
+:root:not(.dark) [class*="bg-red-"] .text-white,
+:root:not(.dark) [class*="bg-amber-"] .text-white,
+:root:not(.dark) [class*="bg-indigo-"] .text-white,
+:root:not(.dark) [class*="bg-slate-700"] .text-white,
+:root:not(.dark) [class*="bg-slate-800"] .text-white {
+  color: #ffffff !important;
+}
+
+/* Light mode support for specific glassmorphism or hover states */
+:root:not(.dark) .bg-slate-900\/20 {
+  background-color: rgba(241, 245, 249, 0.6) !important;
+}
+:root:not(.dark) .bg-slate-900\/40 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+:root:not(.dark) .bg-slate-950\/60 {
+  background-color: rgba(248, 250, 252, 0.8) !important;
+}
+:root:not(.dark) .bg-slate-950\/80 {
+  background-color: rgba(241, 245, 249, 0.9) !important;
+}
+:root:not(.dark) .bg-slate-955\/80 {
+  background-color: rgba(15, 23, 42, 0.3) !important; /* backdrop dim */
+}
+:root:not(.dark) .bg-slate-955\/90 {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+}
+:root:not(.dark) .bg-purple-950\/45 {
+  background-color: rgba(147, 51, 234, 0.08) !important;
+  border-color: rgba(147, 51, 234, 0.2) !important;
+}
+:root:not(.dark) .bg-blue-950\/20 {
+  background-color: rgba(37, 99, 235, 0.06) !important;
+  border-color: rgba(37, 99, 235, 0.15) !important;
+}
+:root:not(.dark) .bg-amber-950\/50 {
+  background-color: rgba(217, 119, 6, 0.08) !important;
+  border-color: rgba(217, 119, 6, 0.2) !important;
+}
+:root:not(.dark) .bg-emerald-950\/50 {
+  background-color: rgba(5, 150, 105, 0.08) !important;
+  border-color: rgba(5, 150, 105, 0.2) !important;
+}
+:root:not(.dark) .bg-red-950\/50 {
+  background-color: rgba(220, 38, 38, 0.08) !important;
+  border-color: rgba(220, 38, 38, 0.2) !important;
+}
+:root:not(.dark) .bg-slate-955\/20 {
+  background-color: rgba(248, 250, 252, 0.2) !important;
+}
+
+/* Ensure card borders are visible and crisp in light mode */
+:root:not(.dark) [class*="border-slate-900"] {
+  border-color: var(--slate-800) !important;
+}
+
+/* Make card titles (e.g. Unadjusted labels) much clearer and more readable in light mode */
+:root:not(.dark) [class*="bg-slate-900"] .text-slate-400 {
+  color: var(--slate-300) !important;
+  font-weight: 600;
+}
+
+/* Ensure text in the purple admin mode card is highly readable in light mode */
+:root:not(.dark) .admin-mode-banner .text-white {
+  color: #581c87 !important; /* Premium dark purple */
+  font-weight: 700;
+}
+:root:not(.dark) .admin-mode-banner .text-slate-400 {
+  color: #3b0764 !important; /* Dark purple/slate */
+  font-weight: 500;
+}
+/* Ensure text in the blue push notification card is highly readable in light mode */
+:root:not(.dark) .push-notification-banner .text-white {
+  color: #1e40af !important; /* Premium dark blue */
+  font-weight: 700;
+}
+:root:not(.dark) .push-notification-banner .text-slate-400 {
+  color: #1d4ed8 !important; /* Dark blue/slate */
+  font-weight: 500;
+}
+:root:not(.dark) .bg-slate-950\/20 {
+  background-color: rgba(248, 250, 252, 0.2) !important;
+}
+
+/* ===== COMPREHENSIVE LIGHT MODE TEXT VISIBILITY FIXES ===== */
+
+/* Ensure ALL text on card backgrounds (bg-slate-900/40 → white bg in light) has high contrast */
+:root:not(.dark) .text-slate-100 {
+  color: #0f172a !important;
+}
+:root:not(.dark) .text-slate-200 {
+  color: #1e293b !important;
+}
+:root:not(.dark) .text-slate-300 {
+  color: #334155 !important;
+}
+
+/* Input text in light mode must be dark */
+:root:not(.dark) input,
+:root:not(.dark) select,
+:root:not(.dark) textarea {
+  color: #0f172a !important;
+}
+
+/* Stat card text on light backgrounds */
+:root:not(.dark) .text-blue-300 {
+  color: #1d4ed8 !important;
+}
+:root:not(.dark) .text-emerald-300 {
+  color: #047857 !important;
+}
+:root:not(.dark) .text-amber-300 {
+  color: #b45309 !important;
+}
+:root:not(.dark) .text-red-300 {
+  color: #b91c1c !important;
+}
+:root:not(.dark) .text-purple-300 {
+  color: #6d28d9 !important;
+}
+:root:not(.dark) .text-indigo-300 {
+  color: #4338ca !important;
+}
+
+/* Table headers and cells readability in light mode */
+:root:not(.dark) th {
+  color: #1e293b !important;
+  font-weight: 700;
+}
+:root:not(.dark) td {
+  color: #334155 !important;
+}
+
+/* Ensure modal backdrop overlay is visible in light mode */
+:root:not(.dark) .bg-slate-955\/80,
+:root:not(.dark) .bg-slate-955\/90 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Modal card backgrounds - white and readable */
+:root:not(.dark) .bg-slate-900 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Ensure labels/meta text on blue/colored stat cards remain visible */
+:root:not(.dark) [class*="bg-blue-950"] .text-slate-300,
+:root:not(.dark) [class*="bg-blue-950"] .text-slate-400 {
+  color: #1e40af !important;
+  font-weight: 600;
+}
+:root:not(.dark) [class*="bg-emerald-950"] .text-slate-300,
+:root:not(.dark) [class*="bg-emerald-950"] .text-slate-400 {
+  color: #047857 !important;
+  font-weight: 600;
+}
+:root:not(.dark) [class*="bg-amber-950"] .text-slate-300,
+:root:not(.dark) [class*="bg-amber-950"] .text-slate-400 {
+  color: #92400e !important;
+  font-weight: 600;
+}
+:root:not(.dark) [class*="bg-red-950"] .text-slate-300,
+:root:not(.dark) [class*="bg-red-950"] .text-slate-400 {
+  color: #991b1b !important;
+  font-weight: 600;
+}
+
+/* Ensure toggle/switch labels are clearly readable in light mode */
+:root:not(.dark) .text-slate-455 {
+  color: #334155 !important;
+  font-weight: 600;
+}
+
+/* Fix notification section heading on colored backgrounds */
+:root:not(.dark) [class*="bg-blue-950/"] .text-white {
+  color: #1e40af !important;
+  font-weight: 700;
+}
+:root:not(.dark) [class*="bg-amber-950/"] .text-white {
+  color: #92400e !important;
+  font-weight: 700;
+}
+:root:not(.dark) [class*="bg-emerald-950/"] .text-white {
+  color: #065f46 !important;
+  font-weight: 700;
+}
+:root:not(.dark) [class*="bg-red-950/"] .text-white {
+  color: #991b1b !important;
+  font-weight: 700;
+}
+:root:not(.dark) [class*="bg-purple-950/"] .text-white {
+  color: #581c87 !important;
+  font-weight: 700;
+}
+
+/* Light mode status text colors for leave statuses */
+:root:not(.dark) .text-emerald-400 {
+  color: #059669 !important;
+}
+:root:not(.dark) .text-amber-400 {
+  color: #d97706 !important;
+}
+:root:not(.dark) .text-red-400 {
+  color: #dc2626 !important;
+}
+:root:not(.dark) .text-blue-400 {
+  color: #2563eb !important;
+}
+:root:not(.dark) .text-purple-400 {
+  color: #7c3aed !important;
+}
+
+/* Header text in light mode - ensure full contrast */
+:root:not(.dark) .text-slate-50 {
+  color: #020617 !important;
+}
+
+/* Small meta text (text-xs, text-[10px], text-[11px]) readability */
+:root:not(.dark) .text-slate-450 {
+  color: #475569 !important;
+  font-weight: 500;
+}
+:root:not(.dark) .text-slate-500 {
+  color: #475569 !important;
+}
+
+/* Ensure "pending" / status badge text is readable on their respective colored backgrounds */
+:root:not(.dark) [class*="bg-amber-"] .text-amber-300 {
+  color: #92400e !important;
+}
+:root:not(.dark) [class*="bg-emerald-"] .text-emerald-300 {
+  color: #047857 !important;
+}
+:root:not(.dark) [class*="bg-red-"] .text-red-300 {
+  color: #991b1b !important;
+}
+:root:not(.dark) [class*="bg-blue-"] .text-blue-300 {
+  color: #1e40af !important;
+}
+
+/* Profile settings modal - labels and values clearly readable */
+:root:not(.dark) .text-slate-350 {
+  color: #475569 !important;
+  font-weight: 500;
+}
+
+/* Prevent layout shift/theme transition flash on page load */
+.preload,
+.preload * {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -ms-transition: none !important;
+  -o-transition: none !important;
+  transition: none !important;
+}
+

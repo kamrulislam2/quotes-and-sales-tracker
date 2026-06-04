@@ -1,0 +1,90 @@
+import React from 'react';
+import { 
+  LogOut, 
+  User, 
+  Wifi, 
+  WifiOff, 
+  Sun, 
+  Moon 
+} from 'lucide-react';
+import { Profile } from '@/types';
+
+interface NavbarProps {
+  profile: Profile | null;
+  isOnline: boolean;
+  theme: 'dark' | 'light';
+  onThemeToggle: () => void;
+  onLogout: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({
+  profile,
+  isOnline,
+  theme,
+  onThemeToggle,
+  onLogout,
+}) => {
+  return (
+    <header className="bg-slate-900/40 backdrop-blur-md border-b border-slate-800/50 px-4 py-4 sm:px-6 lg:px-8 z-10">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-blue-600/15 rounded-xl border border-blue-500/20 text-blue-400">
+            <User className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              Welcome, {profile?.full_name || 'User'} ({profile?.username ? profile.username.toUpperCase() : ''})
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
+                profile?.role === 'admin'
+                  ? 'bg-purple-950/60 border-purple-800 text-purple-300' 
+                  : 'bg-blue-950/60 border-blue-800 text-blue-300'
+              }`}>
+                {profile?.role === 'admin' ? 'Admin' : 'Staff'}
+              </span>
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">Quotes & Sales Tracking Dashboard</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Online/Offline Badge */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium ${
+            isOnline 
+              ? 'bg-emerald-950/50 border-emerald-800/80 text-emerald-400' 
+              : 'bg-amber-950/50 border-amber-800/80 text-amber-400'
+          }`}>
+            {isOnline ? (
+              <>
+                <Wifi className="h-4 w-4" /> Online
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-4 w-4" /> Offline
+              </>
+            )}
+          </div>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={onThemeToggle}
+            className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg cursor-pointer hover:scale-[1.03] active:scale-[0.97] transition-all flex items-center justify-center"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-4.5 w-4.5 text-amber-500" />
+            ) : (
+              <Moon className="h-4.5 w-4.5 text-indigo-400" />
+            )}
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-350 hover:text-white rounded-lg text-xs font-semibold cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            <LogOut className="h-4 w-4" /> Logout
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+};
