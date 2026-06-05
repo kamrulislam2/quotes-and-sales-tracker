@@ -76,9 +76,9 @@ export const useDashboardData = () => {
         if (profError) throw profError;
         setProfilesList(profiles || []);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching records:', err);
-      showToast('error', 'Error loading data: ' + err.message);
+      showToast('error', 'Error loading data: ' + (err instanceof Error ? err.message : String(err)));
     }
   }, [sessionUser, profile, selectedYear, selectedMonth, showToast]);
 
@@ -149,9 +149,9 @@ export const useDashboardData = () => {
       await fetchAvailableDates();
       setSubmitting(false);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error adding record:', err);
-      showToast('error', 'Failed to save data: ' + err.message);
+      showToast('error', 'Failed to save data: ' + (err instanceof Error ? err.message : String(err)));
       setSubmitting(false);
       return false;
     }
@@ -170,9 +170,9 @@ export const useDashboardData = () => {
       await fetchRecords();
       await fetchAvailableDates();
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting record:', err);
-      showToast('error', 'Failed to delete record: ' + err.message);
+      showToast('error', 'Failed to delete record: ' + (err instanceof Error ? err.message : String(err)));
       return false;
     }
   };
@@ -195,9 +195,9 @@ export const useDashboardData = () => {
       await fetchRecords();
       await fetchAvailableDates();
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating record:', err);
-      showToast('error', 'Failed to update record: ' + err.message);
+      showToast('error', 'Failed to update record: ' + (err instanceof Error ? err.message : String(err)));
       return false;
     }
   };
@@ -236,9 +236,9 @@ export const useDashboardData = () => {
 
       setSubmitting(false);
       return activePassword; // return the password so admin can copy it
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating user:', err);
-      showToast('error', 'Error creating user: ' + err.message);
+      showToast('error', 'Error creating user: ' + (err instanceof Error ? err.message : String(err)));
       setSubmitting(false);
       return null;
     }
@@ -262,9 +262,9 @@ export const useDashboardData = () => {
 
       showToast('success', 'Password changed successfully!');
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error resetting password:', err);
-      showToast('error', 'Error changing password: ' + err.message);
+      showToast('error', 'Error changing password: ' + (err instanceof Error ? err.message : String(err)));
       return false;
     }
   };
@@ -287,9 +287,9 @@ export const useDashboardData = () => {
       showToast('success', 'User deleted successfully!');
       setProfilesList(prev => prev.filter(p => p.id !== userId));
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting user:', err);
-      showToast('error', 'Error deleting user: ' + err.message);
+      showToast('error', 'Error deleting user: ' + (err instanceof Error ? err.message : String(err)));
       return false;
     }
   };
@@ -320,9 +320,9 @@ export const useDashboardData = () => {
 
       setSubmitting(false);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating user profile:', err);
-      showToast('error', 'Error updating profile: ' + err.message);
+      showToast('error', 'Error updating profile: ' + (err instanceof Error ? err.message : String(err)));
       setSubmitting(false);
       return false;
     }
@@ -379,9 +379,9 @@ export const useDashboardData = () => {
 
       setSubmitting(false);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error completing first-time setup:', err);
-      showToast('error', 'Error during setup: ' + err.message);
+      showToast('error', 'Error during setup: ' + (err instanceof Error ? err.message : String(err)));
       setSubmitting(false);
       return false;
     }
@@ -410,9 +410,9 @@ export const useDashboardData = () => {
       showToast('success', 'Password updated successfully!');
       setSubmitting(false);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error changing password:', err);
-      showToast('error', 'Error updating password: ' + err.message);
+      showToast('error', 'Error updating password: ' + (err instanceof Error ? err.message : String(err)));
       setSubmitting(false);
       return false;
     }

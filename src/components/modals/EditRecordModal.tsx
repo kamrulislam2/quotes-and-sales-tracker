@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { FileType, RecordItem } from '@/types';
 
 interface EditRecordModalProps {
@@ -18,7 +18,6 @@ interface EditRecordModalProps {
 }
 
 export const EditRecordModal: React.FC<EditRecordModalProps> = ({
-  record,
   editFileName,
   setEditFileName,
   editBranchName,
