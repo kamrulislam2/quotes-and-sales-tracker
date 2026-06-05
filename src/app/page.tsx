@@ -14,7 +14,7 @@ import { ConfirmModal } from '@/components/modals/ConfirmModal';
 import { AdminCustomEntryModal } from '@/components/modals/AdminCustomEntryModal';
 import { AdminViewToggle } from '@/components/AdminViewToggle';
 import { validator } from '@/utils/validator';
-import { calculateSummaryStats, formatDate } from '@/utils/dashboardHelpers';
+import { calculateSummaryStats, formatDate, exportToCSV, exportToPDF } from '@/utils/dashboardHelpers';
 import { FileType, RecordItem, Profile } from '@/types';
 import {
   FileText,
@@ -33,7 +33,9 @@ import {
   X,
   Plus,
   RefreshCw,
-  Search
+  Search,
+  FileSpreadsheet,
+  FileDown
 } from 'lucide-react';
 
 const ALL_12_FILE_TYPES = [
@@ -388,6 +390,34 @@ export default function Dashboard() {
   const monthlyStats = useMemo(() => {
     return calculateSummaryStats(monthlyFilteredRecords);
   }, [monthlyFilteredRecords]);
+
+  // Export handlers for Today's Entries
+  const handleExportTodayExcel = () => {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    exportToCSV(todayFilteredRecords, `daily_entries_${todayStr}`);
+  };
+
+  const handleExportTodayPDF = () => {
+    const dateFormatted = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    exportToPDF(todayFilteredRecords, "Today's File Entry List", `Date: ${dateFormatted}`);
+  };
+
+  // Export handlers for Monthly Entries
+  const handleExportMonthlyExcel = () => {
+    let dateStr = `${selectedYear}-${selectedMonth}`;
+    if (selectedDate) {
+      dateStr = selectedDate;
+    }
+    exportToCSV(monthlyFilteredRecords, `monthly_entries_${dateStr}`);
+  };
+
+  const handleExportMonthlyPDF = () => {
+    let dateStr = `Period: ${selectedMonth}-${selectedYear}`;
+    if (selectedDate) {
+      dateStr = `Date: ${formatDate(selectedDate)}`;
+    }
+    exportToPDF(monthlyFilteredRecords, "Monthly Quotes & Sales Logs", dateStr);
+  };
 
   // Clear filters
   const handleClearFilters = () => {
@@ -846,10 +876,26 @@ export default function Dashboard() {
                     </p>
                   </div>
 
-                  {/* Admin filter mode toggle */}
-                  {profile?.role === 'admin' && (
-                    <AdminViewToggle viewMode={adminViewMode} onChange={handleAdminViewModeChange} />
-                  )}
+                  {/* Export and Filter Controls */}
+                  <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
+                    <button
+                      onClick={handleExportTodayExcel}
+                      className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/50 hover:bg-slate-850 text-slate-350 hover:text-white text-[11px] font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
+                      <span>Excel</span>
+                    </button>
+                    <button
+                      onClick={handleExportTodayPDF}
+                      className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/50 hover:bg-slate-850 text-slate-350 hover:text-white text-[11px] font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    >
+                      <FileDown className="h-3.5 w-3.5 text-rose-500" />
+                      <span>PDF</span>
+                    </button>
+                    {profile?.role === 'admin' && (
+                      <AdminViewToggle viewMode={adminViewMode} onChange={handleAdminViewModeChange} />
+                    )}
+                  </div>
                 </div>
 
                 {/* Stat pills summary Component */}
@@ -892,8 +938,22 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-450 mt-1">Filter and view data for all months and years.</p>
                 </div>
 
-                {/* View toggle & Custom Entry Button */}
+                {/* View toggle, Export, & Custom Entry Controls */}
                 <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
+                  <button
+                    onClick={handleExportMonthlyExcel}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/50 hover:bg-slate-850 text-slate-350 hover:text-white text-[11px] font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Excel</span>
+                  </button>
+                  <button
+                    onClick={handleExportMonthlyPDF}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/50 hover:bg-slate-850 text-slate-350 hover:text-white text-[11px] font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-rose-500" />
+                    <span>PDF</span>
+                  </button>
                   {profile?.role === 'admin' && adminViewMode === 'all' && (
                     <button
                       onClick={() => setIsAdminCustomEntryModalOpen(true)}
