@@ -133,3 +133,32 @@ If configuring a new Supabase project, execute the SQL definitions found in [sch
    - `delete_user_by_id`: Admin deletes user record from auth schema.
    - `complete_profile_setup`: Completes onboarding profile details.
    - `list_all_users`, `inspect_auth_users`, etc. (Schema metadata inspection scripts).
+
+---
+
+## 🖥️ Desktop Application (Tauri Wrapper)
+
+The project includes a **Tauri Desktop Application Wrapper** configuration. This wraps your Next.js website (Vercel deployment) inside a lightweight native desktop application window.
+
+### Features
+- **Zero-config Updates**: Because the desktop app loads the remote Vercel subdomain URL directly, any changes or bug fixes you push to Git will automatically update in the desktop app instantly, without requiring users to reinstall anything.
+- **Lightweight**: Tauri uses your OS's native webview, keeping the package size extremely small (usually under 5 MB).
+
+### Setup & Local Development
+1. Start your local Next.js dev server:
+   ```bash
+   npm run dev
+   ```
+2. Run the Tauri desktop window in development mode:
+   ```bash
+   npm run tauri:dev
+   ```
+
+### Production Configuration
+1. Open [tauri.conf.json](file:///Users/bnfcorporate/Documents/Web%20Dev/quotes-sales-tracker/src-tauri/tauri.conf.json).
+2. Locate the `tauri > windows > [0] > url` property and replace the placeholder URL (`https://quotes-sales-tracker.vercel.app`) with your live Vercel deployment/subdomain URL.
+3. Compile the production installer for your operating system:
+   ```bash
+   npm run tauri:build
+   ```
+   - The generated installers (`.dmg` on macOS, `.msi` or `.exe` on Windows, `.deb` on Linux) will be output in the `src-tauri/target/release/bundle/` directory.
