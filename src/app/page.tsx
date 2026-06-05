@@ -267,9 +267,6 @@ export default function Dashboard() {
 
 
   // Dynamic Year and Month Options
-  const currentYearNum = new Date().getFullYear();
-  const currentMonthNum = new Date().getMonth() + 1; // 1-indexed
-
   const dynamicYears = useMemo(() => {
     const yearsSet = new Set<string>();
     availableDates.forEach(d => {
@@ -402,7 +399,7 @@ export default function Dashboard() {
     if (specificDateRef.current) {
       try {
         specificDateRef.current.showPicker();
-      } catch (err) {
+      } catch {
         specificDateRef.current.click();
       }
     }

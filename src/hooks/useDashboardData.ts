@@ -515,7 +515,7 @@ export const useDashboardData = () => {
     };
 
     getSession();
-  }, [router]);
+  }, [router, showToast]);
 
   // Fetch records once authenticated & loaded
   useEffect(() => {

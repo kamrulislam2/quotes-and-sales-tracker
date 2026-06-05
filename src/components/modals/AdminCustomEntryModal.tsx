@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Calendar, User, Check, Plus, Loader2, FileText, MapPin } from 'lucide-react';
+import { X, Calendar, User, Plus, Loader2, FileText, MapPin } from 'lucide-react';
 import { FileType, Profile } from '@/types';
 import { formatDate } from '@/utils/dashboardHelpers';
 import { CategorySelector } from '../CategorySelector';
@@ -32,7 +32,7 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
     if (customDateRef.current) {
       try {
         customDateRef.current.showPicker();
-      } catch (err) {
+      } catch {
         customDateRef.current.click();
       }
     }
