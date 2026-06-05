@@ -29,10 +29,13 @@ A modern, high-performance, real-time web application designed to track and mana
 - Access to the main dashboard is completely locked until they verify their Full Name, Codename, and set a custom password (6 to 12 characters).
 - If the admin updates their password or details later, the onboarding status does not reset unless explicitly required.
 
-### 📊 3. Dynamic Stats Grid
+### 📊 3. Dynamic Stats Grid & Optimized Counting Rules
 - Real-time aggregated stats of the current day or month's records.
+- **Double-Digit Padding & Percentages**: Every file category displays its count formatted as a two-digit number (e.g. `07`) alongside its relative percentage of the total files count in parentheses, e.g., `Sale: 07 (40%)`.
+- **Other Site Excluded**: The `Total Files` count explicitly excludes `Other Site` entries. `Other Site` displays its count independently but is not counted as a file and does not show a percentage.
 - Hides unused file categories (count = 0) to avoid clutter, keeping the dashboard clean.
-- The `Total Files` card always remains visible.
+- The `Total Files` card always remains visible and does not show a percentage.
+- **Auto-Scale**: Category cards adjust dynamically depending on the selected user's allowed categories.
 
 ### 📂 4. File Categories & Validations
 - Supports 12 distinct file categories: `Quote`, `Requote`, `Requote Van`, `Requote Bike`, `Review`, `Review Van`, `Review Bike`, `Individual Review`, `Other Site`, `Van`, `Bike`, and `Sale`.
@@ -44,6 +47,7 @@ A modern, high-performance, real-time web application designed to track and mana
 - **Specific Date Filter**: Type and format dates with DD-MM-YYYY automatic mask and visual calendar picker.
 - **Today's Entries**: View logs submitted today with local time formatting, instant search, and delete/edit modals.
 - **Admin View Persistence**: Remembers your All Data / My Data toggle selection across page reloads using `localStorage`.
+- **Excel & PDF Exports**: Download filtered data lists as an Excel spreadsheet (CSV with UTF-8 BOM encoding) or PDF (native OS print-to-PDF layout) directly using the download buttons in the headers.
 
 ### ⏱️ 6. 21-Day Inactivity Auto-Logout
 - Tracks user last active session timestamp in `localStorage`.

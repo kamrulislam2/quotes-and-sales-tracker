@@ -47,7 +47,21 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: "Release v__VERSION__"
-          releaseBody: "Automated desktop build for Mac and Windows. Download the appropriate file below."
+          releaseBody: |
+            Automated desktop build for Mac and Windows. Download the appropriate installer below.
+
+            ### 🚀 What's New in v0.1.3:
+            * **Excel & PDF Exports**: Download filtered reports of daily and monthly entries directly to your local machine using the "Excel" (CSV with UTF-8 BOM encoding) and "PDF" (native print to PDF rendering) options.
+            * **Excluded "Other Site" from Total Files**: The statistics `total` files count now explicitly excludes any `Other Site` entries. `Other Site` continues to show its individual count, but is not counted as a file.
+            * **Percentages and Padding**: Every file category displays its count formatted as a two-digit number (e.g. `07`) alongside its relative percentage of the total files count in parentheses (e.g. `(40%)`), while `Other Site` and `Total Files` display their counts without percentages.
+            * **Active Tab State Persistence**: Remembers whether the user was in the Entry, Monthly, or Users tab across page reloads. Includes a fallback security check to prevent normal users from landing on the Admin-only "Users" tab.
+            * **Locked Codename & Half-Width Submit Button**: Locks the codename input field for normal users to prevent arbitrary changes. Reduced the submit button width to half-width on the right side for a polished, modern form layout.
+            * **Custom Entry Header Placement & Toggle Switcher**: Relocated the Admin's "Custom Entry" button next to the "All Data / My Data" toggle switch. Admin view modes are persisted (All Data vs My Data), and My Data is loaded by default.
+            * **Permissive RLS INSERT Policy (Supabase)**: Fixed the policy bug that blocked Admins from submitting custom backdated entries for other codenames/users.
+            - **Unified Category Grid Component (`<CategorySelector>`)**: Unified category selection screens between DailyEntryForm and AdminCustomEntryModal for perfect consistency.
+            - **Polished Date Filter & Search System**: Integrated Search, Year, Month, and Specific Date filters into a single card container. Specific Date has typing autocompletion, calendar selection, and custom reset button. If Specific Date is active, Year/Month selections are locked.
+            - **21-Day Inactivity Auto-Logout**: Keeps track of user activity timestamps and automatically signs users out if they haven't visited or performed actions in 21 days.
+            - **Code Cleanups & Warnings Fix**: Deleted unused `src/utils/webPushHelper.ts` and `src/utils/errorHandler.ts` files. Uninstalled unused dependencies (`bcryptjs`, `web-push`). Resolved all React Hook/ESLint warnings for zero warnings, clean compile state.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
