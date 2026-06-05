@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { Navbar } from '@/components/Navbar';
 import { StatsGrid } from '@/components/StatsGrid';
@@ -11,9 +11,10 @@ import { EditRecordModal } from '@/components/modals/EditRecordModal';
 import { EditProfileModal } from '@/components/modals/EditProfileModal';
 import { AddUserModal } from '@/components/modals/AddUserModal';
 import { ConfirmModal } from '@/components/modals/ConfirmModal';
+import { AdminCustomEntryModal } from '@/components/modals/AdminCustomEntryModal';
 import { AdminViewToggle } from '@/components/AdminViewToggle';
 import { validator } from '@/utils/validator';
-import { calculateSummaryStats } from '@/utils/dashboardHelpers';
+import { calculateSummaryStats, formatDate } from '@/utils/dashboardHelpers';
 import { FileType, RecordItem, Profile } from '@/types';
 import {
   FileText,
@@ -28,8 +29,11 @@ import {
   Info,
   UserCheck,
   Shield,
-  RotateCcw,
-  Edit
+  Edit,
+  X,
+  Plus,
+  RefreshCw,
+  Search
 } from 'lucide-react';
 
 const ALL_12_FILE_TYPES = [
@@ -48,6 +52,7 @@ const ALL_12_FILE_TYPES = [
 ];
 
 export default function Dashboard() {
+  const specificDateRef = useRef<HTMLInputElement>(null);
   const dashboardData = useDashboardData();
   const {
     sessionUser,
@@ -79,6 +84,23 @@ export default function Dashboard() {
   // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management)
   const [activeTab, setActiveTab] = useState<'entry' | 'monthly' | 'users'>('entry');
 
+  // Load active tab preference in localStorage on mount or when profile loads
+  useEffect(() => {
+    const savedTab = localStorage.getItem('quotes_sales_active_tab');
+    if (savedTab && (savedTab === 'entry' || savedTab === 'monthly' || savedTab === 'users')) {
+      if (savedTab === 'users' && profile?.role !== 'admin') {
+        setActiveTab('entry');
+      } else {
+        setActiveTab(savedTab as 'entry' | 'monthly' | 'users');
+      }
+    }
+  }, [profile]);
+
+  const handleTabChange = (tab: 'entry' | 'monthly' | 'users') => {
+    setActiveTab(tab);
+    localStorage.setItem('quotes_sales_active_tab', tab);
+  };
+
   // Daily Entry Form State
   const [fileName, setFileName] = useState('');
   const [branchName, setBranchName] = useState('');
@@ -86,13 +108,93 @@ export default function Dashboard() {
   const [fileType, setFileType] = useState<FileType>('Quote');
 
   // Admin View Toggle on Tables: 'all' or 'mine'
-  const [adminViewMode, setAdminViewMode] = useState<'all' | 'mine'>('all');
+  const [adminViewMode, setAdminViewMode] = useState<'all' | 'mine'>('mine');
+
+  // Load active admin view mode preference on mount
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('quotes_sales_admin_view_mode');
+    if (savedViewMode === 'all' || savedViewMode === 'mine') {
+      setAdminViewMode(savedViewMode);
+    }
+  }, []);
+
+  const handleAdminViewModeChange = (mode: 'all' | 'mine') => {
+    setAdminViewMode(mode);
+    localStorage.setItem('quotes_sales_admin_view_mode', mode);
+  };
 
   // Monthly Table Search Query
   const [searchQuery, setSearchQuery] = useState('');
 
   // Today's Table Search Query
   const [todaySearchQuery, setTodaySearchQuery] = useState('');
+
+  // Monthly Table Date filter state
+  const [selectedDate, setSelectedDate] = useState('');
+  const [dateInputVal, setDateInputVal] = useState('');
+
+  // Sync text input with selectedDate
+  useEffect(() => {
+    if (selectedDate) {
+      const parts = selectedDate.split('-');
+      if (parts.length === 3) {
+        setDateInputVal(`${parts[2]}-${parts[1]}-${parts[0]}`);
+      } else {
+        setDateInputVal(formatDate(selectedDate));
+      }
+    } else {
+      setDateInputVal('');
+    }
+  }, [selectedDate]);
+
+  const handleDateInputChange = (val: string) => {
+    const clean = val.replace(/\D/g, '');
+    let formatted = '';
+    if (clean.length > 0) {
+      formatted += clean.substring(0, 2);
+    }
+    if (clean.length > 2) {
+      formatted += '-' + clean.substring(2, 4);
+    }
+    if (clean.length > 4) {
+      formatted += '-' + clean.substring(4, 8);
+    }
+
+    setDateInputVal(formatted);
+
+    if (formatted.length === 10) {
+      const parts = formatted.split('-');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+
+      if (
+        day >= 1 && day <= 31 &&
+        month >= 1 && month <= 12 &&
+        year >= 1900 && year <= 2100
+      ) {
+        const dateObj = new Date(year, month - 1, day);
+        if (
+          dateObj.getFullYear() === year &&
+          dateObj.getMonth() === month - 1 &&
+          dateObj.getDate() === day
+        ) {
+          const yyyy = String(year);
+          const mm = String(month).padStart(2, '0');
+          const dd = String(day).padStart(2, '0');
+          const dateValue = `${yyyy}-${mm}-${dd}`;
+          setSelectedDate(dateValue);
+          setSelectedYear(yyyy);
+          setSelectedMonth(mm);
+          return;
+        }
+      }
+    }
+    setSelectedDate('');
+  };
+
+  // Admin Backdated Entry Modal State
+  const [isAdminCustomEntryModalOpen, setIsAdminCustomEntryModalOpen] = useState(false);
 
   // Create User Form State
   const [newCodename, setNewCodename] = useState('');
@@ -163,6 +265,7 @@ export default function Dashboard() {
     }
   }, [profile, codenameInput, ownCodename, ownFullName, fileType]);
 
+
   // Dynamic Year and Month Options
   const currentYearNum = new Date().getFullYear();
   const currentMonthNum = new Date().getMonth() + 1; // 1-indexed
@@ -228,6 +331,13 @@ export default function Dashboard() {
       if (profile?.role === 'admin' && adminViewMode === 'mine' && r.user_id !== sessionUser?.id) {
         return false;
       }
+      // Specific Date filter
+      if (selectedDate) {
+        const recordDate = new Date(r.submitted_at).toLocaleDateString('en-CA');
+        if (recordDate !== selectedDate) {
+          return false;
+        }
+      }
       if (searchQuery) {
         const q = searchQuery.toLowerCase().trim();
         const matchFileName = r.file_name.toLowerCase().includes(q);
@@ -240,7 +350,7 @@ export default function Dashboard() {
       }
       return true;
     });
-  }, [records, adminViewMode, searchQuery, profile, sessionUser]);
+  }, [records, adminViewMode, selectedDate, searchQuery, profile, sessionUser]);
 
   // Today's entries (submitted on the current local day)
   const todayRecords = useMemo(() => {
@@ -285,6 +395,80 @@ export default function Dashboard() {
   // Clear filters
   const handleClearFilters = () => {
     setSearchQuery('');
+  };
+
+  // Open native picker for specific date
+  const handleOpenSpecificDatePicker = () => {
+    if (specificDateRef.current) {
+      try {
+        specificDateRef.current.showPicker();
+      } catch (err) {
+        specificDateRef.current.click();
+      }
+    }
+  };
+
+  // Specific Date filter change handler
+  const handleDateFilterChange = (dateValue: string) => {
+    setSelectedDate(dateValue);
+    if (dateValue) {
+      const [year, month] = dateValue.split('-');
+      if (year && month) {
+        setSelectedYear(year);
+        setSelectedMonth(month);
+      }
+    }
+  };
+
+  // Submit Admin Backdated / Custom Date Entry from Modal
+  const handleAdminCustomEntrySubmit = async (
+    fileName: string,
+    branchName: string,
+    fileType: FileType,
+    userId: string,
+    submittedAtDate: string
+  ): Promise<boolean> => {
+    if (!userId) {
+      showToast('error', 'Please select a user.');
+      return false;
+    }
+    if (!submittedAtDate) {
+      showToast('error', 'Please select a submission date.');
+      return false;
+    }
+
+    const targetProfile = profilesList.find(p => p.id === userId);
+    if (!targetProfile) {
+      showToast('error', 'Selected user not found.');
+      return false;
+    }
+
+    const formValidation = validator.validateRecordForm({
+      file_name: fileName,
+      branch_name: branchName,
+      codename: targetProfile.username,
+      file_type: fileType
+    });
+
+    if (!formValidation.isValid) {
+      showToast('error', formValidation.errors[0]);
+      return false;
+    }
+
+    const now = new Date();
+    const timePart = now.toTimeString().split(' ')[0]; // HH:MM:SS
+    const customSubmittedAt = new Date(`${submittedAtDate}T${timePart}`).toISOString();
+
+    const success = await addRecord(
+      fileName,
+      branchName,
+      targetProfile.username,
+      fileType,
+      userId,
+      customSubmittedAt
+    );
+
+    return success;
   };
 
   const handleClearTodayFilters = () => {
@@ -591,35 +775,32 @@ export default function Dashboard() {
         <aside className="w-full md:w-64 shrink-0 bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 shadow-xl">
           <div className="space-y-1">
             <button
-              onClick={() => setActiveTab('entry')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
-                activeTab === 'entry'
+              onClick={() => handleTabChange('entry')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${activeTab === 'entry'
                   ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
                   : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
-              }`}
+                }`}
             >
               <FileText className="h-5 w-5" />
               <span>Daily Entry</span>
             </button>
             <button
-              onClick={() => setActiveTab('monthly')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
-                activeTab === 'monthly'
+              onClick={() => handleTabChange('monthly')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${activeTab === 'monthly'
                   ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
                   : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
-              }`}
+                }`}
             >
               <Calendar className="h-5 w-5" />
               <span>Monthly Entry List</span>
             </button>
             {profile?.role === 'admin' && (
               <button
-                onClick={() => setActiveTab('users')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
-                  activeTab === 'users'
+                onClick={() => handleTabChange('users')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${activeTab === 'users'
                     ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
                     : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
-                }`}
+                  }`}
               >
                 <Users className="h-5 w-5" />
                 <span>User Management</span>
@@ -652,6 +833,7 @@ export default function Dashboard() {
                 allowedCategories={allowedCategories}
                 submitting={submitting}
                 onSubmit={handleAddEntry}
+                isAdmin={false}
               />
 
               {/* Today's Data Title and Summary Stats */}
@@ -669,7 +851,7 @@ export default function Dashboard() {
 
                   {/* Admin filter mode toggle */}
                   {profile?.role === 'admin' && (
-                    <AdminViewToggle viewMode={adminViewMode} onChange={setAdminViewMode} />
+                    <AdminViewToggle viewMode={adminViewMode} onChange={handleAdminViewModeChange} />
                   )}
                 </div>
 
@@ -713,64 +895,128 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-450 mt-1">Filter and view data for all months and years.</p>
                 </div>
 
-                {/* View toggle */}
-                {profile?.role === 'admin' && (
-                  <AdminViewToggle viewMode={adminViewMode} onChange={setAdminViewMode} />
-                )}
+                {/* View toggle & Custom Entry Button */}
+                <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
+                  {profile?.role === 'admin' && adminViewMode === 'all' && (
+                    <button
+                      onClick={() => setIsAdminCustomEntryModalOpen(true)}
+                      className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg shadow-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Custom Entry</span>
+                    </button>
+                  )}
+                  {profile?.role === 'admin' && (
+                    <AdminViewToggle viewMode={adminViewMode} onChange={handleAdminViewModeChange} />
+                  )}
+                </div>
               </div>
 
               {/* Date selection row & Filters */}
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="bg-slate-955/40 p-4 rounded-2xl border border-slate-850 grid grid-cols-2 gap-3.5 max-w-md flex-1">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-350 mb-1">Year</label>
-                      <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                        className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                      >
-                        {dynamicYears.map(year => (
-                          <option key={year} value={year}>{year}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-350 mb-1">Month</label>
-                      <select
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                      >
-                        {dynamicMonths.map(m => (
-                          <option key={m.val} value={m.val}>{m.name}</option>
-                        ))}
-                      </select>
+                <div className="bg-slate-955/40 p-4 rounded-2xl border border-slate-850 grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end w-full">
+                  {/* 1. Search Box */}
+                  <div className="md:col-span-4">
+                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">Search</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search name, codename, branch..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="block w-full pl-8 pr-8 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs h-9"
+                      />
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-555" />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={handleClearFilters}
+                          className="absolute right-2.5 top-2.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+                          title="Clear search"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Reset button */}
-                  {(selectedYear !== String(currentYearNum) || selectedMonth !== String(currentMonthNum).padStart(2, '0')) && (
-                    <button
-                      onClick={() => {
-                        setSelectedYear(String(currentYearNum));
-                        setSelectedMonth(String(currentMonthNum).padStart(2, '0'));
+                  {/* 2. Year Selection */}
+                  <div className="md:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">Year</label>
+                    <select
+                      value={selectedYear}
+                      disabled={!!selectedDate}
+                      onChange={(e) => {
+                        setSelectedYear(e.target.value);
+                        setSelectedDate(''); // Reset specific date filter
                       }}
-                      className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] self-start sm:self-center h-10 shrink-0"
-                      title="Reset to current month & year"
+                      className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-900/30 h-9"
                     >
-                      <RotateCcw className="h-4 w-4" />
-                      <span>Reset</span>
-                    </button>
-                  )}
-                </div>
+                      {dynamicYears.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                <SearchFilters
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  onClear={handleClearFilters}
-                />
+                  {/* 3. Month Selection */}
+                  <div className="md:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-355 mb-1">Month</label>
+                    <select
+                      value={selectedMonth}
+                      disabled={!!selectedDate}
+                      onChange={(e) => {
+                        setSelectedMonth(e.target.value);
+                        setSelectedDate(''); // Reset specific date filter
+                      }}
+                      className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-900/30 h-9"
+                    >
+                      {dynamicMonths.map(m => (
+                        <option key={m.val} value={m.val}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 4. Specific Date Input */}
+                  <div className="md:col-span-4">
+                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">Specific Date</label>
+                    <div className="flex gap-1.5 items-center">
+                      <input
+                        type="text"
+                        placeholder="DD-MM-YYYY"
+                        value={dateInputVal}
+                        onChange={(e) => handleDateInputChange(e.target.value)}
+                        maxLength={10}
+                        className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 h-9"
+                      />
+                      <input
+                        type="date"
+                        ref={specificDateRef}
+                        value={selectedDate}
+                        onChange={(e) => handleDateFilterChange(e.target.value)}
+                        className="absolute w-px h-px opacity-0 pointer-events-none select-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleOpenSpecificDatePicker}
+                        className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-400 rounded-lg transition-all duration-200 flex items-center justify-center shrink-0 w-9 h-9 cursor-pointer"
+                        title="Open Calendar"
+                      >
+                        <Calendar className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedDate('');
+                          setDateInputVal('');
+                        }}
+                        className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-400 rounded-lg transition-all duration-200 flex items-center justify-center shrink-0 w-9 h-9 cursor-pointer"
+                        title="Reset specific date"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Monthly Stats summary grid */}
@@ -842,11 +1088,10 @@ export default function Dashboard() {
                           <td className="px-4 py-2.5 font-bold text-white">{u.username.toUpperCase()}</td>
                           <td className="px-4 py-2.5">{u.full_name || '-'}</td>
                           <td className="px-4 py-2.5">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              u.role === 'admin'
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${u.role === 'admin'
                                 ? 'bg-purple-950/50 border-purple-900/60 text-purple-450'
                                 : 'bg-blue-950/50 border-blue-900/60 text-blue-450'
-                            }`}>
+                              }`}>
                               {u.role === 'admin' ? 'Admin' : 'User'}
                             </span>
                           </td>
@@ -1017,6 +1262,17 @@ export default function Dashboard() {
         cancelText="Cancel"
         isDanger={true}
       />
+
+      {/* MODAL 7: ADMIN CUSTOM DATE ENTRY */}
+      {profile?.role === 'admin' && (
+        <AdminCustomEntryModal
+          isOpen={isAdminCustomEntryModalOpen}
+          onClose={() => setIsAdminCustomEntryModalOpen(false)}
+          profilesList={profilesList}
+          submitting={submitting}
+          onSubmit={handleAdminCustomEntrySubmit}
+        />
+      )}
 
     </div>
   );

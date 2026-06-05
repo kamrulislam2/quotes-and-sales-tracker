@@ -62,7 +62,9 @@ CREATE POLICY "Allow users to read own records" ON public.records
   ));
 
 CREATE POLICY "Allow users to insert own records" ON public.records
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id OR EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+  ));
 
 CREATE POLICY "Allow users to update own records" ON public.records
   FOR UPDATE TO authenticated USING (auth.uid() = user_id OR EXISTS (

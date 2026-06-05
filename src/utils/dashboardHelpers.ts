@@ -1,13 +1,15 @@
 import { RecordItem } from '@/types';
 
-// Helper function to format date from ISO string (or YYYY-MM-DD) to a readable DD MMM YYYY format
+// Helper function to format date from ISO string (or YYYY-MM-DD) to DD-MM-YYYY format
 export const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '';
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
-    const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' };
-    return date.toLocaleDateString('en-GB', options);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   } catch {
     return dateStr;
   }

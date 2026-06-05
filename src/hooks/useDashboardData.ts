@@ -15,6 +15,13 @@ export const useDashboardData = () => {
   const [submitting, setSubmitting] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
+  // Helper to update last activity timestamp in localStorage
+  const updateLastActivity = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('quotes_sales_last_activity', String(Date.now()));
+    }
+  }, []);
+
   // Records and Profiles lists
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [profilesList, setProfilesList] = useState<Profile[]>([]);
@@ -126,20 +133,31 @@ export const useDashboardData = () => {
   }, [sessionUser, profile]);
 
   // Add a new Quote or Sales Entry
-  const addRecord = async (fileName: string, branchName: string, codename: string, fileType: FileType) => {
+  const addRecord = async (
+    fileName: string,
+    branchName: string,
+    codename: string,
+    fileType: FileType,
+    customUserId?: string,
+    customSubmittedAt?: string
+  ) => {
     if (!sessionUser) return false;
     setSubmitting(true);
+    updateLastActivity();
 
     try {
+      const targetUserId = customUserId || sessionUser.id;
+      const targetSubmittedAt = customSubmittedAt || new Date().toISOString();
+
       const { error } = await supabase
         .from('records')
         .insert({
-          user_id: sessionUser.id,
+          user_id: targetUserId,
           file_name: fileName,
           branch_name: branchName.toUpperCase().trim(),
           codename: codename.toUpperCase().trim(),
           file_type: fileType,
-          submitted_at: new Date().toISOString()
+          submitted_at: targetSubmittedAt
         });
 
       if (error) throw error;
@@ -159,6 +177,7 @@ export const useDashboardData = () => {
 
   // Delete a Record
   const deleteRecord = async (id: string) => {
+    updateLastActivity();
     try {
       const { error } = await supabase
         .from('records')
@@ -179,6 +198,7 @@ export const useDashboardData = () => {
 
   // Update/Edit a Record
   const updateRecord = async (id: string, fileName: string, branchName: string, codename: string, fileType: FileType) => {
+    updateLastActivity();
     try {
       const { error } = await supabase
         .from('records')
@@ -451,6 +471,26 @@ export const useDashboardData = () => {
       if (!session) {
         router.push('/login');
         return;
+      }
+
+      // Check last activity timestamp for 21 days inactivity logout
+      if (typeof window !== 'undefined') {
+        const lastActivity = localStorage.getItem('quotes_sales_last_activity');
+        const limitMs = 21 * 24 * 60 * 60 * 1000; // 21 days
+        const currentTime = Date.now();
+
+        if (lastActivity) {
+          const lastTime = parseInt(lastActivity, 10);
+          if (!isNaN(lastTime) && currentTime - lastTime > limitMs) {
+            console.warn('Session expired due to 21 days of inactivity.');
+            localStorage.removeItem('quotes_sales_last_activity');
+            await supabase.auth.signOut();
+            showToast('error', 'Logged out due to 21 days of inactivity.');
+            router.push('/login');
+            return;
+          }
+        }
+        localStorage.setItem('quotes_sales_last_activity', String(currentTime));
       }
 
       const userId = session.user.id;

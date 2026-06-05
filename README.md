@@ -40,11 +40,16 @@ A modern, high-performance, real-time web application designed to track and mana
 - Database triggers (`check_record_type_permission`) validate that users cannot submit records for unauthorized categories.
 
 ### 🔎 5. Realtime Search & Filters
+- **Unified Filters Row**: Search bar is placed directly next to Year, Month, and Specific Date filters in a single aligned row.
+- **Specific Date Filter**: Type and format dates with DD-MM-YYYY automatic mask and visual calendar picker.
 - **Today's Entries**: View logs submitted today with local time formatting, instant search, and delete/edit modals.
-- **Monthly Archives**: Select Year and Month to load past records. Search by file name, branch, codename, or type.
-- **Reset Controls**: Easily reset month/year filters back to the current local month with a single click.
+- **Admin View Persistence**: Remembers your All Data / My Data toggle selection across page reloads using `localStorage`.
 
-### 🛠️ 6. User Management (Admin Only)
+### ⏱️ 6. 21-Day Inactivity Auto-Logout
+- Tracks user last active session timestamp in `localStorage`.
+- Automatically logs users out, clears security sessions, and redirects to login if the app is not visited or active for 21 consecutive days.
+
+### 🛠️ 7. User Management (Admin Only)
 - **Create Users**: Direct creation of staff accounts with customized allowed category checkboxes.
 - **Edit Profiles**: Update name, role, and categories, or change their passwords via the UI.
 - **Delete Users**: Permanently remove accounts with confirmation dialogs.
