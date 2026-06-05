@@ -11,6 +11,7 @@ import { EditRecordModal } from '@/components/modals/EditRecordModal';
 import { EditProfileModal } from '@/components/modals/EditProfileModal';
 import { AddUserModal } from '@/components/modals/AddUserModal';
 import { ConfirmModal } from '@/components/modals/ConfirmModal';
+import { AdminViewToggle } from '@/components/AdminViewToggle';
 import { validator } from '@/utils/validator';
 import { calculateSummaryStats } from '@/utils/dashboardHelpers';
 import { FileType, RecordItem, Profile } from '@/types';
@@ -668,28 +669,7 @@ export default function Dashboard() {
 
                   {/* Admin filter mode toggle */}
                   {profile?.role === 'admin' && (
-                    <div className="flex bg-slate-955 border border-slate-800 p-0.5 rounded-lg text-xs font-semibold">
-                      <button
-                        onClick={() => setAdminViewMode('all')}
-                        className={`px-3 py-1 rounded-md transition-all duration-200 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                          adminViewMode === 'all'
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-950/10'
-                            : 'text-slate-455 hover:text-white hover:bg-slate-900/30'
-                        }`}
-                      >
-                        All Data
-                      </button>
-                      <button
-                        onClick={() => setAdminViewMode('mine')}
-                        className={`px-3 py-1 rounded-md transition-all duration-200 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                          adminViewMode === 'mine'
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-950/10'
-                            : 'text-slate-455 hover:text-white hover:bg-slate-900/30'
-                        }`}
-                      >
-                        My Data
-                      </button>
-                    </div>
+                    <AdminViewToggle viewMode={adminViewMode} onChange={setAdminViewMode} />
                   )}
                 </div>
 
@@ -735,28 +715,7 @@ export default function Dashboard() {
 
                 {/* View toggle */}
                 {profile?.role === 'admin' && (
-                  <div className="flex bg-slate-955 border border-slate-800 p-0.5 rounded-lg text-xs font-semibold self-start sm:self-auto">
-                    <button
-                      onClick={() => setAdminViewMode('all')}
-                      className={`px-3 py-1 rounded-md transition-all duration-200 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                        adminViewMode === 'all'
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-950/10'
-                          : 'text-slate-455 hover:text-white hover:bg-slate-900/30'
-                      }`}
-                    >
-                      All Data
-                    </button>
-                    <button
-                      onClick={() => setAdminViewMode('mine')}
-                      className={`px-3 py-1 rounded-md transition-all duration-200 cursor-pointer hover:scale-[1.03] active:scale-[0.97] ${
-                        adminViewMode === 'mine'
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-950/10'
-                          : 'text-slate-455 hover:text-white hover:bg-slate-900/30'
-                      }`}
-                    >
-                      My Data
-                    </button>
-                  </div>
+                  <AdminViewToggle viewMode={adminViewMode} onChange={setAdminViewMode} />
                 )}
               </div>
 
