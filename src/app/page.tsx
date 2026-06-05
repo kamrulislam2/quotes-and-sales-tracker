@@ -373,12 +373,13 @@ export default function Dashboard() {
 
     const pw = await createUser(newCodename, newRole, newFullName, allowedTypesSelect, newPassword);
     if (pw) {
-      setGeneratedPassword(pw);
+      setGeneratedPassword(null);
       setNewCodename('');
       setNewFullName('');
       setNewRole('user');
       setNewPassword('1234');
       setAllowedTypesSelect(ALL_12_FILE_TYPES);
+      setIsAddUserModalOpen(false);
     }
   };
 

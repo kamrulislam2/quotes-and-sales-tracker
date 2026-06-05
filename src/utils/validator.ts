@@ -25,7 +25,20 @@ export const validator = {
     if (!data.file_type) {
       errors.push('Please select a file category/type.');
     } else {
-      const validTypes = ['Quote', 'Requote', 'Review', 'Individual Review', 'Other Site', 'Van', 'Bike', 'Sale'];
+      const validTypes = [
+        'Quote',
+        'Requote',
+        'Requote Van',
+        'Requote Bike',
+        'Review',
+        'Review Van',
+        'Review Bike',
+        'Individual Review',
+        'Other Site',
+        'Van',
+        'Bike',
+        'Sale'
+      ];
       if (!validTypes.includes(data.file_type)) {
         errors.push('Invalid file type selected.');
       }
