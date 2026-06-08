@@ -1,7 +1,7 @@
-import React from 'react';
-import { FileText, MapPin, UserCheck, Plus, Loader2 } from 'lucide-react';
-import { FileType } from '@/types';
-import { CategorySelector } from './CategorySelector';
+import React from "react";
+import { FileText, MapPin, UserCheck, Plus, Loader2 } from "lucide-react";
+import { FileType } from "@/types";
+import { CategorySelector } from "./CategorySelector";
 
 interface DailyEntryFormProps {
   fileName: string;
@@ -30,16 +30,19 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
   allowedCategories,
   submitting,
   onSubmit,
-  isAdmin = false
+  isAdmin = false,
 }) => {
   // Reused CategorySelector component handles isRequoteActive, handleRequoteClick, handleReviewClick, etc.
 
   return (
-    <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-955/40 p-5 rounded-2xl border border-slate-850">
+    <form
+      onSubmit={onSubmit}
+      className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-955/40 p-5 rounded-2xl border border-slate-850"
+    >
       {/* Left side inputs */}
       <div className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-355 mb-1.5 flex items-center gap-1.5">
+          <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
             <FileText className="h-3.5 w-3.5 text-blue-500" /> File Name
           </label>
           <input
@@ -53,7 +56,7 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-355 mb-1.5 flex items-center gap-1.5">
+          <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-blue-500" /> Branch Name
           </label>
           <input
@@ -67,8 +70,13 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-355 mb-1.5 flex items-center gap-1.5">
-            <UserCheck className="h-3.5 w-3.5 text-blue-500" /> Codename {!isAdmin && <span className="text-[10px] text-slate-500 font-normal">(Locked)</span>}
+          <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
+            <UserCheck className="h-3.5 w-3.5 text-blue-500" /> Codename{" "}
+            {!isAdmin && (
+              <span className="text-[10px] text-slate-500 font-normal">
+                (Locked)
+              </span>
+            )}
           </label>
           <input
             type="text"
@@ -99,11 +107,12 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
         <button
           type="submit"
           disabled={submitting}
-          className="w-1/2 self-end mt-4 flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer disabled:opacity-50 shadow-blue-950/20"
+          className="w-1/2 self-end mt-4 flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-linear-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer disabled:opacity-50 shadow-blue-950/20"
         >
           {submitting ? (
             <>
-              <Loader2 className="animate-spin h-5 w-2 text-white" /> Submitting...
+              <Loader2 className="animate-spin h-5 w-2 text-white" />{" "}
+              Submitting...
             </>
           ) : (
             <>

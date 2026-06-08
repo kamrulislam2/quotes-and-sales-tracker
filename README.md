@@ -18,6 +18,7 @@ A modern, high-performance, real-time web application designed to track and mana
 ## ✨ Features
 
 ### 🔐 1. Authentication & Security
+
 - **Codename Login**: Log in directly using your unique codename (e.g. `KI1024`) or email. Custom RPCs map codenames to local account emails behind the scenes.
 - **Role-based Access Control (RBAC)**: Supports `admin` and `user` (staff) roles. Pages, components, and API routes adapt dynamically based on permissions.
 - **Row-Level Security (RLS)**: PostgreSQL policy rules enforce that:
@@ -25,11 +26,13 @@ A modern, high-performance, real-time web application designed to track and mana
   - Admins can read, update, and manage all users and records.
 
 ### 📋 2. Onboarding Flow (First-time Login)
+
 - When a user logs in for the first time (assigned a default password e.g. `1234`), they are redirected to a secure **Profile Settings & Password Change** screen.
 - Access to the main dashboard is completely locked until they verify their Full Name, Codename, and set a custom password (6 to 12 characters).
 - If the admin updates their password or details later, the onboarding status does not reset unless explicitly required.
 
 ### 📊 3. Dynamic Stats Grid & Optimized Counting Rules
+
 - Real-time aggregated stats of the current day or month's records.
 - **Double-Digit Padding & Percentages**: Every file category displays its count formatted as a two-digit number (e.g. `07`) alongside its relative percentage of the total files count in parentheses, e.g., `Sale: 07 (40%)`.
 - **Other Site Excluded**: The `Total Files` count explicitly excludes `Other Site` entries. `Other Site` displays its count independently but is not counted as a file and does not show a percentage.
@@ -38,11 +41,13 @@ A modern, high-performance, real-time web application designed to track and mana
 - **Auto-Scale**: Category cards adjust dynamically depending on the selected user's allowed categories.
 
 ### 📂 4. File Categories & Validations
+
 - Supports 12 distinct file categories: `Quote`, `Requote`, `Requote Van`, `Requote Bike`, `Review`, `Review Van`, `Review Bike`, `Individual Review`, `Other Site`, `Van`, `Bike`, and `Sale`.
 - Admins configure which specific categories a user is allowed to submit.
 - Database triggers (`check_record_type_permission`) validate that users cannot submit records for unauthorized categories.
 
 ### 🔎 5. Realtime Search & Filters
+
 - **Unified Filters Row**: Search bar is placed directly next to Year, Month, and Specific Date filters in a single aligned row.
 - **Specific Date Filter**: Type and format dates with DD-MM-YYYY automatic mask and visual calendar picker.
 - **Today's Entries**: View logs submitted today with local time formatting, instant search, and delete/edit modals.
@@ -50,13 +55,23 @@ A modern, high-performance, real-time web application designed to track and mana
 - **Excel & PDF Exports**: Download filtered data lists as an Excel spreadsheet (CSV with UTF-8 BOM encoding) or PDF (native OS print-to-PDF layout) directly using the download buttons in the headers.
 
 ### ⏱️ 6. 21-Day Inactivity Auto-Logout
+
 - Tracks user last active session timestamp in `localStorage`.
 - Automatically logs users out, clears security sessions, and redirects to login if the app is not visited or active for 21 consecutive days.
 
 ### 🛠️ 7. User Management (Admin Only)
+
 - **Create Users**: Direct creation of staff accounts with customized allowed category checkboxes.
 - **Edit Profiles**: Update name, role, and categories, or change their passwords via the UI.
 - **Delete Users**: Permanently remove accounts with confirmation dialogs.
+
+### 📅 8. Custom Entry (Backdated Submissions)
+
+- **Reusable CustomEntryModal Component**: Intelligent dual-mode modal for submitting entries on past dates.
+- **Admin "All Data" Mode**: Admins can select any user from a dropdown and submit backdated entries for them. Validates submission against the selected user's allowed file categories.
+- **Admin "My Data" & Regular Users**: Display non-editable codename field showing the current user. Users add their own data with a custom date picker supporting manual DD-MM-YYYY input or calendar selection.
+- **Form Validation**: All custom entries are validated for required fields and checked against the target user's category permissions before submission.
+- **Real-Time Feedback**: Toast notifications confirm successful submissions or alert users to validation errors with helpful messages.
 
 ---
 
@@ -82,7 +97,9 @@ quotes-sales-tracker/
     │   ├── DailyEntryForm.tsx # File submission form (with responsive layout)
     │   ├── ToastProvider.tsx# Floating Toast notifications configuration
     │   ├── CategoryCheckboxList.tsx # Permitted categories list with Select All
+    │   ├── CategorySelector.tsx # Reusable category selection grid component
     │   └── modals/
+    │       ├── CustomEntryModal.tsx # Reusable custom entry modal (admin & user modes)
     │       ├── AddUserModal.tsx     # Admin create staff modal
     │       ├── EditProfileModal.tsx # Admin edit user settings & reset password
     │       ├── EditRecordModal.tsx  # Edit record details modal
@@ -99,31 +116,70 @@ quotes-sales-tracker/
 
 ---
 
+## 📝 Changelog
+
+### v0.1.5 (Latest)
+
+**Quality & Code Health Improvements**
+
+- ✅ **CSS & Tailwind Modernization**: Fixed conflicting `block` and `flex` display classes across all form components. Updated deprecated gradient syntax from `bg-gradient-to-r` to `bg-linear-to-r`. Replaced arbitrary Tailwind values with standard scale (`h-[42px]` → `h-10.5`, `min-h-[500px]` → `min-h-125`, `flex-2` → `flex-1`).
+- ✅ **Component Consolidation**: Removed deprecated `AdminCustomEntryModal.tsx` after consolidating functionality into a reusable `CustomEntryModal` component with intelligent admin/user mode switching.
+- ✅ **CustomEntryModal Enhancements**: New dual-mode component supports:
+  - **Admin "all data" view**: Select any user from dropdown to submit backdated entries
+  - **Admin "my data" view**: Acts like regular user with read-only codename
+  - **Regular users**: Always add own data with non-editable codename showing as default
+  - Full validation against target user's allowed categories
+- ✅ **Code Quality Verification**: Comprehensive null/undefined safety checks. Proper error handling for all async operations. Form validation ensures data integrity against user permissions.
+- ✅ **Zero Compile Warnings**: Clean production-ready codebase with no ESLint warnings.
+
+### v0.1.4
+
+- Excel & PDF export functionality
+- Dynamic stats grid with double-digit padding and percentages
+- "Other Site" excluded from total files count
+- Active tab persistence across page reloads
+- Locked codename field for regular users
+- Custom entry button relocated next to admin toggle
+- Permissive RLS policies for admin custom entries
+- Unified CategorySelector component
+- Advanced filtering (Search, Year, Month, Specific Date)
+- 21-day inactivity auto-logout
+- Code cleanup and warning fixes
+
+---
+
 ## ⚙️ Configuration & Local Setup
 
 ### 1. Prerequisites
+
 - Node.js (v18+)
 - npm or yarn
 
 ### 2. Environment Variables
+
 Create a `.env.local` file in the root folder with your Supabase credentials:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ### 3. Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 4. Run Development Server
+
 ```bash
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### 5. Build for Production
+
 ```bash
 npm run build
 ```
@@ -133,6 +189,7 @@ npm run build
 ## 🗄️ Database Setup & Migrations
 
 If configuring a new Supabase project, execute the SQL definitions found in [schema.sql](file:///Users/bnfcorporate/Documents/Web%20Dev/quotes-sales-tracker/supabase/schema.sql) in the **Supabase SQL Editor**:
+
 1. Creates `profiles` and `records` tables.
 2. Configures Row Level Security (RLS) policies.
 3. Sets up triggers to auto-create user profiles when users sign up in Auth.
@@ -150,10 +207,12 @@ If configuring a new Supabase project, execute the SQL definitions found in [sch
 The project includes a **Tauri Desktop Application Wrapper** configuration. This wraps your Next.js website (Vercel deployment) inside a lightweight native desktop application window.
 
 ### Features
+
 - **Zero-config Updates**: Because the desktop app loads the remote Vercel subdomain URL directly, any changes or bug fixes you push to Git will automatically update in the desktop app instantly, without requiring users to reinstall anything.
 - **Lightweight**: Tauri uses your OS's native webview, keeping the package size extremely small (usually under 5 MB).
 
 ### Setup & Local Development
+
 1. Start your local Next.js dev server:
    ```bash
    npm run dev
@@ -164,10 +223,13 @@ The project includes a **Tauri Desktop Application Wrapper** configuration. This
    ```
 
 ### Production Configuration
+
 1. Open [tauri.conf.json](file:///Users/bnfcorporate/Documents/Web%20Dev/quotes-sales-tracker/src-tauri/tauri.conf.json).
 2. Locate the `tauri > windows > [0] > url` property and replace the placeholder URL (`https://quotes-sales-tracker.vercel.app`) with your live Vercel deployment/subdomain URL.
 3. Compile the production installer for your operating system:
+
    ```bash
    npm run tauri:build
    ```
+
    - The generated installers (`.dmg` on macOS, `.msi` or `.exe` on Windows, `.deb` on Linux) will be output in the `src-tauri/target/release/bundle/` directory.

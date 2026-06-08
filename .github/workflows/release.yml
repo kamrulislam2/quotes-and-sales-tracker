@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   release:
@@ -15,12 +15,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
-          - platform: 'windows-latest'
-            args: ''
+          - platform: "macos-latest"
+            args: "--target aarch64-apple-darwin"
+          - platform: "macos-latest"
+            args: "--target x86_64-apple-darwin"
+          - platform: "windows-latest"
+            args: ""
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -50,18 +50,24 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-            ### 🚀 What's New in v0.1.4:
-            * **Excel & PDF Exports**: Download filtered reports of daily and monthly entries directly to your local machine using the "Excel" (CSV with UTF-8 BOM encoding) and "PDF" (native print to PDF rendering) options.
-            * **Excluded "Other Site" from Total Files**: The statistics `total` files count now explicitly excludes any `Other Site` entries. `Other Site` continues to show its individual count, but is not counted as a file.
-            * **Percentages and Padding**: Every file category displays its count formatted as a two-digit number (e.g. `07`) alongside its relative percentage of the total files count in parentheses (e.g. `(40%)`), while `Other Site` and `Total Files` display their counts without percentages.
-            * **Active Tab State Persistence**: Remembers whether the user was in the Entry, Monthly, or Users tab across page reloads. Includes a fallback security check to prevent normal users from landing on the Admin-only "Users" tab.
-            * **Locked Codename & Half-Width Submit Button**: Locks the codename input field for normal users to prevent arbitrary changes. Reduced the submit button width to half-width on the right side for a polished, modern form layout.
-            * **Custom Entry Header Placement & Toggle Switcher**: Relocated the Admin's "Custom Entry" button next to the "All Data / My Data" toggle switch. Admin view modes are persisted (All Data vs My Data), and My Data is loaded by default.
-            * **Permissive RLS INSERT Policy (Supabase)**: Fixed the policy bug that blocked Admins from submitting custom backdated entries for other codenames/users.
-            - **Unified Category Grid Component (`<CategorySelector>`)**: Unified category selection screens between DailyEntryForm and AdminCustomEntryModal for perfect consistency.
-            - **Polished Date Filter & Search System**: Integrated Search, Year, Month, and Specific Date filters into a single card container. Specific Date has typing autocompletion, calendar selection, and custom reset button. If Specific Date is active, Year/Month selections are locked.
-            - **21-Day Inactivity Auto-Logout**: Keeps track of user activity timestamps and automatically signs users out if they haven't visited or performed actions in 21 days.
-            - **Code Cleanups & Warnings Fix**: Deleted unused `src/utils/webPushHelper.ts` and `src/utils/errorHandler.ts` files. Uninstalled unused dependencies (`bcryptjs`, `web-push`). Resolved all React Hook/ESLint warnings for zero warnings, clean compile state.
+            ### 🚀 What's New in v0.1.5:
+            * **CSS & Tailwind Quality Improvements**: Fixed conflicting `block` and `flex` display classes across form labels. Updated deprecated gradient syntax from `bg-gradient-to-r` to `bg-linear-to-r`. Replaced arbitrary size values with standard Tailwind scale values (`h-[42px]` → `h-10.5`, `min-h-[500px]` → `min-h-125`). Fixed invalid flex class (`flex-2` → `flex-1`).
+            * **Code Cleanup & Component Consolidation**: Removed deprecated `AdminCustomEntryModal.tsx` file after consolidating custom entry functionality into reusable `CustomEntryModal` component with dual-mode support (admin selecting users vs. regular users adding own data).
+            * **Reusable CustomEntryModal Component**: New `<CustomEntryModal>` component replaces admin-only functionality with intelligent mode switching. Admin in "all data" view: selects any user from dropdown. Admin in "my data" view: acts like regular user. Regular users: always add own data with non-editable codename. Supports custom-dated entries with validation against target user's allowed categories.
+            * **Enhanced Form Validation & Error Handling**: Comprehensive validation for custom entries with proper null/undefined checks. Form submission validates against target user's permissions. Clear error messages for missing users, dates, or form fields.
+            * **Data Integrity & User Safety**: Verified proper userId handling in custom entries. Confirmed RLS policies enforce correct data isolation. All async operations include error handling and user-friendly toast notifications.
+
+            ### 📋 Previous Features (v0.1.4):
+            * **Excel & PDF Exports**: Download filtered reports of daily and monthly entries.
+            * **Dynamic Stats Grid**: Real-time aggregated stats with double-digit padding and percentages.
+            * **Active Tab State Persistence**: Remembers user's selected tab across reloads.
+            * **Locked Codename & Half-Width Submit**: Prevents user codename changes with modern form layout.
+            * **Custom Entry Button**: Admin's custom entry button next to toggle switch.
+            * **Permissive RLS Policies**: Admins can submit backdated entries for other users.
+            * **Unified Category Selector**: Consistent category selection across forms.
+            * **Advanced Filters**: Search, Year, Month, and Specific Date filters integrated into one card.
+            * **21-Day Inactivity Auto-Logout**: Automatic security logoff after 21 days of inactivity.
+            * **Zero ESLint Warnings**: Clean, production-ready codebase.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

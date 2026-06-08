@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/utils/supabase';
-import { Lock, Mail, AlertCircle, Loader, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/utils/supabase";
+import { Lock, Mail, AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const router = useRouter();
 
   // Load theme on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    if (savedTheme === 'light') {
-      document.documentElement.classList.remove('dark');
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    if (savedTheme === "light") {
+      document.documentElement.classList.remove("dark");
     } else {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     }
   }, []);
 
@@ -27,13 +27,16 @@ export default function LoginPage() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
         if (session) {
-          router.push('/');
+          router.push("/");
         }
       } catch (err) {
-        console.error('Error during checkUser session check:', err);
+        console.error("Error during checkUser session check:", err);
       }
     };
     checkUser();
@@ -42,13 +45,16 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     // Try resolving username/codename to registered email first
     let loginEmail = email.trim();
-    if (!loginEmail.includes('@')) {
+    if (!loginEmail.includes("@")) {
       try {
-        const { data: resolvedEmail } = await supabase.rpc('get_user_email_by_username', { p_username: loginEmail });
+        const { data: resolvedEmail } = await supabase.rpc(
+          "get_user_email_by_username",
+          { p_username: loginEmail },
+        );
         if (resolvedEmail) {
           loginEmail = resolvedEmail;
         } else {
@@ -62,25 +68,29 @@ export default function LoginPage() {
     }
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: password,
-      });
+      const { data, error: authError } = await supabase.auth.signInWithPassword(
+        {
+          email: loginEmail,
+          password: password,
+        },
+      );
 
       if (authError) {
-        setError(authError.message === 'Invalid login credentials' 
-          ? 'Invalid codename or password...' 
-          : authError.message);
+        setError(
+          authError.message === "Invalid login credentials"
+            ? "Invalid codename or password..."
+            : authError.message,
+        );
         setLoading(false);
         return;
       }
 
       if (data.session) {
-        router.push('/');
+        router.push("/");
         router.refresh();
       }
     } catch {
-      setError('An error occurred during login. Please try again.');
+      setError("An error occurred during login. Please try again.");
       setLoading(false);
     }
   };
@@ -92,7 +102,7 @@ export default function LoginPage() {
       <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-violet-900/20 blur-[120px] pointer-events-none" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md z-10">
-        <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-white bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
+        <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-white bg-clip-text bg-linear-to-r from-blue-400 to-violet-400">
           Quotes & Sales Tracker
         </h2>
         <p className="mt-2 text-center text-sm text-slate-405">
@@ -111,7 +121,10 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-slate-300"
+              >
                 Codename
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -127,7 +140,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setEmail(val.includes('@') ? val : val.toUpperCase());
+                    setEmail(val.includes("@") ? val : val.toUpperCase());
                   }}
                   className="block w-full pl-10 pr-3 py-2.5 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-550 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
                 />
@@ -135,7 +148,10 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-slate-300"
+              >
                 Password
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
@@ -145,7 +161,7 @@ export default function LoginPage() {
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••"
                   value={password}
@@ -170,14 +186,15 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-blue-950/20"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-linear-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-blue-950/20"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <Loader className="animate-spin h-5 w-5 text-white" /> Loading...
+                    <Loader className="animate-spin h-5 w-5 text-white" />{" "}
+                    Loading...
                   </span>
                 ) : (
-                  'Login'
+                  "Login"
                 )}
               </button>
             </div>

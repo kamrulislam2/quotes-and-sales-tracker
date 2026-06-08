@@ -1,21 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { useDashboardData } from '@/hooks/useDashboardData';
-import { Navbar } from '@/components/Navbar';
-import { StatsGrid } from '@/components/StatsGrid';
-import { SearchFilters } from '@/components/SearchFilters';
-import { RecordsTable } from '@/components/RecordsTable';
-import { DailyEntryForm } from '@/components/DailyEntryForm';
-import { EditRecordModal } from '@/components/modals/EditRecordModal';
-import { EditProfileModal } from '@/components/modals/EditProfileModal';
-import { AddUserModal } from '@/components/modals/AddUserModal';
-import { ConfirmModal } from '@/components/modals/ConfirmModal';
-import { AdminCustomEntryModal } from '@/components/modals/AdminCustomEntryModal';
-import { AdminViewToggle } from '@/components/AdminViewToggle';
-import { validator } from '@/utils/validator';
-import { calculateSummaryStats, formatDate, exportToCSV, exportToPDF } from '@/utils/dashboardHelpers';
-import { FileType, RecordItem, Profile } from '@/types';
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { Navbar } from "@/components/Navbar";
+import { StatsGrid } from "@/components/StatsGrid";
+import { SearchFilters } from "@/components/SearchFilters";
+import { RecordsTable } from "@/components/RecordsTable";
+import { DailyEntryForm } from "@/components/DailyEntryForm";
+import { EditRecordModal } from "@/components/modals/EditRecordModal";
+import { EditProfileModal } from "@/components/modals/EditProfileModal";
+import { AddUserModal } from "@/components/modals/AddUserModal";
+import { ConfirmModal } from "@/components/modals/ConfirmModal";
+import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
+import { AdminViewToggle } from "@/components/AdminViewToggle";
+import { validator } from "@/utils/validator";
+import {
+  calculateSummaryStats,
+  formatDate,
+  exportToCSV,
+  exportToPDF,
+} from "@/utils/dashboardHelpers";
+import { FileType, RecordItem, Profile } from "@/types";
 import {
   FileText,
   Loader2,
@@ -35,22 +40,22 @@ import {
   RefreshCw,
   Search,
   FileSpreadsheet,
-  FileDown
-} from 'lucide-react';
+  FileDown,
+} from "lucide-react";
 
 const ALL_12_FILE_TYPES = [
-  'Quote',
-  'Requote',
-  'Requote Van',
-  'Requote Bike',
-  'Review',
-  'Review Van',
-  'Review Bike',
-  'Individual Review',
-  'Other Site',
-  'Van',
-  'Bike',
-  'Sale'
+  "Quote",
+  "Requote",
+  "Requote Van",
+  "Requote Bike",
+  "Review",
+  "Review Van",
+  "Review Bike",
+  "Individual Review",
+  "Other Site",
+  "Van",
+  "Bike",
+  "Sale",
 ];
 
 export default function Dashboard() {
@@ -80,100 +85,110 @@ export default function Dashboard() {
     deleteUser,
     adminUpdateUserProfile,
     completeFirstTimeSetup,
-    handleLogout
+    handleLogout,
   } = dashboardData;
 
   // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management)
-  const [activeTab, setActiveTab] = useState<'entry' | 'monthly' | 'users'>('entry');
+  const [activeTab, setActiveTab] = useState<"entry" | "monthly" | "users">(
+    "entry",
+  );
 
   // Load active tab preference in localStorage on mount or when profile loads
   useEffect(() => {
-    const savedTab = localStorage.getItem('quotes_sales_active_tab');
-    if (savedTab && (savedTab === 'entry' || savedTab === 'monthly' || savedTab === 'users')) {
-      if (savedTab === 'users' && profile?.role !== 'admin') {
-        setActiveTab('entry');
+    const savedTab = localStorage.getItem("quotes_sales_active_tab");
+    if (
+      savedTab &&
+      (savedTab === "entry" || savedTab === "monthly" || savedTab === "users")
+    ) {
+      if (savedTab === "users" && profile?.role !== "admin") {
+        setActiveTab("entry");
       } else {
-        setActiveTab(savedTab as 'entry' | 'monthly' | 'users');
+        setActiveTab(savedTab as "entry" | "monthly" | "users");
       }
     }
   }, [profile]);
 
-  const handleTabChange = (tab: 'entry' | 'monthly' | 'users') => {
+  const handleTabChange = (tab: "entry" | "monthly" | "users") => {
     setActiveTab(tab);
-    localStorage.setItem('quotes_sales_active_tab', tab);
+    localStorage.setItem("quotes_sales_active_tab", tab);
   };
 
   // Daily Entry Form State
-  const [fileName, setFileName] = useState('');
-  const [branchName, setBranchName] = useState('');
-  const [codenameInput, setCodenameInput] = useState(() => profile?.username || '');
-  const [fileType, setFileType] = useState<FileType>('Quote');
+  const [fileName, setFileName] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [codenameInput, setCodenameInput] = useState(
+    () => profile?.username || "",
+  );
+  const [fileType, setFileType] = useState<FileType>("Quote");
 
   // Admin View Toggle on Tables: 'all' or 'mine'
-  const [adminViewMode, setAdminViewMode] = useState<'all' | 'mine'>('mine');
+  const [adminViewMode, setAdminViewMode] = useState<"all" | "mine">("mine");
 
   // Load active admin view mode preference on mount
   useEffect(() => {
-    const savedViewMode = localStorage.getItem('quotes_sales_admin_view_mode');
-    if (savedViewMode === 'all' || savedViewMode === 'mine') {
+    const savedViewMode = localStorage.getItem("quotes_sales_admin_view_mode");
+    if (savedViewMode === "all" || savedViewMode === "mine") {
       setAdminViewMode(savedViewMode);
     }
   }, []);
 
-  const handleAdminViewModeChange = (mode: 'all' | 'mine') => {
+  const handleAdminViewModeChange = (mode: "all" | "mine") => {
     setAdminViewMode(mode);
-    localStorage.setItem('quotes_sales_admin_view_mode', mode);
+    localStorage.setItem("quotes_sales_admin_view_mode", mode);
   };
 
   // Monthly Table Search Query
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Today's Table Search Query
-  const [todaySearchQuery, setTodaySearchQuery] = useState('');
+  const [todaySearchQuery, setTodaySearchQuery] = useState("");
 
   // Monthly Table Date filter state
-  const [selectedDate, setSelectedDate] = useState('');
-  const [dateInputVal, setDateInputVal] = useState('');
+  const [selectedDate, setSelectedDate] = useState("");
+  const [dateInputVal, setDateInputVal] = useState("");
 
   // Sync text input with selectedDate
   useEffect(() => {
     if (selectedDate) {
-      const parts = selectedDate.split('-');
+      const parts = selectedDate.split("-");
       if (parts.length === 3) {
         setDateInputVal(`${parts[2]}-${parts[1]}-${parts[0]}`);
       } else {
         setDateInputVal(formatDate(selectedDate));
       }
     } else {
-      setDateInputVal('');
+      setDateInputVal("");
     }
   }, [selectedDate]);
 
   const handleDateInputChange = (val: string) => {
-    const clean = val.replace(/\D/g, '');
-    let formatted = '';
+    const clean = val.replace(/\D/g, "");
+    let formatted = "";
     if (clean.length > 0) {
       formatted += clean.substring(0, 2);
     }
     if (clean.length > 2) {
-      formatted += '-' + clean.substring(2, 4);
+      formatted += "-" + clean.substring(2, 4);
     }
     if (clean.length > 4) {
-      formatted += '-' + clean.substring(4, 8);
+      formatted += "-" + clean.substring(4, 8);
     }
 
     setDateInputVal(formatted);
 
     if (formatted.length === 10) {
-      const parts = formatted.split('-');
+      const parts = formatted.split("-");
       const day = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10);
       const year = parseInt(parts[2], 10);
 
       if (
-        day >= 1 && day <= 31 &&
-        month >= 1 && month <= 12 &&
-        year >= 1900 && year <= 2100
+        day >= 1 &&
+        day <= 31 &&
+        month >= 1 &&
+        month <= 12 &&
+        year >= 1900 &&
+        year <= 2100
       ) {
         const dateObj = new Date(year, month - 1, day);
         if (
@@ -182,8 +197,8 @@ export default function Dashboard() {
           dateObj.getDate() === day
         ) {
           const yyyy = String(year);
-          const mm = String(month).padStart(2, '0');
-          const dd = String(day).padStart(2, '0');
+          const mm = String(month).padStart(2, "0");
+          const dd = String(day).padStart(2, "0");
           const dateValue = `${yyyy}-${mm}-${dd}`;
           setSelectedDate(dateValue);
           setSelectedYear(yyyy);
@@ -192,47 +207,57 @@ export default function Dashboard() {
         }
       }
     }
-    setSelectedDate('');
+    setSelectedDate("");
   };
 
   // Admin Backdated Entry Modal State
-  const [isAdminCustomEntryModalOpen, setIsAdminCustomEntryModalOpen] = useState(false);
+  const [isCustomEntryModalOpen, setIsCustomEntryModalOpen] = useState(false);
 
   // Create User Form State
-  const [newCodename, setNewCodename] = useState('');
-  const [newFullName, setNewFullName] = useState('');
-  const [newRole, setNewRole] = useState<'user' | 'admin'>('user');
-  const [newPassword, setNewPassword] = useState('1234');
-  const [allowedTypesSelect, setAllowedTypesSelect] = useState<string[]>(ALL_12_FILE_TYPES);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [newCodename, setNewCodename] = useState("");
+  const [newFullName, setNewFullName] = useState("");
+  const [newRole, setNewRole] = useState<"user" | "admin">("user");
+  const [newPassword, setNewPassword] = useState("1234");
+  const [allowedTypesSelect, setAllowedTypesSelect] =
+    useState<string[]>(ALL_12_FILE_TYPES);
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(
+    null,
+  );
 
   // Edit Record Modal State
   const [editingRecord, setEditingRecord] = useState<RecordItem | null>(null);
-  const [editFileName, setEditFileName] = useState('');
-  const [editBranchName, setEditBranchName] = useState('');
-  const [editCodename, setEditCodename] = useState('');
-  const [editFileType, setEditFileType] = useState<FileType>('Quote');
+  const [editFileName, setEditFileName] = useState("");
+  const [editBranchName, setEditBranchName] = useState("");
+  const [editCodename, setEditCodename] = useState("");
+  const [editFileType, setEditFileType] = useState<FileType>("Quote");
 
   // State for resetting user password is now handled inside EditProfileModal
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
 
   // Admin Editing User Profile State
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-  const [editUserFullName, setEditUserFullName] = useState('');
-  const [editUserRole, setEditUserRole] = useState<'user' | 'admin'>('user');
-  const [editUserAllowedTypes, setEditUserAllowedTypes] = useState<string[]>([]);
+  const [editUserFullName, setEditUserFullName] = useState("");
+  const [editUserRole, setEditUserRole] = useState<"user" | "admin">("user");
+  const [editUserAllowedTypes, setEditUserAllowedTypes] = useState<string[]>(
+    [],
+  );
 
   // User deletion state for confirmation modal
-  const [deletingUserAccount, setDeletingUserAccount] = useState<{ id: string; username: string } | null>(null);
+  const [deletingUserAccount, setDeletingUserAccount] = useState<{
+    id: string;
+    username: string;
+  } | null>(null);
 
   // Record deletion state for confirmation modal
   const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
 
   // Force Change Password / Onboarding Customization Modal State
-  const [ownFullName, setOwnFullName] = useState(() => profile?.full_name || '');
-  const [ownCodename, setOwnCodename] = useState(() => profile?.username || '');
-  const [ownPassword, setOwnPassword] = useState('');
-  const [ownConfirmPassword, setOwnConfirmPassword] = useState('');
+  const [ownFullName, setOwnFullName] = useState(
+    () => profile?.full_name || "",
+  );
+  const [ownCodename, setOwnCodename] = useState(() => profile?.username || "");
+  const [ownPassword, setOwnPassword] = useState("");
+  const [ownConfirmPassword, setOwnConfirmPassword] = useState("");
   const [showOwnPass, setShowOwnPass] = useState(false);
   const [showOwnConfirmPass, setShowOwnConfirmPass] = useState(false);
 
@@ -240,15 +265,18 @@ export default function Dashboard() {
   const passwordFeedback = useMemo(() => {
     if (!ownPassword) return null;
     if (ownPassword.length < 6 || ownPassword.length > 12) {
-      return { text: 'Password must be 6 to 12 characters long', isError: true };
+      return {
+        text: "Password must be 6 to 12 characters long",
+        isError: true,
+      };
     }
     if (!ownConfirmPassword) {
-      return { text: 'Please confirm password', isError: true };
+      return { text: "Please confirm password", isError: true };
     }
     if (ownPassword !== ownConfirmPassword) {
-      return { text: 'Passwords do not match', isError: true };
+      return { text: "Passwords do not match", isError: true };
     }
-    return { text: 'Passwords match', isError: false };
+    return { text: "Passwords match", isError: false };
   }, [ownPassword, ownConfirmPassword]);
 
   // Local helper: Set codename inputs when profile loads
@@ -256,7 +284,7 @@ export default function Dashboard() {
     if (profile) {
       if (!codenameInput) setCodenameInput(profile.username);
       if (!ownCodename) setOwnCodename(profile.username);
-      if (!ownFullName) setOwnFullName(profile.full_name || '');
+      if (!ownFullName) setOwnFullName(profile.full_name || "");
 
       // Auto adjust selected file type based on user permitted types
       if (profile.allowed_types && profile.allowed_types.length > 0) {
@@ -267,44 +295,47 @@ export default function Dashboard() {
     }
   }, [profile, codenameInput, ownCodename, ownFullName, fileType]);
 
-
   // Dynamic Year and Month Options
   const dynamicYears = useMemo(() => {
     const yearsSet = new Set<string>();
-    availableDates.forEach(d => {
+    availableDates.forEach((d) => {
       yearsSet.add(d.year);
     });
-    return Array.from(yearsSet).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+    return Array.from(yearsSet).sort(
+      (a, b) => parseInt(b, 10) - parseInt(a, 10),
+    );
   }, [availableDates]);
 
   const dynamicMonths = useMemo(() => {
     const allMonthsMap: { [key: string]: string } = {
-      '01': 'January',
-      '02': 'February',
-      '03': 'March',
-      '04': 'April',
-      '05': 'May',
-      '06': 'June',
-      '07': 'July',
-      '08': 'August',
-      '09': 'September',
-      '10': 'October',
-      '11': 'November',
-      '12': 'December',
+      "01": "January",
+      "02": "February",
+      "03": "March",
+      "04": "April",
+      "05": "May",
+      "06": "June",
+      "07": "July",
+      "08": "August",
+      "09": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December",
     };
     const monthsForYear = availableDates
-      .filter(d => d.year === selectedYear)
-      .map(d => d.month);
-    const uniqueMonths = Array.from(new Set(monthsForYear)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
-    return uniqueMonths.map(m => ({
+      .filter((d) => d.year === selectedYear)
+      .map((d) => d.month);
+    const uniqueMonths = Array.from(new Set(monthsForYear)).sort(
+      (a, b) => parseInt(a, 10) - parseInt(b, 10),
+    );
+    return uniqueMonths.map((m) => ({
       val: m,
-      name: allMonthsMap[m] || m
+      name: allMonthsMap[m] || m,
     }));
   }, [availableDates, selectedYear]);
 
   // Adjust selected month when selected year changes and month is no longer valid
   useEffect(() => {
-    const isValid = dynamicMonths.some(m => m.val === selectedMonth);
+    const isValid = dynamicMonths.some((m) => m.val === selectedMonth);
     if (!isValid && dynamicMonths.length > 0) {
       setSelectedMonth(dynamicMonths[dynamicMonths.length - 1].val);
     }
@@ -325,14 +356,18 @@ export default function Dashboard() {
 
   // Filtered records for Monthly Tab
   const monthlyFilteredRecords = useMemo(() => {
-    return records.filter(r => {
+    return records.filter((r) => {
       // Admin filter mode
-      if (profile?.role === 'admin' && adminViewMode === 'mine' && r.user_id !== sessionUser?.id) {
+      if (
+        profile?.role === "admin" &&
+        adminViewMode === "mine" &&
+        r.user_id !== sessionUser?.id
+      ) {
         return false;
       }
       // Specific Date filter
       if (selectedDate) {
-        const recordDate = new Date(r.submitted_at).toLocaleDateString('en-CA');
+        const recordDate = new Date(r.submitted_at).toLocaleDateString("en-CA");
         if (recordDate !== selectedDate) {
           return false;
         }
@@ -343,7 +378,12 @@ export default function Dashboard() {
         const matchBranch = r.branch_name.toLowerCase().includes(q);
         const matchCodename = r.codename.toLowerCase().includes(q);
         const matchFileType = r.file_type.toLowerCase().includes(q);
-        if (!matchFileName && !matchBranch && !matchCodename && !matchFileType) {
+        if (
+          !matchFileName &&
+          !matchBranch &&
+          !matchCodename &&
+          !matchFileType
+        ) {
           return false;
         }
       }
@@ -353,27 +393,36 @@ export default function Dashboard() {
 
   // Today's entries (submitted on the current local day)
   const todayRecords = useMemo(() => {
-    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local format
-    return records.filter(r => {
+    const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local format
+    return records.filter((r) => {
       // Admin filter mode
-      if (profile?.role === 'admin' && adminViewMode === 'mine' && r.user_id !== sessionUser?.id) {
+      if (
+        profile?.role === "admin" &&
+        adminViewMode === "mine" &&
+        r.user_id !== sessionUser?.id
+      ) {
         return false;
       }
-      const recordDate = new Date(r.submitted_at).toLocaleDateString('en-CA');
+      const recordDate = new Date(r.submitted_at).toLocaleDateString("en-CA");
       return recordDate === todayStr;
     });
   }, [records, adminViewMode, profile, sessionUser]);
 
   // Filtered entries for Today's list table
   const todayFilteredRecords = useMemo(() => {
-    return todayRecords.filter(r => {
+    return todayRecords.filter((r) => {
       if (todaySearchQuery) {
         const q = todaySearchQuery.toLowerCase().trim();
         const matchFileName = r.file_name.toLowerCase().includes(q);
         const matchBranch = r.branch_name.toLowerCase().includes(q);
         const matchCodename = r.codename.toLowerCase().includes(q);
         const matchFileType = r.file_type.toLowerCase().includes(q);
-        if (!matchFileName && !matchBranch && !matchCodename && !matchFileType) {
+        if (
+          !matchFileName &&
+          !matchBranch &&
+          !matchCodename &&
+          !matchFileType
+        ) {
           return false;
         }
       }
@@ -393,13 +442,21 @@ export default function Dashboard() {
 
   // Export handlers for Today's Entries
   const handleExportTodayExcel = () => {
-    const todayStr = new Date().toLocaleDateString('en-CA');
+    const todayStr = new Date().toLocaleDateString("en-CA");
     exportToCSV(todayFilteredRecords, `daily_entries_${todayStr}`);
   };
 
   const handleExportTodayPDF = () => {
-    const dateFormatted = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-    exportToPDF(todayFilteredRecords, "Today's File Entry List", `Date: ${dateFormatted}`);
+    const dateFormatted = new Date().toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    exportToPDF(
+      todayFilteredRecords,
+      "Today's File Entry List",
+      `Date: ${dateFormatted}`,
+    );
   };
 
   // Export handlers for Monthly Entries
@@ -421,7 +478,7 @@ export default function Dashboard() {
 
   // Clear filters
   const handleClearFilters = () => {
-    setSearchQuery('');
+    setSearchQuery("");
   };
 
   // Open native picker for specific date
@@ -439,7 +496,7 @@ export default function Dashboard() {
   const handleDateFilterChange = (dateValue: string) => {
     setSelectedDate(dateValue);
     if (dateValue) {
-      const [year, month] = dateValue.split('-');
+      const [year, month] = dateValue.split("-");
       if (year && month) {
         setSelectedYear(year);
         setSelectedMonth(month);
@@ -453,20 +510,20 @@ export default function Dashboard() {
     branchName: string,
     fileType: FileType,
     userId: string,
-    submittedAtDate: string
+    submittedAtDate: string,
   ): Promise<boolean> => {
     if (!userId) {
-      showToast('error', 'Please select a user.');
+      showToast("error", "Please select a user.");
       return false;
     }
     if (!submittedAtDate) {
-      showToast('error', 'Please select a submission date.');
+      showToast("error", "Please select a submission date.");
       return false;
     }
 
-    const targetProfile = profilesList.find(p => p.id === userId);
+    const targetProfile = profilesList.find((p) => p.id === userId);
     if (!targetProfile) {
-      showToast('error', 'Selected user not found.');
+      showToast("error", "Selected user not found.");
       return false;
     }
 
@@ -474,17 +531,19 @@ export default function Dashboard() {
       file_name: fileName,
       branch_name: branchName,
       codename: targetProfile.username,
-      file_type: fileType
+      file_type: fileType,
     });
 
     if (!formValidation.isValid) {
-      showToast('error', formValidation.errors[0]);
+      showToast("error", formValidation.errors[0]);
       return false;
     }
 
     const now = new Date();
-    const timePart = now.toTimeString().split(' ')[0]; // HH:MM:SS
-    const customSubmittedAt = new Date(`${submittedAtDate}T${timePart}`).toISOString();
+    const timePart = now.toTimeString().split(" ")[0]; // HH:MM:SS
+    const customSubmittedAt = new Date(
+      `${submittedAtDate}T${timePart}`,
+    ).toISOString();
 
     const success = await addRecord(
       fileName,
@@ -492,14 +551,14 @@ export default function Dashboard() {
       targetProfile.username,
       fileType,
       userId,
-      customSubmittedAt
+      customSubmittedAt,
     );
 
     return success;
   };
 
   const handleClearTodayFilters = () => {
-    setTodaySearchQuery('');
+    setTodaySearchQuery("");
   };
 
   // Submit Daily Entry
@@ -510,23 +569,28 @@ export default function Dashboard() {
       file_name: fileName,
       branch_name: branchName,
       codename: codenameInput,
-      file_type: fileType
+      file_type: fileType,
     });
 
     if (!formValidation.isValid) {
-      showToast('error', formValidation.errors[0]);
+      showToast("error", formValidation.errors[0]);
       return;
     }
 
-    const success = await addRecord(fileName, branchName, codenameInput, fileType);
+    const success = await addRecord(
+      fileName,
+      branchName,
+      codenameInput,
+      fileType,
+    );
     if (success) {
-      setFileName('');
-      setBranchName('');
+      setFileName("");
+      setBranchName("");
       // Keep codename, but reset type to default first allowed type
       if (profile?.allowed_types && profile.allowed_types.length > 0) {
         setFileType(profile.allowed_types[0] as FileType);
       } else {
-        setFileType('Quote');
+        setFileType("Quote");
       }
     }
   };
@@ -539,11 +603,11 @@ export default function Dashboard() {
       file_name: editFileName,
       branch_name: editBranchName,
       codename: editCodename,
-      file_type: editFileType
+      file_type: editFileType,
     });
 
     if (!validation.isValid) {
-      showToast('error', validation.errors[0]);
+      showToast("error", validation.errors[0]);
       return;
     }
 
@@ -552,7 +616,7 @@ export default function Dashboard() {
       editFileName,
       editBranchName,
       editCodename,
-      editFileType
+      editFileType,
     );
 
     if (success) {
@@ -570,26 +634,32 @@ export default function Dashboard() {
       fullName: newFullName,
       password: newPassword,
       confirmPassword: newPassword,
-      role: newRole
+      role: newRole,
     });
 
     if (!validation.isValid) {
-      showToast('error', validation.errors[0]);
+      showToast("error", validation.errors[0]);
       return;
     }
 
     if (allowedTypesSelect.length === 0) {
-      showToast('error', 'Please allow at least one file type.');
+      showToast("error", "Please allow at least one file type.");
       return;
     }
 
-    const pw = await createUser(newCodename, newRole, newFullName, allowedTypesSelect, newPassword);
+    const pw = await createUser(
+      newCodename,
+      newRole,
+      newFullName,
+      allowedTypesSelect,
+      newPassword,
+    );
     if (pw) {
       setGeneratedPassword(null);
-      setNewCodename('');
-      setNewFullName('');
-      setNewRole('user');
-      setNewPassword('1234');
+      setNewCodename("");
+      setNewFullName("");
+      setNewRole("user");
+      setNewPassword("1234");
       setAllowedTypesSelect(ALL_12_FILE_TYPES);
       setIsAddUserModalOpen(false);
     }
@@ -602,32 +672,39 @@ export default function Dashboard() {
     e.preventDefault();
 
     if (!ownFullName.trim()) {
-      showToast('error', 'Please enter your full name.');
+      showToast("error", "Please enter your full name.");
       return;
     }
     if (!ownCodename.trim() || ownCodename.trim().length < 3) {
-      showToast('error', 'Codename must be at least 3 characters long.');
+      showToast("error", "Codename must be at least 3 characters long.");
       return;
     }
     if (!/^[a-zA-Z0-9_-]+$/.test(ownCodename.trim())) {
-      showToast('error', 'Codename can only contain English letters, numbers, - and _.');
+      showToast(
+        "error",
+        "Codename can only contain English letters, numbers, - and _.",
+      );
       return;
     }
 
     const validation = validator.validateOnboardingPassword(ownPassword);
     if (!validation.isValid) {
-      showToast('error', validation.errors[0]);
+      showToast("error", validation.errors[0]);
       return;
     }
     if (ownPassword !== ownConfirmPassword) {
-      showToast('error', 'Password confirmation does not match.');
+      showToast("error", "Password confirmation does not match.");
       return;
     }
 
-    const success = await completeFirstTimeSetup(ownCodename, ownFullName, ownPassword);
+    const success = await completeFirstTimeSetup(
+      ownCodename,
+      ownFullName,
+      ownPassword,
+    );
     if (success) {
-      setOwnPassword('');
-      setOwnConfirmPassword('');
+      setOwnPassword("");
+      setOwnConfirmPassword("");
     }
   };
 
@@ -639,7 +716,9 @@ export default function Dashboard() {
         <div className="absolute bottom-[-20%] left-[-20%] w-[50%] h-[50%] rounded-full bg-violet-900/10 blur-[120px] pointer-events-none" />
         <div className="flex flex-col items-center gap-3 z-10">
           <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
-          <span className="text-slate-400 text-xs font-semibold tracking-wider">Loading, please wait...</span>
+          <span className="text-slate-400 text-xs font-semibold tracking-wider">
+            Loading, please wait...
+          </span>
         </div>
       </div>
     );
@@ -654,26 +733,31 @@ export default function Dashboard() {
 
         <div className="max-w-md w-full bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-8 shadow-2xl rounded-2xl z-10 space-y-6">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-white bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
+            <h2 className="text-2xl font-bold text-white bg-clip-text bg-linear-to-r from-blue-400 to-violet-400">
               Profile Settings & Password Change
             </h2>
             <p className="text-xs text-slate-450 mt-1">
-              This is your first login. Please verify your details and set a new password.
+              This is your first login. Please verify your details and set a new
+              password.
             </p>
           </div>
 
           <form onSubmit={handleFirstTimeSetup} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-350 mb-1 flex items-center gap-1">
+              <label className="flex text-xs font-semibold text-slate-350 mb-1 items-center gap-1">
                 <Info className="h-3 w-3 text-blue-500" /> Your Full Name
-                {profile?.full_name && profile.full_name.trim() !== '' && (
-                  <span className="text-[10px] text-slate-500 font-normal">(Locked - Admin only)</span>
+                {profile?.full_name && profile.full_name.trim() !== "" && (
+                  <span className="text-[10px] text-slate-500 font-normal">
+                    (Locked - Admin only)
+                  </span>
                 )}
               </label>
               <input
                 type="text"
                 required
-                disabled={!!(profile?.full_name && profile.full_name.trim() !== '')}
+                disabled={
+                  !!(profile?.full_name && profile.full_name.trim() !== "")
+                }
                 placeholder="e.g. Kamrul Islam"
                 value={ownFullName}
                 onChange={(e) => setOwnFullName(e.target.value)}
@@ -682,16 +766,20 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-355 mb-1 flex items-center gap-1">
+              <label className="flex text-xs font-semibold text-slate-355 mb-1 items-center gap-1">
                 <UserCheck className="h-3 w-3 text-blue-500" /> Your Codename
-                {profile?.username && profile.username.trim() !== '' && (
-                  <span className="text-[10px] text-slate-500 font-normal">(Locked - Admin only)</span>
+                {profile?.username && profile.username.trim() !== "" && (
+                  <span className="text-[10px] text-slate-500 font-normal">
+                    (Locked - Admin only)
+                  </span>
                 )}
               </label>
               <input
                 type="text"
                 required
-                disabled={!!(profile?.username && profile.username.trim() !== '')}
+                disabled={
+                  !!(profile?.username && profile.username.trim() !== "")
+                }
                 placeholder="e.g. KI1024"
                 value={ownCodename}
                 onChange={(e) => setOwnCodename(e.target.value.toUpperCase())}
@@ -705,7 +793,7 @@ export default function Dashboard() {
               </label>
               <div className="relative">
                 <input
-                  type={showOwnPass ? 'text' : 'password'}
+                  type={showOwnPass ? "text" : "password"}
                   required
                   placeholder="6 to 12 character password"
                   value={ownPassword}
@@ -717,7 +805,11 @@ export default function Dashboard() {
                   onClick={() => setShowOwnPass(!showOwnPass)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  {showOwnPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showOwnPass ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -728,7 +820,7 @@ export default function Dashboard() {
               </label>
               <div className="relative">
                 <input
-                  type={showOwnConfirmPass ? 'text' : 'password'}
+                  type={showOwnConfirmPass ? "text" : "password"}
                   required
                   placeholder="Re-enter new password"
                   value={ownConfirmPassword}
@@ -740,11 +832,17 @@ export default function Dashboard() {
                   onClick={() => setShowOwnConfirmPass(!showOwnConfirmPass)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  {showOwnConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showOwnConfirmPass ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               {passwordFeedback && (
-                <p className={`text-xs mt-1.5 font-medium ${passwordFeedback.isError ? 'text-red-450' : 'text-emerald-450'}`}>
+                <p
+                  className={`text-xs mt-1.5 font-medium ${passwordFeedback.isError ? "text-red-450" : "text-emerald-450"}`}
+                >
                   {passwordFeedback.text}
                 </p>
               )}
@@ -761,14 +859,14 @@ export default function Dashboard() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-2 flex items-center justify-center gap-1.5 py-2.5 px-4 border border-transparent rounded-lg shadow-md text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-50 transition-all cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 border border-transparent rounded-lg shadow-md text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {submitting ? (
                   <>
                     <Loader2 className="animate-spin h-4 w-4" /> Saving...
                   </>
                 ) : (
-                  'Save Information'
+                  "Save Information"
                 )}
               </button>
             </div>
@@ -797,37 +895,39 @@ export default function Dashboard() {
       />
       {/* Main Body Layout */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row gap-6 items-start">
-
         {/* Sidebar Navigation */}
         <aside className="w-full md:w-64 shrink-0 bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 shadow-xl">
           <div className="space-y-1">
             <button
-              onClick={() => handleTabChange('entry')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${activeTab === 'entry'
-                  ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
-                  : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
-                }`}
+              onClick={() => handleTabChange("entry")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                activeTab === "entry"
+                  ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
+                  : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
+              }`}
             >
               <FileText className="h-5 w-5" />
               <span>Daily Entry</span>
             </button>
             <button
-              onClick={() => handleTabChange('monthly')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${activeTab === 'monthly'
-                  ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
-                  : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
-                }`}
+              onClick={() => handleTabChange("monthly")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                activeTab === "monthly"
+                  ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
+                  : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
+              }`}
             >
               <Calendar className="h-5 w-5" />
               <span>Monthly Entry List</span>
             </button>
-            {profile?.role === 'admin' && (
+            {profile?.role === "admin" && (
               <button
-                onClick={() => handleTabChange('users')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${activeTab === 'users'
-                    ? 'bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5'
-                    : 'text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent'
-                  }`}
+                onClick={() => handleTabChange("users")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                  activeTab === "users"
+                    ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
+                    : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
+                }`}
               >
                 <Users className="h-5 w-5" />
                 <span>User Management</span>
@@ -837,14 +937,15 @@ export default function Dashboard() {
         </aside>
 
         {/* Content Area */}
-        <section className="flex-1 w-full bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl min-h-[500px]">
-
+        <section className="flex-1 w-full bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl min-h-125">
           {/* TAB 1: DAILY ENTRY */}
-          {activeTab === 'entry' && (
+          {activeTab === "entry" && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-white">New File Entry</h2>
-                <p className="text-xs text-slate-450 mt-1">Fill out the form below to submit file data.</p>
+                <p className="text-xs text-slate-450 mt-1">
+                  Fill out the form below to submit file data.
+                </p>
               </div>
 
               {/* Data Entry Form Component */}
@@ -872,7 +973,12 @@ export default function Dashboard() {
                       Today's File Entry List
                     </h3>
                     <p className="text-[11px] text-slate-455 mt-0.5">
-                      Date: {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      Date:{" "}
+                      {new Date().toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
                     </p>
                   </div>
 
@@ -892,8 +998,11 @@ export default function Dashboard() {
                       <FileDown className="h-3.5 w-3.5 text-rose-500" />
                       <span>PDF</span>
                     </button>
-                    {profile?.role === 'admin' && (
-                      <AdminViewToggle viewMode={adminViewMode} onChange={handleAdminViewModeChange} />
+                    {profile?.role === "admin" && (
+                      <AdminViewToggle
+                        viewMode={adminViewMode}
+                        onChange={handleAdminViewModeChange}
+                      />
                     )}
                   </div>
                 </div>
@@ -903,7 +1012,9 @@ export default function Dashboard() {
 
                 {/* Search Filters for Today's Table */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-slate-400">Search Today's Entries</h4>
+                  <h4 className="text-xs font-semibold text-slate-400">
+                    Search Today's Entries
+                  </h4>
                   <SearchFilters
                     searchQuery={todaySearchQuery}
                     setSearchQuery={setTodaySearchQuery}
@@ -930,12 +1041,16 @@ export default function Dashboard() {
           )}
 
           {/* TAB 2: MONTHLY LIST */}
-          {activeTab === 'monthly' && (
+          {activeTab === "monthly" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Monthly Quotes & Sales Logs</h2>
-                  <p className="text-xs text-slate-450 mt-1">Filter and view data for all months and years.</p>
+                  <h2 className="text-xl font-bold text-white">
+                    Monthly Quotes & Sales Logs
+                  </h2>
+                  <p className="text-xs text-slate-450 mt-1">
+                    Filter and view data for all months and years.
+                  </p>
                 </div>
 
                 {/* View toggle, Export, & Custom Entry Controls */}
@@ -954,17 +1069,18 @@ export default function Dashboard() {
                     <FileDown className="h-3.5 w-3.5 text-rose-500" />
                     <span>PDF</span>
                   </button>
-                  {profile?.role === 'admin' && adminViewMode === 'all' && (
-                    <button
-                      onClick={() => setIsAdminCustomEntryModalOpen(true)}
-                      className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg shadow-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Custom Entry</span>
-                    </button>
-                  )}
-                  {profile?.role === 'admin' && (
-                    <AdminViewToggle viewMode={adminViewMode} onChange={handleAdminViewModeChange} />
+                  <button
+                    onClick={() => setIsCustomEntryModalOpen(true)}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg shadow-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Custom Entry</span>
+                  </button>
+                  {profile?.role === "admin" && (
+                    <AdminViewToggle
+                      viewMode={adminViewMode}
+                      onChange={handleAdminViewModeChange}
+                    />
                   )}
                 </div>
               </div>
@@ -974,7 +1090,9 @@ export default function Dashboard() {
                 <div className="bg-slate-955/40 p-4 rounded-2xl border border-slate-850 grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end w-full">
                   {/* 1. Search Box */}
                   <div className="md:col-span-4">
-                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">Search</label>
+                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">
+                      Search
+                    </label>
                     <div className="relative">
                       <input
                         type="text"
@@ -999,43 +1117,53 @@ export default function Dashboard() {
 
                   {/* 2. Year Selection */}
                   <div className="md:col-span-2">
-                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">Year</label>
+                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">
+                      Year
+                    </label>
                     <select
                       value={selectedYear}
                       disabled={!!selectedDate}
                       onChange={(e) => {
                         setSelectedYear(e.target.value);
-                        setSelectedDate(''); // Reset specific date filter
+                        setSelectedDate(""); // Reset specific date filter
                       }}
                       className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-900/30 h-9"
                     >
-                      {dynamicYears.map(year => (
-                        <option key={year} value={year}>{year}</option>
+                      {dynamicYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   {/* 3. Month Selection */}
                   <div className="md:col-span-2">
-                    <label className="block text-[11px] font-semibold text-slate-355 mb-1">Month</label>
+                    <label className="block text-[11px] font-semibold text-slate-355 mb-1">
+                      Month
+                    </label>
                     <select
                       value={selectedMonth}
                       disabled={!!selectedDate}
                       onChange={(e) => {
                         setSelectedMonth(e.target.value);
-                        setSelectedDate(''); // Reset specific date filter
+                        setSelectedDate(""); // Reset specific date filter
                       }}
                       className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-900/30 h-9"
                     >
-                      {dynamicMonths.map(m => (
-                        <option key={m.val} value={m.val}>{m.name}</option>
+                      {dynamicMonths.map((m) => (
+                        <option key={m.val} value={m.val}>
+                          {m.name}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   {/* 4. Specific Date Input */}
                   <div className="md:col-span-4">
-                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">Specific Date</label>
+                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">
+                      Specific Date
+                    </label>
                     <div className="flex gap-1.5 items-center">
                       <input
                         type="text"
@@ -1063,8 +1191,8 @@ export default function Dashboard() {
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedDate('');
-                          setDateInputVal('');
+                          setSelectedDate("");
+                          setDateInputVal("");
                         }}
                         className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-400 rounded-lg transition-all duration-200 flex items-center justify-center shrink-0 w-9 h-9 cursor-pointer"
                         title="Reset specific date"
@@ -1097,19 +1225,24 @@ export default function Dashboard() {
           )}
 
           {/* TAB 3: USER MANAGEMENT (Admin Only) */}
-          {activeTab === 'users' && profile?.role === 'admin' && (
+          {activeTab === "users" && profile?.role === "admin" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-white">User Accounts & File Permissions Management</h2>
-                  <p className="text-xs text-slate-450 mt-1">Create new staff accounts and select which file types they are permitted to submit.</p>
+                  <h2 className="text-xl font-bold text-white">
+                    User Accounts & File Permissions Management
+                  </h2>
+                  <p className="text-xs text-slate-450 mt-1">
+                    Create new staff accounts and select which file types they
+                    are permitted to submit.
+                  </p>
                 </div>
                 <button
                   onClick={() => {
                     setGeneratedPassword(null);
                     setIsAddUserModalOpen(true);
                   }}
-                  className="sm:self-end flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl shadow-lg text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-blue-950/20 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 shrink-0 cursor-pointer"
+                  className="sm:self-end flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl shadow-lg text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-blue-950/20 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 shrink-0 cursor-pointer"
                 >
                   <UserPlus className="h-4 w-4" /> Add User
                 </button>
@@ -1135,27 +1268,41 @@ export default function Dashboard() {
                   <tbody className="divide-y divide-slate-850 text-slate-355">
                     {profilesList.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-slate-550">
+                        <td
+                          colSpan={5}
+                          className="px-4 py-8 text-center text-slate-550"
+                        >
                           No registered users found.
                         </td>
                       </tr>
                     ) : (
                       profilesList.map((u) => (
-                        <tr key={u.id} className="hover:bg-slate-900/30 transition-all">
-                          <td className="px-4 py-2.5 font-bold text-white">{u.username.toUpperCase()}</td>
-                          <td className="px-4 py-2.5">{u.full_name || '-'}</td>
+                        <tr
+                          key={u.id}
+                          className="hover:bg-slate-900/30 transition-all"
+                        >
+                          <td className="px-4 py-2.5 font-bold text-white">
+                            {u.username.toUpperCase()}
+                          </td>
+                          <td className="px-4 py-2.5">{u.full_name || "-"}</td>
                           <td className="px-4 py-2.5">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${u.role === 'admin'
-                                ? 'bg-purple-950/50 border-purple-900/60 text-purple-450'
-                                : 'bg-blue-950/50 border-blue-900/60 text-blue-450'
-                              }`}>
-                              {u.role === 'admin' ? 'Admin' : 'User'}
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                u.role === "admin"
+                                  ? "bg-purple-950/50 border-purple-900/60 text-purple-450"
+                                  : "bg-blue-950/50 border-blue-900/60 text-blue-450"
+                              }`}
+                            >
+                              {u.role === "admin" ? "Admin" : "User"}
                             </span>
                           </td>
                           <td className="px-4 py-2.5">
                             <div className="flex flex-wrap gap-1">
                               {(u.allowed_types || []).map((t) => (
-                                <span key={t} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded">
+                                <span
+                                  key={t}
+                                  className="bg-slate-900 border border-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded"
+                                >
                                   {t}
                                 </span>
                               ))}
@@ -1166,9 +1313,11 @@ export default function Dashboard() {
                               <button
                                 onClick={() => {
                                   setEditingProfile(u);
-                                  setEditUserFullName(u.full_name || '');
+                                  setEditUserFullName(u.full_name || "");
                                   setEditUserRole(u.role);
-                                  setEditUserAllowedTypes(u.allowed_types || []);
+                                  setEditUserAllowedTypes(
+                                    u.allowed_types || [],
+                                  );
                                 }}
                                 className="p-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all duration-200 hover:scale-125 cursor-pointer"
                                 title="Edit Profile"
@@ -1178,7 +1327,10 @@ export default function Dashboard() {
                               {u.id !== sessionUser?.id && (
                                 <button
                                   onClick={() => {
-                                    setDeletingUserAccount({ id: u.id, username: u.username });
+                                    setDeletingUserAccount({
+                                      id: u.id,
+                                      username: u.username,
+                                    });
                                   }}
                                   className="p-1.5 bg-slate-900 hover:bg-red-950/20 border border-slate-800 text-red-500 hover:text-red-400 rounded-lg transition-all duration-200 hover:scale-125 cursor-pointer"
                                   title="Delete Account"
@@ -1196,7 +1348,6 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-
         </section>
       </main>
 
@@ -1232,20 +1383,26 @@ export default function Dashboard() {
           onClose={() => setEditingProfile(null)}
           onSave={async (newPasswordToSet) => {
             if (editUserAllowedTypes.length === 0) {
-              showToast('error', 'Please allow at least one file type.');
+              showToast("error", "Please allow at least one file type.");
               return;
             }
             const success = await adminUpdateUserProfile(
               editingProfile.id,
               editUserFullName,
               editUserRole,
-              editUserAllowedTypes
+              editUserAllowedTypes,
             );
             if (success) {
               if (newPasswordToSet) {
-                const pwSuccess = await resetUserPassword(editingProfile.id, newPasswordToSet);
+                const pwSuccess = await resetUserPassword(
+                  editingProfile.id,
+                  newPasswordToSet,
+                );
                 if (!pwSuccess) {
-                  showToast('error', 'Profile updated, but password reset failed.');
+                  showToast(
+                    "error",
+                    "Profile updated, but password reset failed.",
+                  );
                 }
               }
               setEditingProfile(null);
@@ -1277,7 +1434,7 @@ export default function Dashboard() {
           onCopyPassword={() => {
             if (generatedPassword) {
               navigator.clipboard.writeText(generatedPassword);
-              showToast('success', 'Password copied to clipboard!');
+              showToast("success", "Password copied to clipboard!");
             }
           }}
         />
@@ -1295,8 +1452,11 @@ export default function Dashboard() {
         title="Delete User Account"
         message={
           <span>
-            Are you sure you want to permanently delete the account for{' '}
-            <strong className="text-white">{deletingUserAccount?.username}</strong>? This action cannot be undone.
+            Are you sure you want to permanently delete the account for{" "}
+            <strong className="text-white">
+              {deletingUserAccount?.username}
+            </strong>
+            ? This action cannot be undone.
           </span>
         }
         confirmText="Delete Account"
@@ -1320,17 +1480,16 @@ export default function Dashboard() {
         isDanger={true}
       />
 
-      {/* MODAL 7: ADMIN CUSTOM DATE ENTRY */}
-      {profile?.role === 'admin' && (
-        <AdminCustomEntryModal
-          isOpen={isAdminCustomEntryModalOpen}
-          onClose={() => setIsAdminCustomEntryModalOpen(false)}
-          profilesList={profilesList}
-          submitting={submitting}
-          onSubmit={handleAdminCustomEntrySubmit}
-        />
-      )}
-
+      {/* MODAL 7: CUSTOM DATE ENTRY */}
+      <CustomEntryModal
+        isOpen={isCustomEntryModalOpen}
+        onClose={() => setIsCustomEntryModalOpen(false)}
+        profilesList={profilesList}
+        currentUserProfile={profile}
+        submitting={submitting}
+        adminMode={profile?.role === "admin" && adminViewMode === "all"}
+        onSubmit={handleAdminCustomEntrySubmit}
+      />
     </div>
   );
 }

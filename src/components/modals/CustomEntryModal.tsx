@@ -12,11 +12,13 @@ import { FileType, Profile } from "@/types";
 import { formatDate } from "@/utils/dashboardHelpers";
 import { CategorySelector } from "../CategorySelector";
 
-interface AdminCustomEntryModalProps {
+interface CustomEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
   profilesList: Profile[];
+  currentUserProfile: Profile | null;
   submitting: boolean;
+  adminMode: boolean; // true = admin selecting any user, false = regular user adding their own data
   onSubmit: (
     fileName: string,
     branchName: string,
@@ -26,15 +28,17 @@ interface AdminCustomEntryModalProps {
   ) => Promise<boolean>;
 }
 
-export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
+export const CustomEntryModal: React.FC<CustomEntryModalProps> = ({
   isOpen,
   onClose,
   profilesList,
+  currentUserProfile,
   submitting,
+  adminMode,
   onSubmit,
 }) => {
   const customDateRef = useRef<HTMLInputElement>(null);
-  const [adminCustomUserId, setAdminCustomUserId] = useState("");
+  const [customUserId, setCustomUserId] = useState("");
 
   const handleOpenCustomDatePicker = () => {
     if (customDateRef.current) {
@@ -45,22 +49,22 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
       }
     }
   };
-  const [adminCustomDate, setAdminCustomDate] = useState("");
+  const [customDate, setCustomDate] = useState("");
   const [modalDateInputVal, setModalDateInputVal] = useState("");
 
-  // Sync text input with adminCustomDate
+  // Sync text input with customDate
   useEffect(() => {
-    if (adminCustomDate) {
-      const parts = adminCustomDate.split("-");
+    if (customDate) {
+      const parts = customDate.split("-");
       if (parts.length === 3) {
         setModalDateInputVal(`${parts[2]}-${parts[1]}-${parts[0]}`);
       } else {
-        setModalDateInputVal(formatDate(adminCustomDate));
+        setModalDateInputVal(formatDate(customDate));
       }
     } else {
       setModalDateInputVal("");
     }
-  }, [adminCustomDate]);
+  }, [customDate]);
 
   const handleModalDateInputChange = (val: string) => {
     const clean = val.replace(/\D/g, "");
@@ -100,23 +104,26 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
           const yyyy = String(year);
           const mm = String(month).padStart(2, "0");
           const dd = String(day).padStart(2, "0");
-          setAdminCustomDate(`${yyyy}-${mm}-${dd}`);
+          setCustomDate(`${yyyy}-${mm}-${dd}`);
           return;
         }
       }
     }
-    setAdminCustomDate("");
+    setCustomDate("");
   };
 
-  const [adminCustomFileName, setAdminCustomFileName] = useState("");
-  const [adminCustomBranchName, setAdminCustomBranchName] = useState("");
-  const [adminCustomFileType, setAdminCustomFileType] =
-    useState<FileType>("Quote");
+  const [customFileName, setCustomFileName] = useState("");
+  const [customBranchName, setCustomBranchName] = useState("");
+  const [customFileType, setCustomFileType] = useState<FileType>("Quote");
 
   // Find the selected user's profile
   const targetUserProfile = useMemo(() => {
-    return profilesList.find((p) => p.id === adminCustomUserId);
-  }, [profilesList, adminCustomUserId]);
+    if (adminMode) {
+      return profilesList.find((p) => p.id === customUserId);
+    } else {
+      return currentUserProfile;
+    }
+  }, [profilesList, customUserId, currentUserProfile, adminMode]);
 
   // Allowed categories for target user
   const targetAllowedCategories = useMemo(() => {
@@ -137,37 +144,42 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
   // Reset inputs when modal opens
   useEffect(() => {
     if (isOpen) {
-      setAdminCustomFileName("");
-      setAdminCustomBranchName("");
-      setAdminCustomDate("");
+      setCustomFileName("");
+      setCustomBranchName("");
+      setCustomDate("");
       setModalDateInputVal("");
-      if (profilesList.length > 0) {
-        setAdminCustomUserId(profilesList[0].id);
+
+      if (adminMode) {
+        if (profilesList.length > 0) {
+          setCustomUserId(profilesList[0].id);
+        }
+      } else {
+        // For regular users, set their own ID
+        if (currentUserProfile?.id) {
+          setCustomUserId(currentUserProfile.id);
+        }
       }
     }
-  }, [isOpen, profilesList]);
+  }, [isOpen, profilesList, currentUserProfile, adminMode]);
 
   // Adjust selected file type based on target user permissions
   useEffect(() => {
-    if (adminCustomUserId && targetAllowedCategories.length > 0) {
-      if (!targetAllowedCategories.includes(adminCustomFileType)) {
+    if (customUserId && targetAllowedCategories.length > 0) {
+      if (!targetAllowedCategories.includes(customFileType)) {
         // Fallback checks
-        if (adminCustomFileType.startsWith("Requote") && isRequoteAllowed) {
+        if (customFileType.startsWith("Requote") && isRequoteAllowed) {
           // Keep it if requote variants are allowed, let standard selection adjust
-        } else if (
-          adminCustomFileType.startsWith("Review") &&
-          isReviewAllowed
-        ) {
+        } else if (customFileType.startsWith("Review") && isReviewAllowed) {
           // Keep review
         } else {
-          setAdminCustomFileType(targetAllowedCategories[0] as FileType);
+          setCustomFileType(targetAllowedCategories[0] as FileType);
         }
       }
     }
   }, [
-    adminCustomUserId,
+    customUserId,
     targetAllowedCategories,
-    adminCustomFileType,
+    customFileType,
     isRequoteAllowed,
     isReviewAllowed,
   ]);
@@ -175,11 +187,11 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await onSubmit(
-      adminCustomFileName,
-      adminCustomBranchName,
-      adminCustomFileType,
-      adminCustomUserId,
-      adminCustomDate,
+      customFileName,
+      customBranchName,
+      customFileType,
+      customUserId,
+      customDate,
     );
     if (success) {
       onClose();
@@ -203,7 +215,9 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
           Custom Date Entry
         </h3>
         <p className="text-xs text-slate-455 mb-6">
-          Submit data for a selected user on a custom backdated or future date.
+          {adminMode
+            ? "Submit data for a selected user on a custom backdated or future date."
+            : "Submit your data on a custom backdated or future date."}
         </p>
 
         <form
@@ -212,24 +226,39 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
         >
           {/* Left Side Inputs */}
           <div className="space-y-4">
-            <div>
-              <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-blue-500" /> Target User
-              </label>
-              <select
-                required
-                value={adminCustomUserId}
-                onChange={(e) => setAdminCustomUserId(e.target.value)}
-                className="block w-full px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-              >
-                <option value="">-- Select User --</option>
-                {profilesList.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.username.toUpperCase()} ({u.full_name || "No Name"})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Target User Selector - Only show for admin mode */}
+            {adminMode && (
+              <div>
+                <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-blue-500" /> Target User
+                </label>
+                <select
+                  required
+                  value={customUserId}
+                  onChange={(e) => setCustomUserId(e.target.value)}
+                  className="block w-full px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  <option value="">-- Select User --</option>
+                  {profilesList.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.username.toUpperCase()} ({u.full_name || "No Name"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Display User Info for non-admin mode */}
+            {!adminMode && currentUserProfile && (
+              <div>
+                <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-blue-500" /> Your Codename
+                </label>
+                <div className="px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white text-xs font-semibold">
+                  {currentUserProfile.username.toUpperCase()}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
@@ -243,20 +272,20 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
                   value={modalDateInputVal}
                   onChange={(e) => handleModalDateInputChange(e.target.value)}
                   maxLength={10}
-                  className="block w-full px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-[42px]"
+                  className="block w-full px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-10.5"
                 />
                 <input
                   type="date"
                   ref={customDateRef}
                   required
-                  value={adminCustomDate}
-                  onChange={(e) => setAdminCustomDate(e.target.value)}
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
                   className="absolute w-px h-px opacity-0 pointer-events-none select-none"
                 />
                 <button
                   type="button"
                   onClick={handleOpenCustomDatePicker}
-                  className="p-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-400 rounded-xl transition-all duration-200 flex items-center justify-center shrink-0 w-[42px] h-[42px] cursor-pointer"
+                  className="p-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-400 rounded-xl transition-all duration-200 flex items-center justify-center shrink-0 w-10.5 h-10.5 cursor-pointer"
                   title="Open Calendar"
                 >
                   <Calendar className="h-4.5 w-4.5" />
@@ -272,8 +301,8 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
                 type="text"
                 required
                 placeholder="e.g. Williams James"
-                value={adminCustomFileName}
-                onChange={(e) => setAdminCustomFileName(e.target.value)}
+                value={customFileName}
+                onChange={(e) => setCustomFileName(e.target.value)}
                 className="block w-full px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
               />
             </div>
@@ -286,9 +315,9 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
                 type="text"
                 required
                 placeholder="e.g. MK, NN, RIde"
-                value={adminCustomBranchName}
+                value={customBranchName}
                 onChange={(e) =>
-                  setAdminCustomBranchName(e.target.value.toUpperCase())
+                  setCustomBranchName(e.target.value.toUpperCase())
                 }
                 className="block w-full px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
               />
@@ -303,8 +332,8 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
               </label>
 
               <CategorySelector
-                selectedType={adminCustomFileType}
-                setSelectedType={setAdminCustomFileType}
+                selectedType={customFileType}
+                setSelectedType={setCustomFileType}
                 allowedCategories={targetAllowedCategories}
               />
             </div>
