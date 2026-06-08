@@ -118,33 +118,25 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.1.5 (Latest)
+### v0.1.6 (Latest)
 
 **Quality & Code Health Improvements**
 
-- ✅ **CSS & Tailwind Modernization**: Fixed conflicting `block` and `flex` display classes across all form components. Updated deprecated gradient syntax from `bg-gradient-to-r` to `bg-linear-to-r`. Replaced arbitrary Tailwind values with standard scale (`h-[42px]` → `h-10.5`, `min-h-[500px]` → `min-h-125`, `flex-2` → `flex-1`).
-- ✅ **Component Consolidation**: Removed deprecated `AdminCustomEntryModal.tsx` after consolidating functionality into a reusable `CustomEntryModal` component with intelligent admin/user mode switching.
-- ✅ **CustomEntryModal Enhancements**: New dual-mode component supports:
-  - **Admin "all data" view**: Select any user from dropdown to submit backdated entries
-  - **Admin "my data" view**: Acts like regular user with read-only codename
-  - **Regular users**: Always add own data with non-editable codename showing as default
-  - Full validation against target user's allowed categories
-- ✅ **Code Quality Verification**: Comprehensive null/undefined safety checks. Proper error handling for all async operations. Form validation ensures data integrity against user permissions.
-- ✅ **Zero Compile Warnings**: Clean production-ready codebase with no ESLint warnings.
+- ✅ **CSS & Tailwind Modernization**: Fixed conflicting `block` and `flex` display classes across all form components (DailyEntryForm, CustomEntryModal, page.tsx). Updated deprecated gradient syntax from `bg-gradient-to-r` to `bg-linear-to-r` throughout buttons and headers. Replaced arbitrary Tailwind values with standard scale (`h-[42px]` → `h-10.5`, `w-[42px]` → `w-10.5`, `min-h-[500px]` → `min-h-125`, `flex-2` → `flex-1`).
+- ✅ **Component Consolidation**: Removed deprecated `AdminCustomEntryModal.tsx` after consolidating functionality into a reusable `CustomEntryModal` component with intelligent dual-mode support.
+- ✅ **CustomEntryModal Enhancements**: New reusable component with `adminMode` prop for intelligent behavior switching:
+  - **Admin "all data" view** (`adminMode=true`): User selector dropdown to submit backdated entries for any team member
+  - **Admin "my data" & Regular users** (`adminMode=false`): Non-editable read-only codename field showing current user
+  - Full form validation against target user's allowed file categories
+- ✅ **Enhanced Form Validation & Error Handling**: Comprehensive validation with proper null/undefined safety checks. Form submission validates all fields and checks against target user's permissions. Clear, user-friendly error messages via toast notifications.
+- ✅ **Data Integrity & Code Quality**: Verified userId and profile handling throughout data flow. All async operations include proper try-catch error handling. Form validations enforce user permission constraints. Zero ESLint warnings - clean, production-ready codebase.
 
-### v0.1.4
+### v0.1.5
 
-- Excel & PDF export functionality
-- Dynamic stats grid with double-digit padding and percentages
-- "Other Site" excluded from total files count
-- Active tab persistence across page reloads
-- Locked codename field for regular users
-- Custom entry button relocated next to admin toggle
-- Permissive RLS policies for admin custom entries
-- Unified CategorySelector component
-- Advanced filtering (Search, Year, Month, Specific Date)
-- 21-day inactivity auto-logout
-- Code cleanup and warning fixes
+- CSS & Tailwind quality improvements (block/flex conflicts, gradient syntax, arbitrary values)
+- Code cleanup and component consolidation
+- CustomEntryModal component implementation
+- Enhanced form validation and error handling
 
 ---
 
