@@ -50,7 +50,7 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-            ### 🚀 What's New in v0.1.6:
+            ### 🚀 What's New in v0.1.5:
             * **CSS & Tailwind Quality Improvements**: Fixed conflicting `block` and `flex` display classes across all form labels in DailyEntryForm, CustomEntryModal, and page components. Updated deprecated gradient syntax from `bg-gradient-to-r` to `bg-linear-to-r` throughout buttons and headers. Replaced arbitrary Tailwind values with standard scale values (`h-[42px]` → `h-10.5`, `w-[42px]` → `w-10.5`, `min-h-[500px]` → `min-h-125`, `flex-2` → `flex-1`). Removed deprecated AdminCustomEntryModal.tsx.
             * **Reusable CustomEntryModal Component**: New `<CustomEntryModal>` with intelligent dual-mode support via `adminMode` prop:
               - **Admin "all data" view**: User selector dropdown to submit backdated entries for any team member
@@ -59,7 +59,7 @@ jobs:
             * **Enhanced Form Validation & Error Handling**: Comprehensive validation with proper null/undefined safety checks. Form submission validates all required fields and checks against target user's category permissions. Clear, user-friendly error messages via toast notifications.
             * **Data Integrity & Code Quality**: Verified userId and profile handling throughout data flow. All async operations include proper error handling. Form validations enforce user permission constraints. Zero ESLint warnings - clean, production-ready codebase.
 
-            ### 📋 Previous Features (v0.1.5):
+            ### 📋 Previous Features (v0.1.4):
             * **Excel & PDF Exports**: Download filtered reports of daily and monthly entries.
             * **Dynamic Stats Grid**: Real-time aggregated stats with double-digit padding and percentages.
             * **Active Tab State Persistence**: Remembers user's selected tab across reloads.

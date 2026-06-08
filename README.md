@@ -118,7 +118,7 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.1.6 (Latest)
+### v0.1.5 (Latest)
 
 **Quality & Code Health Improvements**
 
@@ -131,7 +131,7 @@ quotes-sales-tracker/
 - ✅ **Enhanced Form Validation & Error Handling**: Comprehensive validation with proper null/undefined safety checks. Form submission validates all fields and checks against target user's permissions. Clear, user-friendly error messages via toast notifications.
 - ✅ **Data Integrity & Code Quality**: Verified userId and profile handling throughout data flow. All async operations include proper try-catch error handling. Form validations enforce user permission constraints. Zero ESLint warnings - clean, production-ready codebase.
 
-### v0.1.5
+### v0.1.4
 
 - CSS & Tailwind quality improvements (block/flex conflicts, gradient syntax, arbitrary values)
 - Code cleanup and component consolidation
