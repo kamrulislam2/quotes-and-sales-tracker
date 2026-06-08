@@ -521,7 +521,14 @@ export default function Dashboard() {
       return false;
     }
 
-    const targetProfile = profilesList.find((p) => p.id === userId);
+    // For non-admin mode, use currentUserProfile; for admin mode, look up in profilesList
+    const targetProfile =
+      profile?.role === "admin"
+        ? profilesList.find((p) => p.id === userId)
+        : userId === profile?.id
+          ? profile
+          : null;
+
     if (!targetProfile) {
       showToast("error", "Selected user not found.");
       return false;
