@@ -62,7 +62,7 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
           <input
             type="text"
             required
-            placeholder="e.g. MK, NN, RIde"
+            placeholder="e.g. MK, NN, RIDE"
             value={branchName}
             onChange={(e) => setBranchName(e.target.value.toUpperCase())}
             className="block w-full px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"

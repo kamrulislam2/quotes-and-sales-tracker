@@ -374,17 +374,24 @@ export default function Dashboard() {
       }
       if (searchQuery) {
         const q = searchQuery.toLowerCase().trim();
-        const matchFileName = r.file_name.toLowerCase().includes(q);
-        const matchBranch = r.branch_name.toLowerCase().includes(q);
-        const matchCodename = r.codename.toLowerCase().includes(q);
-        const matchFileType = r.file_type.toLowerCase().includes(q);
-        if (
-          !matchFileName &&
-          !matchBranch &&
-          !matchCodename &&
-          !matchFileType
-        ) {
-          return false;
+        // Check if search query matches a known file type exactly (case-insensitive)
+        const matchedFileType = ALL_12_FILE_TYPES.find(
+          (ft) => ft.toLowerCase() === q,
+        );
+
+        if (matchedFileType) {
+          // If search is for a known file type, filter by that type only
+          if (r.file_type !== matchedFileType) {
+            return false;
+          }
+        } else {
+          // Otherwise, search in name, branch, and codename fields only
+          const matchFileName = r.file_name.toLowerCase().includes(q);
+          const matchBranch = r.branch_name.toLowerCase().includes(q);
+          const matchCodename = r.codename.toLowerCase().includes(q);
+          if (!matchFileName && !matchBranch && !matchCodename) {
+            return false;
+          }
         }
       }
       return true;
@@ -413,27 +420,34 @@ export default function Dashboard() {
     return todayRecords.filter((r) => {
       if (todaySearchQuery) {
         const q = todaySearchQuery.toLowerCase().trim();
-        const matchFileName = r.file_name.toLowerCase().includes(q);
-        const matchBranch = r.branch_name.toLowerCase().includes(q);
-        const matchCodename = r.codename.toLowerCase().includes(q);
-        const matchFileType = r.file_type.toLowerCase().includes(q);
-        if (
-          !matchFileName &&
-          !matchBranch &&
-          !matchCodename &&
-          !matchFileType
-        ) {
-          return false;
+        // Check if search query matches a known file type exactly (case-insensitive)
+        const matchedFileType = ALL_12_FILE_TYPES.find(
+          (ft) => ft.toLowerCase() === q,
+        );
+
+        if (matchedFileType) {
+          // If search is for a known file type, filter by that type only
+          if (r.file_type !== matchedFileType) {
+            return false;
+          }
+        } else {
+          // Otherwise, search in name, branch, and codename fields only
+          const matchFileName = r.file_name.toLowerCase().includes(q);
+          const matchBranch = r.branch_name.toLowerCase().includes(q);
+          const matchCodename = r.codename.toLowerCase().includes(q);
+          if (!matchFileName && !matchBranch && !matchCodename) {
+            return false;
+          }
         }
       }
       return true;
     });
   }, [todayRecords, todaySearchQuery]);
 
-  // Statistics calculation for today's entries (unfiltered by search terms)
+  // Statistics calculation for today's entries (filtered by search terms)
   const todayStats = useMemo(() => {
-    return calculateSummaryStats(todayRecords);
-  }, [todayRecords]);
+    return calculateSummaryStats(todayFilteredRecords);
+  }, [todayFilteredRecords]);
 
   // Statistics calculation for monthly entries (filtered by search query)
   const monthlyStats = useMemo(() => {
@@ -1014,20 +1028,32 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                {/* Search Filters for Today's Table - BEFORE Stats */}
+                <div className="space-y-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search name, codename, branch..."
+                      value={todaySearchQuery}
+                      onChange={(e) => setTodaySearchQuery(e.target.value)}
+                      className="block w-full pl-8 pr-8 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs h-8"
+                    />
+                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-555" />
+                    {todaySearchQuery && (
+                      <button
+                        type="button"
+                        onClick={handleClearTodayFilters}
+                        className="absolute right-2.5 top-1.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+                        title="Clear search"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Stat pills summary Component */}
                 <StatsGrid stats={todayStats} />
-
-                {/* Search Filters for Today's Table */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-slate-400">
-                    Search Today's Entries
-                  </h4>
-                  <SearchFilters
-                    searchQuery={todaySearchQuery}
-                    setSearchQuery={setTodaySearchQuery}
-                    onClear={handleClearTodayFilters}
-                  />
-                </div>
 
                 {/* Today's Records Table Component */}
                 <RecordsTable

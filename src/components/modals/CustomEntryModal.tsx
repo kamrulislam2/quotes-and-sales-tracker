@@ -314,7 +314,7 @@ export const CustomEntryModal: React.FC<CustomEntryModalProps> = ({
               <input
                 type="text"
                 required
-                placeholder="e.g. MK, NN, RIde"
+                placeholder="e.g. MK, NN, RIDE"
                 value={customBranchName}
                 onChange={(e) =>
                   setCustomBranchName(e.target.value.toUpperCase())

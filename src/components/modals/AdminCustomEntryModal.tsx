@@ -285,7 +285,7 @@ export const AdminCustomEntryModal: React.FC<AdminCustomEntryModalProps> = ({
               <input
                 type="text"
                 required
-                placeholder="e.g. MK, NN, RIde"
+                placeholder="e.g. MK, NN, RIDE"
                 value={adminCustomBranchName}
                 onChange={(e) =>
                   setAdminCustomBranchName(e.target.value.toUpperCase())
