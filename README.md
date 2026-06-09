@@ -51,21 +51,28 @@ A modern, high-performance, real-time web application designed to track and mana
 - **Unified Filters Row**: Search bar is placed directly next to Year, Month, and Specific Date filters in a single aligned row.
 - **Specific Date Filter**: Type and format dates with DD-MM-YYYY automatic mask and visual calendar picker.
 - **Today's Entries**: View logs submitted today with local time formatting, instant search, and delete/edit modals.
+- **Monthly Entry Correction**: Edit entries from the Monthly Entry List and correct the submitted date/time using `DD-MM-YYYY` and `09:21 PM/AM` formats. Daily edits keep the original submitted date/time locked.
 - **Admin View Persistence**: Remembers your All Data / My Data toggle selection across page reloads using `localStorage`.
 - **Excel & PDF Exports**: Download filtered data lists as an Excel spreadsheet (CSV with UTF-8 BOM encoding) or PDF (native OS print-to-PDF layout) directly using the download buttons in the headers.
 
-### ⏱️ 6. 21-Day Inactivity Auto-Logout
+### 🧭 6. Dashboard Layout & Table Readability
+
+- **Collapsible Sidebar**: The left navigation can collapse into icon-only mode to give the records table more horizontal space. The sidebar state persists across reloads.
+- **Stable Table Columns**: Monthly date/time and file type columns use fixed minimum widths so values like `09-06-2026` and `Individual Review` stay visually clean.
+- **No-wrap Badges**: File type badges stay on one line and use horizontal table scrolling when space is tight instead of breaking awkwardly.
+
+### ⏱️ 7. 21-Day Inactivity Auto-Logout
 
 - Tracks user last active session timestamp in `localStorage`.
 - Automatically logs users out, clears security sessions, and redirects to login if the app is not visited or active for 21 consecutive days.
 
-### 🛠️ 7. User Management (Admin Only)
+### 🛠️ 8. User Management (Admin Only)
 
 - **Create Users**: Direct creation of staff accounts with customized allowed category checkboxes.
 - **Edit Profiles**: Update name, role, and categories, or change their passwords via the UI.
 - **Delete Users**: Permanently remove accounts with confirmation dialogs.
 
-### 📅 8. Custom Entry (Backdated Submissions)
+### 📅 9. Custom Entry (Backdated Submissions)
 
 - **Reusable CustomEntryModal Component**: Intelligent dual-mode modal for submitting entries on past dates.
 - **Admin "All Data" Mode**: Admins can select any user from a dropdown and submit backdated entries for them. Validates submission against the selected user's allowed file categories.
@@ -118,7 +125,17 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.1.5 (Latest)
+### v0.1.6 (Latest)
+
+**Dashboard Usability & Data Correction**
+
+- ✅ **Collapsible Sidebar Navigation**: Added a sidebar collapse/open control with icon-only compact mode. The collapsed state is saved in `localStorage` and gives the records table more room for longer names, branches, codenames, and file types.
+- ✅ **Monthly-only Submitted Date/Time Editing**: Edit modal now allows submitted date/time correction only from the Monthly Entry List. Date uses `DD-MM-YYYY`; time uses `09:21 PM/AM`. Daily Entry edits keep submitted date/time unchanged.
+- ✅ **Table Readability Fixes**: Fixed Monthly Entry List date wrapping by giving the Date/Time column a stable width. File type badges such as `Individual Review` now stay on one line.
+- ✅ **Update Flow Support**: Record updates can optionally include `submitted_at`, while ordinary daily edits continue updating only record details.
+- ✅ **Lint Cleanup**: Removed an unused dashboard import so lint now completes without warnings.
+
+### Previous Release
 
 **Quality & Code Health Improvements**
 
@@ -129,7 +146,7 @@ quotes-sales-tracker/
   - **Admin "my data" & Regular users** (`adminMode=false`): Non-editable read-only codename field showing current user
   - Full form validation against target user's allowed file categories
 - ✅ **Enhanced Form Validation & Error Handling**: Comprehensive validation with proper null/undefined safety checks. Form submission validates all fields and checks against target user's permissions. Clear, user-friendly error messages via toast notifications.
-- ✅ **Data Integrity & Code Quality**: Verified userId and profile handling throughout data flow. All async operations include proper try-catch error handling. Form validations enforce user permission constraints. Zero ESLint warnings - clean, production-ready codebase.
+- ✅ **Data Integrity & Code Quality**: Verified userId and profile handling throughout data flow. All async operations include proper try-catch error handling. Form validations enforce user permission constraints.
 
 ### v0.1.4
 

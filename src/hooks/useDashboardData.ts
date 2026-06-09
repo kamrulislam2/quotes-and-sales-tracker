@@ -197,17 +197,36 @@ export const useDashboardData = () => {
   };
 
   // Update/Edit a Record
-  const updateRecord = async (id: string, fileName: string, branchName: string, codename: string, fileType: FileType) => {
+  const updateRecord = async (
+    id: string,
+    fileName: string,
+    branchName: string,
+    codename: string,
+    fileType: FileType,
+    submittedAt?: string
+  ) => {
     updateLastActivity();
     try {
+      const updates: {
+        file_name: string;
+        branch_name: string;
+        codename: string;
+        file_type: FileType;
+        submitted_at?: string;
+      } = {
+        file_name: fileName,
+        branch_name: branchName.toUpperCase().trim(),
+        codename: codename.toUpperCase().trim(),
+        file_type: fileType
+      };
+
+      if (submittedAt) {
+        updates.submitted_at = submittedAt;
+      }
+
       const { error } = await supabase
         .from('records')
-        .update({
-          file_name: fileName,
-          branch_name: branchName.toUpperCase().trim(),
-          codename: codename.toUpperCase().trim(),
-          file_type: fileType
-        })
+        .update(updates)
         .eq('id', id);
 
       if (error) throw error;

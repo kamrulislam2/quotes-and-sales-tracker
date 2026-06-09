@@ -50,16 +50,17 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-            ### 🚀 What's New in v0.1.5:
-            * **CSS & Tailwind Quality Improvements**: Fixed conflicting `block` and `flex` display classes across all form labels in DailyEntryForm, CustomEntryModal, and page components. Updated deprecated gradient syntax from `bg-gradient-to-r` to `bg-linear-to-r` throughout buttons and headers. Replaced arbitrary Tailwind values with standard scale values (`h-[42px]` → `h-10.5`, `w-[42px]` → `w-10.5`, `min-h-[500px]` → `min-h-125`, `flex-2` → `flex-1`). Removed deprecated AdminCustomEntryModal.tsx.
-            * **Reusable CustomEntryModal Component**: New `<CustomEntryModal>` with intelligent dual-mode support via `adminMode` prop:
-              - **Admin "all data" view**: User selector dropdown to submit backdated entries for any team member
-              - **Admin "my data" & Regular users**: Non-editable read-only codename field showing current user
-              - Full form validation against target user's allowed file categories
-            * **Enhanced Form Validation & Error Handling**: Comprehensive validation with proper null/undefined safety checks. Form submission validates all required fields and checks against target user's category permissions. Clear, user-friendly error messages via toast notifications.
-            * **Data Integrity & Code Quality**: Verified userId and profile handling throughout data flow. All async operations include proper error handling. Form validations enforce user permission constraints. Zero ESLint warnings - clean, production-ready codebase.
+            ### 🚀 What's New in v0.1.6:
+            * **Collapsible Sidebar Navigation**: The dashboard sidebar can now collapse into compact icon-only mode, giving Daily Entry, Monthly Entry List, and User Management tables more horizontal room for longer values.
+            * **Monthly-only Submitted Date/Time Correction**: Records edited from Monthly Entry List can now correct submitted date and time. Date input uses `DD-MM-YYYY`; time input uses `09:21 PM/AM`. Daily Entry edits keep submitted date/time locked.
+            * **Cleaner Table Readability**: Monthly dates now stay on one line with time below. File type badges such as `Individual Review` no longer wrap awkwardly.
+            * **Persistent Layout Preference**: Sidebar collapsed/open state is saved in `localStorage`.
+            * **Record Update Support**: The record update flow can optionally update `submitted_at` while preserving existing behavior for normal detail edits.
+            * **Lint Cleanup**: Removed an unused dashboard import so lint completes cleanly.
 
-            ### 📋 Previous Features (v0.1.4):
+            ### 📋 Previous Features:
+            * **Reusable CustomEntryModal Component**: Intelligent custom entry modal for admin all-data mode, admin my-data mode, and regular users.
+            * **Custom Entry Validation**: Backdated submissions validate required fields and target user's allowed file categories.
             * **Excel & PDF Exports**: Download filtered reports of daily and monthly entries.
             * **Dynamic Stats Grid**: Real-time aggregated stats with double-digit padding and percentages.
             * **Active Tab State Persistence**: Remembers user's selected tab across reloads.
@@ -69,7 +70,6 @@ jobs:
             * **Unified Category Selector**: Consistent category selection across forms.
             * **Advanced Filters**: Search, Year, Month, and Specific Date filters integrated into one card.
             * **21-Day Inactivity Auto-Logout**: Automatic security logoff after 21 days of inactivity.
-            * **Zero ESLint Warnings**: Clean, production-ready codebase.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

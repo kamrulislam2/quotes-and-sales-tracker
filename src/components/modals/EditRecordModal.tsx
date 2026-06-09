@@ -12,6 +12,11 @@ interface EditRecordModalProps {
   setEditCodename: (val: string) => void;
   editFileType: FileType;
   setEditFileType: (val: FileType) => void;
+  canEditSubmittedAt: boolean;
+  editSubmittedDate: string;
+  setEditSubmittedDate: (val: string) => void;
+  editSubmittedTime: string;
+  setEditSubmittedTime: (val: string) => void;
   allowedCategories: string[];
   onClose: () => void;
   onSave: () => void;
@@ -26,10 +31,30 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
   setEditCodename,
   editFileType,
   setEditFileType,
+  canEditSubmittedAt,
+  editSubmittedDate,
+  setEditSubmittedDate,
+  editSubmittedTime,
+  setEditSubmittedTime,
   allowedCategories,
   onClose,
   onSave
 }) => {
+  const handleDateChange = (value: string) => {
+    const clean = value.replace(/\D/g, "").slice(0, 8);
+    let formatted = clean.slice(0, 2);
+
+    if (clean.length > 2) {
+      formatted += `-${clean.slice(2, 4)}`;
+    }
+
+    if (clean.length > 4) {
+      formatted += `-${clean.slice(4, 8)}`;
+    }
+
+    setEditSubmittedDate(formatted);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4 animate-fade-in">
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl relative">
@@ -88,6 +113,35 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
               ))}
             </select>
           </div>
+
+          {canEditSubmittedAt && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-355 mb-1">Submitted Date</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="DD-MM-YYYY"
+                  value={editSubmittedDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-355 mb-1">Submitted Time</label>
+                <input
+                  type="text"
+                  maxLength={8}
+                  placeholder="09:21 PM"
+                  value={editSubmittedTime}
+                  onChange={(e) => setEditSubmittedTime(e.target.value.toUpperCase())}
+                  className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-3">
             <button

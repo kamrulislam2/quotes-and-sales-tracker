@@ -34,11 +34,11 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
       <table className="min-w-full divide-y divide-slate-800 text-left text-sm">
         <thead className="bg-slate-900/50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
           <tr>
-            <th className="px-5 py-3.5">{showDate ? 'Date/Time' : 'Submitted Time'}</th>
+            <th className={`px-5 py-3.5 ${showDate ? 'w-[7.5rem] min-w-[7.5rem]' : 'w-28 min-w-28'}`}>{showDate ? 'Date/Time' : 'Submitted Time'}</th>
             <th className="px-5 py-3.5">File Name</th>
             <th className="px-5 py-3.5">Branch</th>
             <th className="px-5 py-3.5">Codename</th>
-            <th className="px-5 py-3.5">Type</th>
+            <th className="px-5 py-3.5 min-w-32">Type</th>
             <th className="px-5 py-3.5 text-right">Action</th>
           </tr>
         </thead>
@@ -52,10 +52,10 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
           ) : (
             records.map((r) => (
               <tr key={r.id} className="hover:bg-slate-900/30 transition-all">
-                <td className="px-5 py-3">
+                <td className={`px-5 py-3 ${showDate ? 'w-[7.5rem] min-w-[7.5rem]' : 'w-28 min-w-28'}`}>
                   {showDate ? (
                     <div className="flex flex-col">
-                      <span className="font-semibold text-slate-200">{formatDate(r.submitted_at)}</span>
+                      <span className="font-semibold text-slate-200 whitespace-nowrap">{formatDate(r.submitted_at)}</span>
                       <span className="text-[10px] text-slate-500 mt-0.5">{formatTimeToAMPM(r.submitted_at)}</span>
                     </div>
                   ) : (
@@ -65,8 +65,8 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                 <td className="px-5 py-3 font-semibold text-white">{r.file_name}</td>
                 <td className="px-5 py-3 text-slate-355">{r.branch_name}</td>
                 <td className="px-5 py-3 text-slate-355 font-semibold">{r.codename}</td>
-                <td className="px-5 py-3">
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${getBadgeClass(r.file_type)}`}>
+                <td className="px-5 py-3 min-w-32">
+                  <span className={`inline-flex items-center whitespace-nowrap text-[11px] font-bold px-2 py-0.5 rounded-full border ${getBadgeClass(r.file_type)}`}>
                     {r.file_type}
                   </span>
                 </td>

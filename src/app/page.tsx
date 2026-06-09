@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { Navbar } from "@/components/Navbar";
 import { StatsGrid } from "@/components/StatsGrid";
-import { SearchFilters } from "@/components/SearchFilters";
 import { RecordsTable } from "@/components/RecordsTable";
 import { DailyEntryForm } from "@/components/DailyEntryForm";
 import { EditRecordModal } from "@/components/modals/EditRecordModal";
@@ -41,6 +40,8 @@ import {
   Search,
   FileSpreadsheet,
   FileDown,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 const ALL_12_FILE_TYPES = [
@@ -92,6 +93,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"entry" | "monthly" | "users">(
     "entry",
   );
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Load active tab preference in localStorage on mount or when profile loads
   useEffect(() => {
@@ -111,6 +113,24 @@ export default function Dashboard() {
   const handleTabChange = (tab: "entry" | "monthly" | "users") => {
     setActiveTab(tab);
     localStorage.setItem("quotes_sales_active_tab", tab);
+  };
+
+  // Load and save sidebar width preference
+  useEffect(() => {
+    const savedSidebarState = localStorage.getItem(
+      "quotes_sales_sidebar_collapsed",
+    );
+    if (savedSidebarState === "true" || savedSidebarState === "false") {
+      setIsSidebarCollapsed(savedSidebarState === "true");
+    }
+  }, []);
+
+  const handleSidebarToggle = () => {
+    setIsSidebarCollapsed((current) => {
+      const next = !current;
+      localStorage.setItem("quotes_sales_sidebar_collapsed", String(next));
+      return next;
+    });
   };
 
   // Daily Entry Form State
@@ -230,6 +250,10 @@ export default function Dashboard() {
   const [editBranchName, setEditBranchName] = useState("");
   const [editCodename, setEditCodename] = useState("");
   const [editFileType, setEditFileType] = useState<FileType>("Quote");
+  const [editSubmittedDate, setEditSubmittedDate] = useState("");
+  const [editSubmittedTime, setEditSubmittedTime] = useState("");
+  const [editCanChangeSubmittedAt, setEditCanChangeSubmittedAt] =
+    useState(false);
 
   // State for resetting user password is now handled inside EditProfileModal
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -632,16 +656,95 @@ export default function Dashboard() {
       return;
     }
 
+    let editedSubmittedAt: string | undefined;
+
+    if (editCanChangeSubmittedAt) {
+      const [dayText, monthText, yearText] = editSubmittedDate.split("-");
+      const day = Number(dayText);
+      const month = Number(monthText);
+      const year = Number(yearText);
+      const parsedDate = new Date(year, month - 1, day);
+
+      if (
+        !dayText ||
+        !monthText ||
+        !yearText ||
+        dayText.length !== 2 ||
+        monthText.length !== 2 ||
+        yearText.length !== 4 ||
+        isNaN(parsedDate.getTime()) ||
+        parsedDate.getFullYear() !== year ||
+        parsedDate.getMonth() !== month - 1 ||
+        parsedDate.getDate() !== day
+      ) {
+        showToast("error", "Please enter the date as DD-MM-YYYY.");
+        return;
+      }
+
+      const timeMatch = editSubmittedTime
+        .trim()
+        .match(/^(0[1-9]|1[0-2]):([0-5]\d)\s?(AM|PM)$/i);
+
+      if (!timeMatch) {
+        showToast("error", "Please enter the time as 09:21 PM/AM.");
+        return;
+      }
+
+      let hours = Number(timeMatch[1]);
+      const minutes = Number(timeMatch[2]);
+      const meridiem = timeMatch[3].toUpperCase();
+
+      if (meridiem === "PM" && hours !== 12) hours += 12;
+      if (meridiem === "AM" && hours === 12) hours = 0;
+
+      parsedDate.setHours(hours, minutes, 0, 0);
+      editedSubmittedAt = parsedDate.toISOString();
+    }
+
     const success = await updateRecord(
       editingRecord.id,
       editFileName,
       editBranchName,
       editCodename,
       editFileType,
+      editedSubmittedAt,
     );
 
     if (success) {
       setEditingRecord(null);
+    }
+  };
+
+  const handleOpenEditRecord = (
+    record: RecordItem,
+    canChangeSubmittedAt = false,
+  ) => {
+    const submittedAt = new Date(record.submitted_at);
+
+    setEditingRecord(record);
+    setEditFileName(record.file_name);
+    setEditBranchName(record.branch_name);
+    setEditCodename(record.codename);
+    setEditFileType(record.file_type);
+    setEditCanChangeSubmittedAt(canChangeSubmittedAt);
+
+    if (!isNaN(submittedAt.getTime())) {
+      setEditSubmittedDate(
+        `${String(submittedAt.getDate()).padStart(2, "0")}-${String(
+          submittedAt.getMonth() + 1,
+        ).padStart(2, "0")}-${submittedAt.getFullYear()}`,
+      );
+      const hour24 = submittedAt.getHours();
+      const hour12 = hour24 % 12 || 12;
+      const meridiem = hour24 >= 12 ? "PM" : "AM";
+      setEditSubmittedTime(
+        `${String(hour12).padStart(2, "0")}:${String(
+          submittedAt.getMinutes(),
+        ).padStart(2, "0")} ${meridiem}`,
+      );
+    } else {
+      setEditSubmittedDate("");
+      setEditSubmittedTime("");
     }
   };
 
@@ -917,48 +1020,123 @@ export default function Dashboard() {
       {/* Main Body Layout */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row gap-6 items-start">
         {/* Sidebar Navigation */}
-        <aside className="w-full md:w-64 shrink-0 bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 shadow-xl">
+        <aside
+          className={`w-full shrink-0 bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 shadow-xl transition-all duration-300 ease-out ${
+            isSidebarCollapsed ? "md:w-20" : "md:w-64"
+          }`}
+        >
+          <div
+            className={`flex items-center gap-2 mb-3 ${
+              isSidebarCollapsed
+                ? "justify-between md:justify-center md:gap-0"
+                : "justify-between"
+            }`}
+          >
+            <span
+              className={`text-[11px] font-semibold uppercase tracking-wider text-slate-500 transition-all duration-200 ${
+                isSidebarCollapsed
+                  ? "md:w-0 md:opacity-0 md:overflow-hidden"
+                  : "opacity-100"
+              }`}
+            >
+              Menu
+            </span>
+            <button
+              type="button"
+              onClick={handleSidebarToggle}
+              title={isSidebarCollapsed ? "Open sidebar" : "Close sidebar"}
+              aria-label={
+                isSidebarCollapsed ? "Open sidebar" : "Close sidebar"
+              }
+              className="h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-lg border border-slate-800 bg-slate-955/60 text-slate-400 hover:text-white hover:bg-slate-850 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              {isSidebarCollapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           <div className="space-y-1">
             <button
               onClick={() => handleTabChange("entry")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+              title={isSidebarCollapsed ? "Daily Entry" : undefined}
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                isSidebarCollapsed
+                  ? "justify-center gap-3 md:gap-0 px-3 py-3"
+                  : "gap-3 px-4 py-3"
+              } ${
                 activeTab === "entry"
                   ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
                   : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
               }`}
             >
-              <FileText className="h-5 w-5" />
-              <span>Daily Entry</span>
+              <FileText className="h-5 w-5 shrink-0" />
+              <span
+                className={`whitespace-nowrap transition-all duration-200 ${
+                  isSidebarCollapsed
+                    ? "md:w-0 md:opacity-0 md:overflow-hidden"
+                    : "opacity-100"
+                }`}
+              >
+                Daily Entry
+              </span>
             </button>
             <button
               onClick={() => handleTabChange("monthly")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+              title={isSidebarCollapsed ? "Monthly Entry List" : undefined}
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                isSidebarCollapsed
+                  ? "justify-center gap-3 md:gap-0 px-3 py-3"
+                  : "gap-3 px-4 py-3"
+              } ${
                 activeTab === "monthly"
                   ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
                   : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
               }`}
             >
-              <Calendar className="h-5 w-5" />
-              <span>Monthly Entry List</span>
+              <Calendar className="h-5 w-5 shrink-0" />
+              <span
+                className={`whitespace-nowrap transition-all duration-200 ${
+                  isSidebarCollapsed
+                    ? "md:w-0 md:opacity-0 md:overflow-hidden"
+                    : "opacity-100"
+                }`}
+              >
+                Monthly Entry List
+              </span>
             </button>
             {profile?.role === "admin" && (
               <button
                 onClick={() => handleTabChange("users")}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                title={isSidebarCollapsed ? "User Management" : undefined}
+                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                  isSidebarCollapsed
+                    ? "justify-center gap-3 md:gap-0 px-3 py-3"
+                    : "gap-3 px-4 py-3"
+                } ${
                   activeTab === "users"
                     ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
                     : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
                 }`}
               >
-                <Users className="h-5 w-5" />
-                <span>User Management</span>
+                <Users className="h-5 w-5 shrink-0" />
+                <span
+                  className={`whitespace-nowrap transition-all duration-200 ${
+                    isSidebarCollapsed
+                      ? "md:w-0 md:opacity-0 md:overflow-hidden"
+                      : "opacity-100"
+                  }`}
+                >
+                  User Management
+                </span>
               </button>
             )}
           </div>
         </aside>
 
         {/* Content Area */}
-        <section className="flex-1 w-full bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl min-h-125">
+        <section className="flex-1 min-w-0 w-full bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-xl min-h-125">
           {/* TAB 1: DAILY ENTRY */}
           {activeTab === "entry" && (
             <div className="space-y-6">
@@ -1060,13 +1238,7 @@ export default function Dashboard() {
                   records={todayFilteredRecords}
                   emptyMessage="No file entries for today matching the filters."
                   showDate={false}
-                  onEdit={(r) => {
-                    setEditingRecord(r);
-                    setEditFileName(r.file_name);
-                    setEditBranchName(r.branch_name);
-                    setEditCodename(r.codename);
-                    setEditFileType(r.file_type);
-                  }}
+                  onEdit={(record) => handleOpenEditRecord(record, false)}
                   onDelete={setDeletingRecordId}
                 />
               </div>
@@ -1245,13 +1417,7 @@ export default function Dashboard() {
                 records={monthlyFilteredRecords}
                 emptyMessage="No file records found matching the filters."
                 showDate={true}
-                onEdit={(r) => {
-                  setEditingRecord(r);
-                  setEditFileName(r.file_name);
-                  setEditBranchName(r.branch_name);
-                  setEditCodename(r.codename);
-                  setEditFileType(r.file_type);
-                }}
+                onEdit={(record) => handleOpenEditRecord(record, true)}
                 onDelete={setDeletingRecordId}
               />
             </div>
@@ -1396,6 +1562,11 @@ export default function Dashboard() {
           setEditCodename={setEditCodename}
           editFileType={editFileType}
           setEditFileType={setEditFileType}
+          canEditSubmittedAt={editCanChangeSubmittedAt}
+          editSubmittedDate={editSubmittedDate}
+          setEditSubmittedDate={setEditSubmittedDate}
+          editSubmittedTime={editSubmittedTime}
+          setEditSubmittedTime={setEditSubmittedTime}
           allowedCategories={allowedCategories}
           onClose={() => setEditingRecord(null)}
           onSave={handleSaveEdit}
