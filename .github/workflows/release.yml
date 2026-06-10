@@ -51,7 +51,8 @@ jobs:
             Download the appropriate installer below.
 
             ### 🚀 What's New in v0.1.9:
-            * **Developer & Branding Attributions**: Set the application name to "Quotes" in the UI and Tauri desktop window title. Added "Apps Developed by Kamrul Islam, IT Officer, B&F Corporate." developer credit to the login footer and navigation sidebar.
+            * **Quotes Branding & Windows Build Fix**: Changed application name to "Quotes" and changed the publisher name to `"Kamrul Islam, IT Officer, BNF Corporate"` to resolve XML ampersand parsing issues in the WiX toolchain (`candle.exe`) during Windows builds.
+            * **Clean Web UI Layouts**: Reverted custom attribution footer elements from the login page and dashboard sidebar layout, keeping the web layout clean.
             * **Frontend Table Pagination**: Sliced records into pages of 50 logs with modern, user-friendly controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent visual clutter and improve page load performance.
             * **Tauri Desktop Native File Saves**: Configured Tauri wrapper (using `rfd` crate) so that Excel (CSV) and PDF (HTML layout) export buttons open a native platform save dialog inside Windows and macOS applications, preventing silent download failures in WKWebView/WebView2.
             * **Tauri Capabilities & Security**: Configured remote capability URLs and enabled `withGlobalTauri` inside Tauri config to safely authorize Vercel app to invoke native Rust commands.

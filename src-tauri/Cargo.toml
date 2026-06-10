@@ -1,8 +1,8 @@
 [package]
 name = "app"
 version = "0.1.9"
-description = "Quotes - Developed by Kamrul Islam, IT Officer, B&F Corporate"
-authors = ["Kamrul Islam, IT Officer, B&F Corporate <kamrulislamabk@gmail.com>"]
+description = "Quotes - Developed by Kamrul Islam, IT Officer, BNF Corporate"
+authors = ["Kamrul Islam, IT Officer, BNF Corporate <kamrulislamabk@gmail.com>"]
 license = ""
 repository = ""
 edition = "2021"

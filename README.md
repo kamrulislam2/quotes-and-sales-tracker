@@ -127,12 +127,13 @@ quotes-sales-tracker/
 
 ### v0.1.9 (Latest)
 
-**Developer Attributions & Quotes Branding**
+**Quotes Branding, Windows Build Fix & Cleanups**
 
-- ✅ **Quotes App Name & Layout Metadata**: Standardized application name to "Quotes" in HTML metadata, Tauri window title, and Navbar description header.
-- ✅ **Kamrul Islam Developer Credit**: Embedded the footer/attribution text `"Apps Developed by Kamrul Islam, IT Officer, B&F Corporate."` into the Login page footer and the Dashboard sidebar navigation (auto-adjusts on sidebar collapse).
-- ✅ **Frontend Table Pagination (50 files/page)**: Implemented pagination (50 logs per page) in `RecordsTable` with sleek, modern controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent UI lag and provide clean visual logs lists.
-- ✅ **Tauri Custom File Saving via RFD**: Added native file save dialogs (using the Rust `rfd` crate) triggered from the Vercel remote app by authorization.
+- ✅ **Quotes App Name & Layout Metadata**: Standardized application name to "Quotes" in HTML metadata and Tauri desktop window settings.
+- ✅ **Publisher & Installer Author Metadata**: Set the application publisher to `"Kamrul Islam, IT Officer, BNF Corporate"` for macOS/Windows desktop installer packages. Changed `"B&F"` to `"BNF"` to resolve XML parsing errors in the WiX toolchain (`candle.exe` ampersand compiler block) on Windows.
+- ✅ **Clean Web UI Layouts**: Kept the web application UI clean and free of custom attribution footers on both the Login page and the Dashboard sidebar.
+- ✅ **Frontend Table Pagination (50 files/page)**: Implemented pagination (50 logs per page) in `RecordsTable` with sleek, modern controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent UI lag.
+- ✅ **Tauri Custom File Saving via RFD**: Added native file save dialogs (using the Rust `rfd` crate) triggered from the Vercel remote app.
 - ✅ **Tauri Configuration & Security Policies**: Exposed global Tauri APIs (`withGlobalTauri: true`) and granted safe remote capabilities for Vercel deployment inside the capability configuration rules.
 
 ### v0.1.7

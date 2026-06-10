@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { RecordItem } from '@/types';
 import { formatDate, formatTimeToAMPM } from '@/utils/dashboardHelpers';
 
@@ -19,7 +19,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
   onDelete
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const [itemsPerPage, setItemsPerPage] = useState(15);
 
   // Reset page to 1 when records list changes (due to filtering or month change)
   useEffect(() => {
@@ -31,7 +31,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
   const displayedRecords = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return records.slice(start, start + itemsPerPage);
-  }, [records, currentPage]);
+  }, [records, currentPage, itemsPerPage]);
 
   const getBadgeClass = (type: string) => {
     if (type === 'Sale') return 'bg-emerald-950/50 border-emerald-900 text-emerald-450';
@@ -153,36 +153,81 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
       </div>
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-1.5 px-2 bg-slate-950/20 border border-slate-800/60 rounded-xl">
+      {records.length > 0 && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-2 px-3 bg-slate-950/20 border border-slate-800/60 rounded-xl">
           <div className="text-xs text-slate-400 font-medium">
             Showing <span className="font-semibold text-slate-200">{startIndex}</span> to{' '}
             <span className="font-semibold text-slate-200">{endIndex}</span> of{' '}
             <span className="font-semibold text-slate-200">{records.length}</span> entries
           </div>
           
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrevPage}
-              disabled={currentPage === 1}
-              className="p-2 border border-slate-800 bg-slate-900/40 hover:bg-slate-800 hover:text-white text-slate-400 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-slate-900/40 disabled:hover:text-slate-400 cursor-pointer"
-              title="Previous Page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            
-            <div className="flex items-center gap-1.5">
-              {renderPageNumbers()}
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            {/* Show per page selector dropdown */}
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span>Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer hover:bg-slate-850"
+              >
+                <option value={15}>15</option>
+                <option value={30}>30</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span>entries</span>
             </div>
-            
-            <button
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              className="p-2 border border-slate-800 bg-slate-900/40 hover:bg-slate-800 hover:text-white text-slate-400 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-slate-900/40 disabled:hover:text-slate-400 cursor-pointer"
-              title="Next Page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                {/* Jump to First Page */}
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="p-2 border border-slate-800 bg-slate-900/40 hover:bg-slate-800 hover:text-white text-slate-400 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-slate-900/40 disabled:hover:text-slate-400 cursor-pointer"
+                  title="First Page"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </button>
+
+                {/* Previous Page */}
+                <button
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                  className="p-2 border border-slate-800 bg-slate-900/40 hover:bg-slate-800 hover:text-white text-slate-400 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-slate-900/40 disabled:hover:text-slate-400 cursor-pointer"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {renderPageNumbers()}
+                </div>
+                
+                {/* Next Page */}
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className="p-2 border border-slate-800 bg-slate-900/40 hover:bg-slate-800 hover:text-white text-slate-400 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-slate-900/40 disabled:hover:text-slate-400 cursor-pointer"
+                  title="Next Page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+
+                {/* Jump to Last Page */}
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 border border-slate-800 bg-slate-900/40 hover:bg-slate-800 hover:text-white text-slate-400 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-slate-900/40 disabled:hover:text-slate-400 cursor-pointer"
+                  title="Last Page"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
