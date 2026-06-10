@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-save-file"
+description = "Enables the save_file command"
+commands.allow = ["save_file"]
