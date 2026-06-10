@@ -130,7 +130,7 @@ export const exportToCSV = (records: RecordItem[], fileName: string) => {
       const encoder = new TextEncoder();
       const bytes = encoder.encode(fullContent);
       const { invoke } = (window as unknown as TauriWindow).__TAURI__!.core;
-      invoke('save_file', { file_name: `${fileName}.csv`, content: Array.from(bytes) })
+      invoke('save_file', { fileName: `${fileName}.csv`, content: Array.from(bytes) })
         .then((savedPath: string) => {
           toast.success(`Excel saved to: ${savedPath}`);
         })
@@ -278,7 +278,7 @@ export const exportToPDF = (records: RecordItem[], title: string, subtitle?: str
       const bytes = encoder.encode(htmlContent);
       const { invoke } = (window as unknown as TauriWindow).__TAURI__!.core;
       const cleanFileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
-      invoke('save_file', { file_name: cleanFileName, content: Array.from(bytes) })
+      invoke('save_file', { fileName: cleanFileName, content: Array.from(bytes) })
         .then((savedPath: string) => {
           toast.success(`HTML saved to: ${savedPath}. Open it to print/save PDF.`);
         })
