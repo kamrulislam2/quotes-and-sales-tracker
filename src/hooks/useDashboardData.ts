@@ -54,25 +54,47 @@ export const useDashboardData = () => {
       const daysInMonth = new Date(parseInt(selectedYear, 10), parseInt(selectedMonth, 10), 0).getDate();
       const endOfMonth = `${selectedYear}-${selectedMonth}-${daysInMonth}T23:59:59.999Z`;
 
-      let query = supabase
-        .from('records')
-        .select(`
-          *,
-          profiles (username, full_name)
-        `)
-        .gte('submitted_at', startOfMonth)
-        .lte('submitted_at', endOfMonth)
-        .order('submitted_at', { ascending: false });
+      let allData: RecordItem[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      // If user is a normal user, only fetch their own records
-      if (profile.role !== 'admin') {
-        query = query.eq('user_id', sessionUser.id);
+      while (hasMore) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        let query = supabase
+          .from('records')
+          .select(`
+            *,
+            profiles (username, full_name)
+          `)
+          .gte('submitted_at', startOfMonth)
+          .lte('submitted_at', endOfMonth)
+          .order('submitted_at', { ascending: false })
+          .range(from, to);
+
+        // If user is a normal user, only fetch their own records
+        if (profile.role !== 'admin') {
+          query = query.eq('user_id', sessionUser.id);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setRecords(data || []);
+      setRecords(allData);
 
       // If Admin, also fetch the list of profiles
       if (profile.role === 'admin') {
@@ -93,12 +115,38 @@ export const useDashboardData = () => {
   const fetchAvailableDates = useCallback(async () => {
     if (!sessionUser || !profile) return;
     try {
-      let query = supabase.from('records').select('submitted_at');
-      if (profile.role !== 'admin') {
-        query = query.eq('user_id', sessionUser.id);
+      let allData: { submitted_at: string | null }[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        let query = supabase
+          .from('records')
+          .select('submitted_at')
+          .range(from, to);
+
+        if (profile.role !== 'admin') {
+          query = query.eq('user_id', sessionUser.id);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
       }
-      const { data, error } = await query;
-      if (error) throw error;
 
       const datesSet = new Set<string>();
       
@@ -108,18 +156,16 @@ export const useDashboardData = () => {
       const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0');
       datesSet.add(`${currentYearStr}-${currentMonthStr}`);
 
-      if (data) {
-        data.forEach(r => {
-          if (r.submitted_at) {
-            const date = new Date(r.submitted_at);
-            if (!isNaN(date.getTime())) {
-              const y = date.getFullYear().toString();
-              const m = String(date.getMonth() + 1).padStart(2, '0');
-              datesSet.add(`${y}-${m}`);
-            }
+      allData.forEach(r => {
+        if (r.submitted_at) {
+          const date = new Date(r.submitted_at);
+          if (!isNaN(date.getTime())) {
+            const y = date.getFullYear().toString();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            datesSet.add(`${y}-${m}`);
           }
-        });
-      }
+        }
+      });
 
       const parsedDates = Array.from(datesSet).map(s => {
         const [year, month] = s.split('-');

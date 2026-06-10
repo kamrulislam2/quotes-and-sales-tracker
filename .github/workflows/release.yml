@@ -50,13 +50,9 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-            ### 🚀 What's New in v0.1.6:
-            * **Collapsible Sidebar Navigation**: The dashboard sidebar can now collapse into compact icon-only mode, giving Daily Entry, Monthly Entry List, and User Management tables more horizontal room for longer values.
-            * **Monthly-only Submitted Date/Time Correction**: Records edited from Monthly Entry List can now correct submitted date and time. Date input uses `DD-MM-YYYY`; time input uses `09:21 PM/AM`. Daily Entry edits keep submitted date/time locked.
-            * **Cleaner Table Readability**: Monthly dates now stay on one line with time below. File type badges such as `Individual Review` no longer wrap awkwardly.
-            * **Persistent Layout Preference**: Sidebar collapsed/open state is saved in `localStorage`.
-            * **Record Update Support**: The record update flow can optionally update `submitted_at` while preserving existing behavior for normal detail edits.
-            * **Lint Cleanup**: Removed an unused dashboard import so lint completes cleanly.
+            ### 🚀 What's New in v0.1.7:
+            * **Snappy Paginated Data Fetching**: Implemented page-by-page fetching in chunks of 1,000 using `.range()` inside `fetchRecords` and `fetchAvailableDates` to query all rows matching the filters. This fixes the PostgREST/Supabase default limit of 1,000 records, restoring visibility of older entries (June 1, 3, 4, etc.) on the dashboard.
+            * **Export Buttons Removed**: Removed all Excel and PDF download buttons, click handlers, and related helper imports from the Daily Entry List and Monthly Logs to keep the dashboard focused.
 
             ### 📋 Previous Features:
             * **Reusable CustomEntryModal Component**: Intelligent custom entry modal for admin all-data mode, admin my-data mode, and regular users.

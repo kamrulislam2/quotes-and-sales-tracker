@@ -125,7 +125,14 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.1.6 (Latest)
+### v0.1.7 (Latest)
+
+**Data Visibility & Export Cleanup**
+
+- ✅ **Snappy Paginated Data Fetching**: Implemented page-by-page fetching in chunks of 1,000 using `.range()` inside `fetchRecords` and `fetchAvailableDates` to query all rows matching the filters. This fixes the PostgREST/Supabase default limit of 1,000 records, restoring visibility of older entries (June 1, 3, 4, etc.) on the dashboard.
+- ✅ **Export Buttons Removed**: Removed all Excel and PDF download buttons, click handlers, and related helper imports from the Daily Entry List and Monthly Logs to keep the dashboard focused.
+
+### v0.1.6
 
 **Dashboard Usability & Data Correction**
 
