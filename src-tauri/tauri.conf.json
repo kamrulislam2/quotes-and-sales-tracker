@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Quotes",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "identifier": "com.quotes.salestracker",
   "build": {
     "frontendDist": "../public",
@@ -10,9 +10,10 @@
     "beforeBuildCommand": ""
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Quotes & Sales Tracker",
+        "title": "Quotes",
         "width": 1200,
         "height": 800,
         "resizable": true,
@@ -27,6 +28,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "Kamrul Islam, IT Officer, B&F Corporate",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

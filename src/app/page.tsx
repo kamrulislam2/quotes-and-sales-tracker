@@ -16,6 +16,8 @@ import { validator } from "@/utils/validator";
 import {
   calculateSummaryStats,
   formatDate,
+  exportToCSV,
+  exportToPDF,
 } from "@/utils/dashboardHelpers";
 import { FileType, RecordItem, Profile } from "@/types";
 import {
@@ -38,6 +40,8 @@ import {
   Search,
   PanelLeftClose,
   PanelLeftOpen,
+  FileSpreadsheet,
+  FileDown,
 } from "lucide-react";
 
 const ALL_12_FILE_TYPES = [
@@ -474,7 +478,36 @@ export default function Dashboard() {
     return calculateSummaryStats(monthlyFilteredRecords);
   }, [monthlyFilteredRecords]);
 
+  // Export handlers
+  const handleExportTodayExcel = () => {
+    const todayStr = new Date().toLocaleDateString("en-CA");
+    exportToCSV(todayFilteredRecords, `Today_Logs_${todayStr}`);
+  };
 
+  const handleExportTodayPDF = () => {
+    const todayStr = new Date().toLocaleDateString("en-CA");
+    const adminLabel = profile?.role === "admin" ? (adminViewMode === "all" ? " - All Users" : " - My Logs") : "";
+    exportToPDF(
+      todayFilteredRecords, 
+      `Today's Quotes & Sales Logs`, 
+      `Date: ${todayStr}${adminLabel}`
+    );
+  };
+
+  const handleExportMonthlyExcel = () => {
+    const monthName = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1).toLocaleString('en-US', { month: 'long' });
+    exportToCSV(monthlyFilteredRecords, `Monthly_Logs_${monthName}_${selectedYear}`);
+  };
+
+  const handleExportMonthlyPDF = () => {
+    const monthName = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1).toLocaleString('en-US', { month: 'long' });
+    const adminLabel = profile?.role === "admin" ? (adminViewMode === "all" ? " - All Users" : " - My Logs") : "";
+    exportToPDF(
+      monthlyFilteredRecords, 
+      `Monthly Quotes & Sales Logs`, 
+      `Month: ${monthName} ${selectedYear}${adminLabel}`
+    );
+  };
 
   // Clear filters
   const handleClearFilters = () => {
@@ -1145,6 +1178,23 @@ export default function Dashboard() {
 
                   {/* Filter Controls */}
                   <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
+                    <button
+                      onClick={handleExportTodayExcel}
+                      className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer shadow-md"
+                      title="Export to Excel"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      <span>Excel</span>
+                    </button>
+                    <button
+                      onClick={handleExportTodayPDF}
+                      className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer shadow-md"
+                      title="Export to PDF"
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                      <span>PDF</span>
+                    </button>
+
                     {profile?.role === "admin" && (
                       <AdminViewToggle
                         viewMode={adminViewMode}
@@ -1208,6 +1258,23 @@ export default function Dashboard() {
 
                 {/* View toggle & Custom Entry Controls */}
                 <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
+                  <button
+                    onClick={handleExportMonthlyExcel}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer shadow-md"
+                    title="Export to Excel"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                    <span>Excel</span>
+                  </button>
+                  <button
+                    onClick={handleExportMonthlyPDF}
+                    className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer shadow-md"
+                    title="Export to PDF"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    <span>PDF</span>
+                  </button>
+
                   <button
                     onClick={() => setIsCustomEntryModalOpen(true)}
                     className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg shadow-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"

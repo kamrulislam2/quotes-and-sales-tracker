@@ -1,4 +1,13 @@
 import { RecordItem } from '@/types';
+import { toast } from 'react-hot-toast';
+
+interface TauriWindow extends Window {
+  __TAURI__?: {
+    core: {
+      invoke: (cmd: string, args?: Record<string, unknown>) => Promise<string>;
+    };
+  };
+}
 
 // Helper function to format date from ISO string (or YYYY-MM-DD) to DD-MM-YYYY format
 export const formatDate = (dateStr: string | null | undefined): string => {
@@ -113,7 +122,31 @@ export const exportToCSV = (records: RecordItem[], fileName: string) => {
   ].join('\n');
   
   // Prepended \uFEFF Byte Order Mark (BOM) allows Excel to render non-ASCII characters (e.g. Bengali script) correctly
-  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const fullContent = '\uFEFF' + csvContent;
+
+  const isTauri = typeof window !== 'undefined' && (window as unknown as TauriWindow).__TAURI__ !== undefined;
+  if (isTauri) {
+    try {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(fullContent);
+      const { invoke } = (window as unknown as TauriWindow).__TAURI__!.core;
+      invoke('save_file', { file_name: `${fileName}.csv`, content: Array.from(bytes) })
+        .then((savedPath: string) => {
+          toast.success(`Excel saved to: ${savedPath}`);
+        })
+        .catch((err: unknown) => {
+          const errMsg = String(err);
+          if (errMsg !== 'Save cancelled') {
+            toast.error(`Failed to save Excel: ${errMsg}`);
+          }
+        });
+    } catch {
+      toast.error('Failed to export Excel in desktop app.');
+    }
+    return;
+  }
+  
+  const blob = new Blob([fullContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
@@ -126,9 +159,6 @@ export const exportToCSV = (records: RecordItem[], fileName: string) => {
 
 // Export records list to PDF via temporary print window (guarantees perfect native UTF-8 rendering)
 export const exportToPDF = (records: RecordItem[], title: string, subtitle?: string) => {
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
-
   const rowsHtml = records.map(r => `
     <tr>
       <td>${formatDate(r.submitted_at)}</td>
@@ -140,7 +170,7 @@ export const exportToPDF = (records: RecordItem[], title: string, subtitle?: str
     </tr>
   `).join('');
 
-  printWindow.document.write(`
+  const getHtmlContent = (withAutoPrint: boolean) => `
     <html>
       <head>
         <title>${title}</title>
@@ -229,14 +259,52 @@ export const exportToPDF = (records: RecordItem[], title: string, subtitle?: str
         <div class="footer">
           Generated automatically by Quotes & Sales Tracker
         </div>
+        ${withAutoPrint ? `
         <script>
           window.onload = function() {
             window.print();
-            setTimeout(function() { window.close(); }, 500);
           };
         </script>
+        ` : ''}
       </body>
     </html>
+  `;
+
+  const isTauri = typeof window !== 'undefined' && (window as unknown as TauriWindow).__TAURI__ !== undefined;
+  if (isTauri) {
+    try {
+      const htmlContent = getHtmlContent(true);
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(htmlContent);
+      const { invoke } = (window as unknown as TauriWindow).__TAURI__!.core;
+      const cleanFileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
+      invoke('save_file', { file_name: cleanFileName, content: Array.from(bytes) })
+        .then((savedPath: string) => {
+          toast.success(`HTML saved to: ${savedPath}. Open it to print/save PDF.`);
+        })
+        .catch((err: unknown) => {
+          const errMsg = String(err);
+          if (errMsg !== 'Save cancelled') {
+            toast.error(`Failed to save HTML: ${errMsg}`);
+          }
+        });
+    } catch {
+      toast.error('Failed to export PDF/HTML in desktop app.');
+    }
+    return;
+  }
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+  
+  printWindow.document.write(getHtmlContent(false));
+  printWindow.document.write(`
+    <script>
+      window.onload = function() {
+        window.print();
+        setTimeout(function() { window.close(); }, 500);
+      };
+    </script>
   `);
   printWindow.document.close();
 };

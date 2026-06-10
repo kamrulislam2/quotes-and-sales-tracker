@@ -103,7 +103,7 @@ export default function LoginPage() {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md z-10">
         <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-white bg-clip-text bg-linear-to-r from-blue-400 to-violet-400">
-          Quotes & Sales Tracker
+          Quotes
         </h2>
         <p className="mt-2 text-center text-sm text-slate-405">
           Login to submit your file entries

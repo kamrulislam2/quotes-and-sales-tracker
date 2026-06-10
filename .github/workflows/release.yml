@@ -50,11 +50,14 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-            ### 🚀 What's New in v0.1.7:
-            * **Snappy Paginated Data Fetching**: Implemented page-by-page fetching in chunks of 1,000 using `.range()` inside `fetchRecords` and `fetchAvailableDates` to query all rows matching the filters. This fixes the PostgREST/Supabase default limit of 1,000 records, restoring visibility of older entries (June 1, 3, 4, etc.) on the dashboard.
-            * **Export Buttons Removed**: Removed all Excel and PDF download buttons, click handlers, and related helper imports from the Daily Entry List and Monthly Logs to keep the dashboard focused.
+            ### 🚀 What's New in v0.1.9:
+            * **Developer & Branding Attributions**: Set the application name to "Quotes" in the UI and Tauri desktop window title. Added "Apps Developed by Kamrul Islam, IT Officer, B&F Corporate." developer credit to the login footer and navigation sidebar.
+            * **Frontend Table Pagination**: Sliced records into pages of 50 logs with modern, user-friendly controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent visual clutter and improve page load performance.
+            * **Tauri Desktop Native File Saves**: Configured Tauri wrapper (using `rfd` crate) so that Excel (CSV) and PDF (HTML layout) export buttons open a native platform save dialog inside Windows and macOS applications, preventing silent download failures in WKWebView/WebView2.
+            * **Tauri Capabilities & Security**: Configured remote capability URLs and enabled `withGlobalTauri` inside Tauri config to safely authorize Vercel app to invoke native Rust commands.
 
             ### 📋 Previous Features:
+            * **Snappy Paginated Data Fetching**: Implemented page-by-page fetching in chunks of 1,000 using `.range()` inside `fetchRecords` and `fetchAvailableDates` to query all rows matching the filters. This fixes the PostgREST/Supabase default limit of 1,000 records, restoring visibility of older entries (June 1, 3, 4, etc.) on the dashboard.
             * **Reusable CustomEntryModal Component**: Intelligent custom entry modal for admin all-data mode, admin my-data mode, and regular users.
             * **Custom Entry Validation**: Backdated submissions validate required fields and target user's allowed file categories.
             * **Excel & PDF Exports**: Download filtered reports of daily and monthly entries.

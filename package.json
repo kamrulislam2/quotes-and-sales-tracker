@@ -1,6 +1,6 @@
 {
-  "name": "quotes & sales",
-  "version": "0.1.7",
+  "name": "quotes",
+  "version": "0.1.9",
   "private": true,
   "scripts": {
     "dev": "next dev",

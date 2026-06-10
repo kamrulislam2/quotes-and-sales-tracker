@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quotes & Sales Tracker",
-  description: "Track your quotes and sales data in real time.",
+  title: "Quotes",
+  description: "Track your quotes in real time.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
