@@ -125,7 +125,15 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.1.7 (Latest)
+### v0.1.8 (Latest)
+
+**Pagination & Tauri Desktop Native Save Integration**
+
+- ✅ **Frontend Table Pagination (50 files/page)**: Implemented pagination (50 logs per page) in `RecordsTable` with sleek, modern controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent UI lag and provide clean visual logs lists.
+- ✅ **Tauri Custom File Saving via RFD**: Added native file save dialogs (using the Rust `rfd` crate) triggered from the Vercel remote app by authorization.
+- ✅ **Tauri Configuration & Security Policies**: Exposed global Tauri APIs (`withGlobalTauri: true`) and granted safe remote capabilities for Vercel deployment inside the capability configuration rules.
+
+### v0.1.7
 
 **Data Visibility & Export Cleanup**
 

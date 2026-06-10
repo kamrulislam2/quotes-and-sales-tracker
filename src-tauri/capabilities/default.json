@@ -5,6 +5,12 @@
   "windows": [
     "main"
   ],
+  "remote": {
+    "urls": [
+      "https://quotes-and-sales-tracker.vercel.app/**",
+      "http://localhost:3000/**"
+    ]
+  },
   "permissions": [
     "core:default"
   ]

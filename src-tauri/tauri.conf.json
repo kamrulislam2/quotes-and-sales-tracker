@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Quotes",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "identifier": "com.quotes.salestracker",
   "build": {
     "frontendDist": "../public",
@@ -10,6 +10,7 @@
     "beforeBuildCommand": ""
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Quotes & Sales Tracker",
