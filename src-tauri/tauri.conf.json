@@ -27,8 +27,13 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
-    "publisher": "Kamrul Islam, IT Officer, BNF Corporate",
+    "targets": [
+      "nsis",
+      "dmg",
+      "app"
+    ],
+    "publisher": "Kamrul Islam, IT Officer, B&F Corporate",
+    "copyright": "Apps Developed by Kamrul Islam, IT Officer, B&F Corporate",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -36,6 +41,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico"
+      }
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

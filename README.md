@@ -127,10 +127,11 @@ quotes-sales-tracker/
 
 ### v0.1.9 (Latest)
 
-**Quotes Branding, Windows Build Fix & Cleanups**
+**Quotes Branding, Windows Build Fix, NSIS Customization & Cleanups**
 
-- ✅ **Quotes App Name & Layout Metadata**: Standardized application name to "Quotes" in HTML metadata and Tauri desktop window settings.
-- ✅ **Publisher & Installer Author Metadata**: Set the application publisher to `"Kamrul Islam, IT Officer, BNF Corporate"` for macOS/Windows desktop installer packages. Changed `"B&F"` to `"BNF"` to resolve XML parsing errors in the WiX toolchain (`candle.exe` ampersand compiler block) on Windows.
+- ✅ **Custom NSIS Installer Icons**: Configured the Tauri Windows NSIS installer and uninstaller settings to use the custom Quotes icon (`icon.ico`), showing the correct brand logo on the downloaded setup `.exe` file and the installation wizard header.
+- ✅ **B&F Corporate Installer Metadata & Branding**: Configured the bundler to target only NSIS and DMG/App formats (removing the WiX `.msi` target). This allows using the raw ampersand `&` in the publisher and copyright fields without WiX XML toolchain compiler issues. Set the copyright/branding text to `"Apps Developed by Kamrul Islam, IT Officer, B&F Corporate"`, showing it at the bottom left of the installer page.
+- ✅ **PDF Export Removal**: Completely removed all PDF export options, button layouts, icon graphics, and handler logic from the application (today's logs and monthly logs tabs), keeping only the Microsoft Excel compatible CSV export.
 - ✅ **Clean Web UI Layouts**: Kept the web application UI clean and free of custom attribution footers on both the Login page and the Dashboard sidebar.
 - ✅ **Frontend Table Pagination (50 files/page)**: Implemented pagination (50 logs per page) in `RecordsTable` with sleek, modern controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent UI lag.
 - ✅ **Tauri Custom File Saving via RFD**: Added native file save dialogs (using the Rust `rfd` crate) triggered from the Vercel remote app.
