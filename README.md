@@ -123,9 +123,13 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.1 (Latest)
+### v0.2.2 (Latest)
 
-**Maximized Startup, Dynamic Architecture Downloads & Production Build Injections**
+**Granular Update Flow Controls & Download Separation**
+
+- ✅ **Granular Update Flow Controls**: Separated Tauri updater package downloading and installation. The app now only downloads the update payload in the background, but defers installation until the user explicitly clicks the "Restart to Update" button. This prevents Windows from closing/installing the app automatically in the background.
+
+### v0.2.1
 
 - ✅ **Maximized Startup State**: Configured the Tauri application window to start fully maximized (`"maximized": true` in `tauri.conf.json`) to provide a complete and immersive layout immediately on launch.
 - ✅ **Dynamic Architecture Downloads**: Added a "Download Desktop App" section on the login page and a "Get App" dropdown menu in the header (Navbar) that only render in web browsers. They query the GitHub Releases API dynamically to let users download the precise installer for **Windows**, **macOS Apple Silicon (M1/M2/M3)**, or **macOS Intel**.

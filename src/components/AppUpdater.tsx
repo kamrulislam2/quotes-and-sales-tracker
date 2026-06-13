@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { RefreshCw, ArrowUpCircle, X } from 'lucide-react';
+import type { Update } from '@tauri-apps/plugin-updater';
 
 export default function AppUpdater() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -10,6 +11,7 @@ export default function AppUpdater() {
   const [newVersion, setNewVersion] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [updateRef, setUpdateRef] = useState<Update | null>(null);
 
   useEffect(() => {
     // Only run this check inside the Tauri desktop environment
@@ -23,12 +25,13 @@ export default function AppUpdater() {
         
         const update = await check();
         if (update?.available) {
+          setUpdateRef(update);
           setNewVersion(update.version);
           setUpdateAvailable(true);
           setDownloading(true);
 
-          // Download and install update in the background
-          await update.downloadAndInstall();
+          // Download update package in the background (do NOT install yet)
+          await update.download();
           
           setDownloading(false);
           setReadyToRestart(true);
@@ -49,11 +52,15 @@ export default function AppUpdater() {
 
   const handleRelaunch = async () => {
     try {
+      if (updateRef) {
+        // Install the downloaded update package
+        await updateRef.install();
+      }
       const { relaunch } = await import('@tauri-apps/plugin-process');
       await relaunch();
     } catch (err) {
-      console.error('Failed to relaunch app:', err);
-      setError('Relaunch failed. Please close and reopen the app manually.');
+      console.error('Failed to install and relaunch app:', err);
+      setError('Relaunch and install failed. Please close and reopen the app manually.');
     }
   };
 

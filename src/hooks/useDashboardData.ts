@@ -532,51 +532,59 @@ export const useDashboardData = () => {
   // Fetch session on load
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
-      // Check last activity timestamp for 21 days inactivity logout
-      if (typeof window !== 'undefined') {
-        const lastActivity = localStorage.getItem('quotes_sales_last_activity');
-        const limitMs = 21 * 24 * 60 * 60 * 1000; // 21 days
-        const currentTime = Date.now();
-
-        if (lastActivity) {
-          const lastTime = parseInt(lastActivity, 10);
-          if (!isNaN(lastTime) && currentTime - lastTime > limitMs) {
-            console.warn('Session expired due to 21 days of inactivity.');
-            localStorage.removeItem('quotes_sales_last_activity');
-            await supabase.auth.signOut();
-            showToast('error', 'Logged out due to 21 days of inactivity.');
-            router.push('/login');
-            return;
-          }
+        if (!session) {
+          router.push('/login');
+          return;
         }
-        localStorage.setItem('quotes_sales_last_activity', String(currentTime));
-      }
 
-      const userId = session.user.id;
-      setSessionUser(session.user);
+        // Check last activity timestamp for 21 days inactivity logout
+        if (typeof window !== 'undefined') {
+          const lastActivity = localStorage.getItem('quotes_sales_last_activity');
+          const limitMs = 21 * 24 * 60 * 60 * 1000; // 21 days
+          const currentTime = Date.now();
 
-      // Fetch user profile
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+          if (lastActivity) {
+            const lastTime = parseInt(lastActivity, 10);
+            if (!isNaN(lastTime) && currentTime - lastTime > limitMs) {
+              console.warn('Session expired due to 21 days of inactivity.');
+              localStorage.removeItem('quotes_sales_last_activity');
+              await supabase.auth.signOut();
+              showToast('error', 'Logged out due to 21 days of inactivity.');
+              router.push('/login');
+              return;
+            }
+          }
+          localStorage.setItem('quotes_sales_last_activity', String(currentTime));
+        }
 
-      if (profileError || !userProfile) {
-        console.error('User profile not found. Logging out.', profileError);
-        await supabase.auth.signOut();
+        const userId = session.user.id;
+        setSessionUser(session.user);
+
+        // Fetch user profile
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (profileError || !userProfile) {
+          console.error('User profile not found. Logging out.', profileError);
+          await supabase.auth.signOut();
+          router.push('/login');
+          return;
+        }
+
+        setProfile(userProfile as Profile);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching session/profile on load:', err);
+        setLoading(false);
         router.push('/login');
-        return;
       }
-
-      setProfile(userProfile as Profile);
-      setLoading(false);
     };
 
     getSession();
