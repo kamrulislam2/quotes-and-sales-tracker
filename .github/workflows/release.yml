@@ -50,28 +50,20 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-            ### 🚀 What's New in v0.1.9:
-            * **Custom NSIS Installer Icons**: Configured the Tauri Windows NSIS installer and uninstaller settings to use the custom Quotes icon (`icon.ico`), showing the correct brand logo on the setup `.exe` file and installation wizard header.
-            * **B&F Corporate branding & NSIS customization**: Bypassed the WiX (`.msi`) toolchain build by targeting NSIS (`.exe`) directly. This allows using the raw ampersand `&` in publisher and copyright metadata. Set installer publisher and copyright branding to `"Kamrul Islam, IT Officer, B&F Corporate"` (shown at the bottom left of the wizard pages).
-            * **PDF Export Removal**: Completely removed all PDF export options, button layouts, and handlers. Excel (CSV UTF-8 BOM) export remains as the single data export option.
-            * **Clean Web UI Layouts**: Kept the web application UI clean and free of custom attribution footers on both the Login page and the Dashboard sidebar.
-            * **Frontend Table Pagination**: Sliced records into pages of 50 logs with modern, user-friendly controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent visual clutter and improve page load performance.
-            * **Tauri Desktop Native File Saves**: Configured Tauri wrapper (using `rfd` crate) so that the Excel (CSV) export button opens a native platform save dialog inside Windows and macOS applications.
-            * **Tauri Capabilities & Security**: Configured remote capability URLs and enabled `withGlobalTauri` inside Tauri config to safely authorize Vercel app to invoke native Rust commands.
+            ### 🚀 What's New in v0.2.0:
+            * **Offline Standalone App**: Compiles all frontend Next.js code directly into local static files (`output: 'export'`) and bundles them inside the app. The app runs fully offline and starts instantly, without depending on Vercel or internet connection.
+            * **Background Auto-Updater**: Integrated Tauri v2's native updater plugin. The app checks for updates in the background.
+            * **Restart to Update UI Banner**: Displays a subtle toast banner in the UI when a new update is downloaded and ready, with a "Restart to Update" button that applies updates instantly using Tauri's native relaunch API.
+            * **Accurate Percentage Counts**: Displays stats percentages with 2 decimal places (e.g. `33.11%`). Replaced rounding logic so that low file counts (e.g., 1 or 2 files) display their exact decimal percentage (e.g. `0.05%`) instead of rounding down to `0%`.
 
             ### 📋 Previous Features:
-            * **Snappy Paginated Data Fetching**: Implemented page-by-page fetching in chunks of 1,000 using `.range()` inside `fetchRecords` and `fetchAvailableDates` to query all rows matching the filters. This fixes the PostgREST/Supabase default limit of 1,000 records, restoring visibility of older entries (June 1, 3, 4, etc.) on the dashboard.
-            * **Reusable CustomEntryModal Component**: Intelligent custom entry modal for admin all-data mode, admin my-data mode, and regular users.
-            * **Custom Entry Validation**: Backdated submissions validate required fields and target user's allowed file categories.
+            * **Custom NSIS Installer Icons**: Configured the Tauri Windows NSIS installer and uninstaller settings to use the custom Quotes icon (`icon.ico`), showing the correct brand logo on the downloaded setup `.exe` file.
+            * **B&F Corporate Installer Metadata & Branding**: Configured the bundler to target only NSIS and DMG/App formats (removing the WiX `.msi` target). This allows using the raw ampersand `&` in the publisher and copyright fields. Set the copyright/branding text to `"Apps Developed by Kamrul Islam, IT Officer, B&F Corporate"`, showing it at the bottom left of the installer page.
+            * **PDF Export Removal**: Completely removed all PDF export options, button layouts, icon graphics, and handler logic from the application (today's logs and monthly logs tabs), keeping only the Microsoft Excel compatible CSV export.
+            * **Frontend Table Pagination (50 files/page)**: Implemented pagination (50 logs per page) in `RecordsTable` with sleek, modern controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent UI lag.
+            * **Tauri Custom File Saving via RFD**: Added native file save dialogs (using the Rust `rfd` crate) triggered from the Vercel remote app.
+            * **Snappy Paginated Data Fetching**: Implemented page-by-page fetching in chunks of 1,000 using `.range()` inside `fetchRecords` and `fetchAvailableDates` to query all rows matching the filters. This fixes the PostgREST/Supabase default limit of 1,000 records.
             * **Excel Exports**: Download filtered reports of daily and monthly entries as CSV (UTF-8 BOM).
-            * **Dynamic Stats Grid**: Real-time aggregated stats with double-digit padding and percentages.
-            * **Active Tab State Persistence**: Remembers user's selected tab across reloads.
-            * **Locked Codename & Half-Width Submit**: Prevents user codename changes with modern form layout.
-            * **Custom Entry Button**: Admin's custom entry button next to toggle switch.
-            * **Permissive RLS Policies**: Admins can submit backdated entries for other users.
-            * **Unified Category Selector**: Consistent category selection across forms.
-            * **Advanced Filters**: Search, Year, Month, and Specific Date filters integrated into one card.
-            * **21-Day Inactivity Auto-Logout**: Automatic security logoff after 21 days of inactivity.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

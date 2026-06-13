@@ -24,7 +24,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats }) => {
   const formatValue = (count: number) => {
     const padded = String(count).padStart(2, '0');
     if (stats.total === 0) return `${padded} (0%)`;
-    const percentage = Math.round((count / stats.total) * 100);
+    const percentage = ((count / stats.total) * 100).toFixed(2);
     return `${padded} (${percentage}%)`;
   };
 

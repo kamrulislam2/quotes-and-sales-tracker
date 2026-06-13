@@ -121,13 +121,18 @@ quotes-sales-tracker/
         └── dashboardHelpers.ts # Date/time and stats calculations
 ```
 
----
-
 ## 📝 Changelog
 
-### v0.1.9 (Latest)
+### v0.2.0 (Latest)
 
-**Quotes Branding, Windows Build Fix, NSIS Customization & Cleanups**
+**Offline Standalone App, Background Auto-Updater & Percentage Accuracy**
+
+- ✅ **Offline Standalone App**: Configured Next.js static HTML export (`output: 'export'`) with `trailingSlash: true` and disabled image optimization. The app now compiles directly into local files bundled within the Tauri installer, meaning it works fully offline and is immune to Vercel/network delays.
+- ✅ **Background Auto-Updater**: Integrated Tauri v2's native auto-updater plugin (`@tauri-apps/plugin-updater`). When updates are pushed, the app downloads them automatically in the background.
+- ✅ **Restart to Update UI Banner**: Added a subtle, modern sliding toast banner in the UI. When an update is ready, it provides a "Restart to Update" button that relaunches the app instantly.
+- ✅ **Accurate Percentage Counts**: Modified calculations in `StatsGrid` to display exactly 2 decimal places (e.g., `33.11%`). Replaced rounding logic so that categories with low count (e.g., 1 or 2 files) display their actual decimal percentages (e.g., `0.05%`) instead of rounding down to `0%`.
+
+### v0.1.9
 
 - ✅ **Custom NSIS Installer Icons**: Configured the Tauri Windows NSIS installer and uninstaller settings to use the custom Quotes icon (`icon.ico`), showing the correct brand logo on the downloaded setup `.exe` file and the installation wizard header.
 - ✅ **B&F Corporate Installer Metadata & Branding**: Configured the bundler to target only NSIS and DMG/App formats (removing the WiX `.msi` target). This allows using the raw ampersand `&` in the publisher and copyright fields without WiX XML toolchain compiler issues. Set the copyright/branding text to `"Apps Developed by Kamrul Islam, IT Officer, B&F Corporate"`, showing it at the bottom left of the installer page.

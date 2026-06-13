@@ -1,10 +1,10 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Quotes",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "identifier": "com.quotes.salestracker",
   "build": {
-    "frontendDist": "../public",
+    "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "",
     "beforeBuildCommand": ""
@@ -18,7 +18,7 @@
         "height": 800,
         "resizable": true,
         "fullscreen": false,
-        "url": "https://quotes-and-sales-tracker.vercel.app/"
+        "url": "index.html"
       }
     ],
     "security": {
@@ -49,6 +49,16 @@
     },
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/kamrulislam2/quotes-and-sales-tracker/releases/latest/download/updater.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ0REU3NEFGMDFDQUQ2REMKUldUYzFzb0JyM1RlMUgvcHduM3hXMUlackRGMmR4amJIWkZkY2h5VDBoL1p1RzNVMkRwSWdFN0MK"
     }
   }
 }

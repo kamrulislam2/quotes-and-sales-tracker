@@ -13,6 +13,9 @@
   },
   "permissions": [
     "core:default",
-    "allow-save-file"
+    "allow-save-file",
+    "updater:default",
+    "process:default",
+    "process:allow-restart"
   ]
 }

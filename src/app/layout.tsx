@@ -4,6 +4,7 @@ import "./globals.css";
 import PWARegister from "./pwa-register";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ToastProvider } from "@/components/ToastProvider";
+import AppUpdater from "@/components/AppUpdater";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,6 +68,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-slate-955 text-slate-100">
         <PWARegister />
         <ToastProvider />
+        <AppUpdater />
         {children}
         <SpeedInsights />
       </body>

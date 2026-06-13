@@ -1,9 +1,8 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { FileType, RecordItem } from '@/types';
+import { FileType } from '@/types';
 
 interface EditRecordModalProps {
-  record: RecordItem;
   editFileName: string;
   setEditFileName: (val: string) => void;
   editBranchName: string;

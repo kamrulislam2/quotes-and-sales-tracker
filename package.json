@@ -1,6 +1,6 @@
 {
   "name": "quotes",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
+    "@tauri-apps/plugin-process": "^2.0.0",
+    "@tauri-apps/plugin-updater": "^2.0.0",
     "@vercel/speed-insights": "^2.0.0",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",

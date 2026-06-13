@@ -18,8 +18,11 @@ fn save_file(file_name: String, content: Vec<u8>) -> Result<String, String> {
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_log::Builder::default().build())
+    .plugin(tauri_plugin_process::init())
     .invoke_handler(tauri::generate_handler![save_file])
-    .setup(|_app| {
+    .setup(|app| {
+      #[cfg(desktop)]
+      app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
       Ok(())
     })
     .run(tauri::generate_context!())

@@ -1516,7 +1516,6 @@ export default function Dashboard() {
       {/* MODAL 1: EDIT RECORD */}
       {editingRecord && (
         <EditRecordModal
-          record={editingRecord}
           editFileName={editFileName}
           setEditFileName={setEditFileName}
           editBranchName={editBranchName}

@@ -44,3 +44,7 @@ next-env.d.ts
 # Agent and assistant config files
 AGENTS.md
 CLAUDE.md
+
+# Tauri updater keys
+updater.key
+updater.key.pub
