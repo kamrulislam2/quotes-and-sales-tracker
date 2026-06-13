@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase";
-import { Lock, Mail, AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, AlertCircle, Loader, Eye, EyeOff, Monitor, Apple } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +11,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isTauri, setIsTauri] = useState(true); // Default to true to prevent screen flash on desktop app
+  const [downloadLoading, setDownloadLoading] = useState(false);
   const router = useRouter();
 
   // Load theme on mount
@@ -21,7 +23,51 @@ export default function LoginPage() {
     } else {
       document.documentElement.classList.add("dark");
     }
+
+    const isTauriEnv = typeof window !== 'undefined' && (window as unknown as { __TAURI__?: unknown }).__TAURI__ !== undefined;
+    setIsTauri(isTauriEnv);
   }, []);
+
+  const handleDownload = async (platform: 'windows' | 'macos-silicon' | 'macos-intel') => {
+    setDownloadLoading(true);
+    try {
+      const res = await fetch("https://api.github.com/repos/kamrulislam2/quotes-and-sales-tracker/releases/latest");
+      if (!res.ok) throw new Error("Failed to fetch release");
+      const release = await res.json();
+      
+      const assets = release.assets || [];
+      let downloadUrl = "";
+
+      if (platform === 'windows') {
+        // Find assets ending in .exe
+        const exeAsset = assets.find((asset: { name: string; browser_download_url: string }) => asset.name.endsWith('.exe'));
+        if (exeAsset) downloadUrl = exeAsset.browser_download_url;
+      } else if (platform === 'macos-silicon') {
+        // Find assets ending in .dmg and containing aarch64 or arm64
+        const siliconAsset = assets.find((asset: { name: string; browser_download_url: string }) => 
+          asset.name.endsWith('.dmg') && (asset.name.includes('aarch64') || asset.name.includes('arm64'))
+        );
+        if (siliconAsset) downloadUrl = siliconAsset.browser_download_url;
+      } else if (platform === 'macos-intel') {
+        // Find assets ending in .dmg and containing x64 or x86_64
+        const intelAsset = assets.find((asset: { name: string; browser_download_url: string }) => 
+          asset.name.endsWith('.dmg') && (asset.name.includes('x64') || asset.name.includes('x86_64'))
+        );
+        if (intelAsset) downloadUrl = intelAsset.browser_download_url;
+      }
+
+      if (downloadUrl) {
+        window.open(downloadUrl, '_blank');
+      } else {
+        window.open("https://github.com/kamrulislam2/quotes-and-sales-tracker/releases/latest", '_blank');
+      }
+    } catch (err) {
+      console.error("Failed to fetch latest download link:", err);
+      window.open("https://github.com/kamrulislam2/quotes-and-sales-tracker/releases/latest", '_blank');
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
 
   // Redirect if already logged in
   useEffect(() => {
@@ -201,6 +247,45 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
+
+      {/* Download Desktop App button section - only shown in web browser */}
+      {!isTauri && (
+        <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md z-10 px-4 sm:px-0 text-center animate-in fade-in slide-in-from-bottom-3 duration-500">
+          <div className="bg-slate-900/30 backdrop-blur-md border border-slate-800/50 py-4 px-6 rounded-2xl flex flex-col items-center justify-center gap-3">
+            <div className="flex flex-col">
+              <span className="text-xs text-slate-400 font-medium">Submit files faster with the</span>
+              <span className="text-sm text-slate-100 font-semibold bg-clip-text bg-linear-to-r from-blue-400 to-violet-400">Quotes Desktop Application</span>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2 w-full">
+              <button
+                onClick={() => handleDownload('windows')}
+                disabled={downloadLoading}
+                className="flex flex-col items-center justify-center gap-1.5 py-2 px-1 border border-slate-800/80 rounded-xl bg-slate-900/40 text-[10px] font-semibold text-slate-200 hover:bg-slate-800/80 hover:text-white hover:border-slate-700 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                Windows
+              </button>
+              <button
+                onClick={() => handleDownload('macos-silicon')}
+                disabled={downloadLoading}
+                className="flex flex-col items-center justify-center gap-1.5 py-2 px-1 border border-slate-800/80 rounded-xl bg-slate-900/40 text-[10px] font-semibold text-slate-200 hover:bg-slate-800/80 hover:text-white hover:border-slate-700 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Apple className="w-3.5 h-3.5 text-indigo-400" />
+                Mac (Silicon)
+              </button>
+              <button
+                onClick={() => handleDownload('macos-intel')}
+                disabled={downloadLoading}
+                className="flex flex-col items-center justify-center gap-1.5 py-2 px-1 border border-slate-800/80 rounded-xl bg-slate-900/40 text-[10px] font-semibold text-slate-200 hover:bg-slate-800/80 hover:text-white hover:border-slate-700 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Apple className="w-3.5 h-3.5 text-slate-400" />
+                Mac (Intel)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -123,7 +123,16 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.0 (Latest)
+### v0.2.1 (Latest)
+
+**Maximized Startup, Dynamic Architecture Downloads & Production Build Injections**
+
+- ✅ **Maximized Startup State**: Configured the Tauri application window to start fully maximized (`"maximized": true` in `tauri.conf.json`) to provide a complete and immersive layout immediately on launch.
+- ✅ **Dynamic Architecture Downloads**: Added a "Download Desktop App" section on the login page and a "Get App" dropdown menu in the header (Navbar) that only render in web browsers. They query the GitHub Releases API dynamically to let users download the precise installer for **Windows**, **macOS Apple Silicon (M1/M2/M3)**, or **macOS Intel**.
+- ✅ **Supabase Build Injection**: Resolved client database login errors by injecting `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` variables from GitHub Secrets directly into the build environment of the release workflow.
+- ✅ **Updater Silence Check**: Silenced update checker error logs to prevent intrusive error boxes when the user is offline or when no update configuration has been published yet.
+
+### v0.2.0
 
 **Offline Standalone App, Background Auto-Updater & Percentage Accuracy**
 

@@ -54,20 +54,17 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-            ### 🚀 What's New in v0.2.0:
+             ### 🚀 What's New in v0.2.1:
+            * **Maximized Startup State**: Configured the app window to launch fully maximized on startup for a better user experience.
+            * **Dynamic Architecture Downloads**: Added direct installer download buttons on the Login page and a "Get App" navbar dropdown menu in the dashboard. These buttons query the GitHub API to download the correct installers for **Windows**, **macOS Apple Silicon (M1/M2/M3)**, or **macOS Intel**.
+            * **Supabase Production Build Injections**: Mapped Supabase keys in the release workflow environment to fix database login issues on compiled client builds.
+            * **Updater Silence Check**: Silenced update check error logs in the background to avoid showing error boxes when the user is offline or when no update configuration has been published yet.
+
+            ### 📋 Previous Features (v0.2.0):
             * **Offline Standalone App**: Compiles all frontend Next.js code directly into local static files (`output: 'export'`) and bundles them inside the app. The app runs fully offline and starts instantly, without depending on Vercel or internet connection.
             * **Background Auto-Updater**: Integrated Tauri v2's native updater plugin. The app checks for updates in the background.
             * **Restart to Update UI Banner**: Displays a subtle toast banner in the UI when a new update is downloaded and ready, with a "Restart to Update" button that applies updates instantly using Tauri's native relaunch API.
             * **Accurate Percentage Counts**: Displays stats percentages with 2 decimal places (e.g. `33.11%`). Replaced rounding logic so that low file counts (e.g., 1 or 2 files) display their exact decimal percentage (e.g. `0.05%`) instead of rounding down to `0%`.
-
-            ### 📋 Previous Features:
-            * **Custom NSIS Installer Icons**: Configured the Tauri Windows NSIS installer and uninstaller settings to use the custom Quotes icon (`icon.ico`), showing the correct brand logo on the downloaded setup `.exe` file.
-            * **B&F Corporate Installer Metadata & Branding**: Configured the bundler to target only NSIS and DMG/App formats (removing the WiX `.msi` target). This allows using the raw ampersand `&` in the publisher and copyright fields. Set the copyright/branding text to `"Apps Developed by Kamrul Islam, IT Officer, B&F Corporate"`, showing it at the bottom left of the installer page.
-            * **PDF Export Removal**: Completely removed all PDF export options, button layouts, icon graphics, and handler logic from the application (today's logs and monthly logs tabs), keeping only the Microsoft Excel compatible CSV export.
-            * **Frontend Table Pagination (50 files/page)**: Implemented pagination (50 logs per page) in `RecordsTable` with sleek, modern controls ("Previous", "Next", dynamic visible page numbers, and "Showing X-Y of Z entries") to prevent UI lag.
-            * **Tauri Custom File Saving via RFD**: Added native file save dialogs (using the Rust `rfd` crate) triggered from the Vercel remote app.
-            * **Snappy Paginated Data Fetching**: Implemented page-by-page fetching in chunks of 1,000 using `.range()` inside `fetchRecords` and `fetchAvailableDates` to query all rows matching the filters. This fixes the PostgREST/Supabase default limit of 1,000 records.
-            * **Excel Exports**: Download filtered reports of daily and monthly entries as CSV (UTF-8 BOM).
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
