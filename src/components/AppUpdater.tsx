@@ -35,7 +35,6 @@ export default function AppUpdater() {
         }
       } catch (err) {
         console.error('Tauri Auto-Updater Error:', err);
-        setError(String(err));
         setDownloading(false);
       }
     };
