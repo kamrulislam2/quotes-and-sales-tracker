@@ -123,7 +123,14 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.5 (Latest)
+### v0.2.6 (Latest)
+
+**Global Reload Shortcut & Background Auto-Sync**
+
+- ✅ **Global Reload Keyboard Shortcut**: Added keydown handlers for `Cmd+R` (macOS) and `Ctrl+R` (Windows/Linux) to reload the application window.
+- ✅ **Background Auto-Sync on Focus**: Added event listeners for window `focus` and `visibilitychange` to refetch database records immediately when the app window is brought back from the background.
+
+### v0.2.5
 
 **macOS Apple Silicon CI Build Fix**
 
