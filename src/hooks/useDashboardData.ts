@@ -637,6 +637,32 @@ export const useDashboardData = () => {
     }
   }, [loading, sessionUser, profile, selectedYear, selectedMonth, fetchRecords, fetchAvailableDates]);
 
+  // Refetch records when window focus changes or tab becomes visible again (e.g. returning from background)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !sessionUser || !profile) return;
+
+    const handleFocusAndVisibility = () => {
+      console.log('Window focused or visible. Checking for new updates...');
+      fetchRecords();
+      fetchAvailableDates();
+    };
+
+    window.addEventListener('focus', handleFocusAndVisibility);
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleFocusAndVisibility();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocusAndVisibility);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [sessionUser, profile, fetchRecords, fetchAvailableDates]);
+
   // Network Status Monitor
   useEffect(() => {
     if (typeof window !== 'undefined') {

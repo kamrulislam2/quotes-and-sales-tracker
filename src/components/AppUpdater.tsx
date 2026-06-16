@@ -24,6 +24,20 @@ export default function AppUpdater() {
           window.location.reload();
         }, 800);
       }
+
+      // Global keyboard shortcut listener for Cmd+R (macOS) and Ctrl+R (Windows/Linux) reload
+      const handleKeyDown = (e: KeyboardEvent) => {
+        const isR = e.key.toLowerCase() === 'r';
+        const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+        
+        if (isCmdOrCtrl && isR) {
+          e.preventDefault();
+          window.location.reload();
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
     }
   }, []);
 
