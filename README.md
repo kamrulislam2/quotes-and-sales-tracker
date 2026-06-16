@@ -123,7 +123,13 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.4 (Latest)
+### v0.2.5 (Latest)
+
+**macOS Apple Silicon CI Build Fix**
+
+- ✅ **macOS Apple Silicon CI Build Fix**: Added `CI: true` configuration in the release workflow. This bypasses AppleScript Finder UI-styling steps that hang on headless runners, fixing the macOS aarch64 DMG bundling pipeline freeze.
+
+### v0.2.4
 
 **Self-Healing Startup Delay & Fetching Loader States**
 

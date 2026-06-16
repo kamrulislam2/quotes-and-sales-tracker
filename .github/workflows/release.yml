@@ -55,12 +55,11 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-             ### 🚀 What's New in v0.2.4:
-            * **WebView Startup Delay**: Added a 200ms initialization delay before session queries on mount. This ensures the Webview's network and disk cache handles are fully ready before running Supabase checks, preventing startup locks.
-            * **Self-Healing Auto-Reload**: Added one-time automatic page refresh fallbacks if a connection check fails or times out (using a 4-second safety net), resolving startup white screen hangs.
-            * **Fetching Loader States**: Added visual loading spinner states during database queries instead of displaying "Total Files: 0" and "No records found" while fetching data.
+             ### 🚀 What's New in v0.2.5:
+            * **macOS Apple Silicon CI Build Fix**: Added `CI: true` configuration in the release workflow. This bypasses AppleScript Finder UI-styling steps that hang on headless runners, fixing the macOS aarch64 DMG bundling pipeline freeze.
 
              ### 📋 Previous Features:
+            * **Self-Healing Startup Delay & Fetching Loader States (v0.2.4)**: Added a 200ms initialization delay before session queries on mount to ensure Webview handles are ready. Implemented a 4-second safety net auto-reload fallback to resolve white screen hangs, and added visual loading spinners during database queries.
             * **Deferred Update Installation (v0.2.2)**: Separated the download and installation steps. The app now only downloads the update payload in the background, leaving the installation task dormant until the user explicitly clicks the "Restart to Update" button. This prevents Windows from closing/installing the app automatically.
             * **Maximized Startup State (v0.2.1)**: Configured the app window to launch fully maximized on startup.
             * **Dynamic Architecture Downloads (v0.2.1)**: Added direct installer download buttons on the Login page and a "Get App" navbar dropdown menu in the dashboard. These buttons query the GitHub API to download the correct installers for Windows, macOS Apple Silicon (M1/M2/M3), or macOS Intel.
