@@ -537,7 +537,18 @@ export const useDashboardData = () => {
   useEffect(() => {
     const getSession = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Create a 4-second timeout promise to prevent hanging on initial boot database locks
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database session retrieval timed out')), 4000)
+        );
+
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]) as { data: { session: { user: SupabaseUser } | null } | null; error: unknown };
+
+        const session = sessionResult?.data?.session;
+        const sessionError = sessionResult?.error;
         if (sessionError) throw sessionError;
 
         if (!session) {
@@ -568,12 +579,18 @@ export const useDashboardData = () => {
         const userId = session.user.id;
         setSessionUser(session.user);
 
-        // Fetch user profile
-        const { data: userProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
+        // Fetch user profile with timeout safety net
+        const profileResult = await Promise.race([
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle(),
+          timeoutPromise
+        ]) as { data: unknown; error: unknown };
+
+        const userProfile = profileResult?.data;
+        const profileError = profileResult?.error;
 
         if (profileError || !userProfile) {
           console.error('User profile not found. Logging out.', profileError);
@@ -586,12 +603,30 @@ export const useDashboardData = () => {
         setLoading(false);
       } catch (err) {
         console.error('Error fetching session/profile on load:', err);
+
+        // Self-healing: if the startup check timed out or failed, try reloading once to resolve locks/initialization bugs
+        if (typeof window !== 'undefined') {
+          const reloadCount = sessionStorage.getItem('quotes_sales_startup_reload_count') || '0';
+          if (parseInt(reloadCount, 10) < 1) {
+            sessionStorage.setItem('quotes_sales_startup_reload_count', '1');
+            console.warn('Startup check failed or timed out. Attempting self-healing reload...');
+            window.location.reload();
+            return;
+          }
+        }
+
         setLoading(false);
         router.push('/login');
       }
     };
 
-    getSession();
+    // Delay the initial session retrieval by 200ms on startup to allow 
+    // the Tauri Webview network stack and disk handles to fully initialize.
+    const timer = setTimeout(() => {
+      getSession();
+    }, 200);
+
+    return () => clearTimeout(timer);
   }, [router, showToast]);
 
   // Fetch records once authenticated & loaded

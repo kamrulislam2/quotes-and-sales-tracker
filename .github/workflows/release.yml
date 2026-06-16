@@ -54,7 +54,9 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-             ### 🚀 What's New in v0.2.3:
+             ### 🚀 What's New in v0.2.4:
+            * **WebView Startup Delay**: Added a 200ms initialization delay before session queries on mount. This ensures the Webview's network and disk cache handles are fully ready before running Supabase checks, preventing startup locks.
+            * **Self-Healing Auto-Reload**: Added one-time automatic page refresh fallbacks if a connection check fails or times out (using a 4-second safety net), resolving startup white screen hangs.
             * **Fetching Loader States**: Added visual loading spinner states during database queries instead of displaying "Total Files: 0" and "No records found" while fetching data.
 
              ### 📋 Previous Features:

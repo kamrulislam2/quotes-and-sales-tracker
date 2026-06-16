@@ -123,11 +123,17 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.3 (Latest)
+### v0.2.4 (Latest)
 
-**Fetching Loader States**
+**Self-Healing Startup Delay & Fetching Loader States**
 
-- ✅ **Loading Feedback**: Added visual loading spinner states during database queries instead of displaying "Total Files: 0" and "No records found" while fetching data.
+- ✅ **WebView Startup Delay**: Added a 200ms initialization delay before session queries on mount. This ensures the Webview's network and disk cache handles are fully ready before running Supabase checks, preventing startup locks.
+- ✅ **Self-Healing Auto-Reload**: Added one-time automatic page refresh fallbacks if a connection check fails or times out (using a 4-second safety net), resolving startup white screen hangs.
+- ✅ **Fetching Loader States**: Added visual loading spinner states during database queries instead of displaying "Total Files: 0" and "No records found" while fetching data.
+
+### v0.2.3
+
+*Internal release configurations and loader components refinement.*
 
 ### v0.2.2
 

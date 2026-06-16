@@ -13,6 +13,20 @@ export default function AppUpdater() {
   const [dismissed, setDismissed] = useState(false);
   const [updateRef, setUpdateRef] = useState<Update | null>(null);
 
+  // Self-healing reload on first launch after an update relaunch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const justUpdated = localStorage.getItem('quotes_sales_just_updated');
+      if (justUpdated === 'true') {
+        localStorage.removeItem('quotes_sales_just_updated');
+        // Wait 800ms for old process to fully die, then reload the webview
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     // Only run this check inside the Tauri desktop environment
     const isTauri = typeof window !== 'undefined' && (window as unknown as { __TAURI__?: unknown }).__TAURI__ !== undefined;
@@ -55,6 +69,10 @@ export default function AppUpdater() {
       if (updateRef) {
         // Install the downloaded update package
         await updateRef.install();
+      }
+      // Set update flag to trigger a self-healing reload on next launch
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('quotes_sales_just_updated', 'true');
       }
       const { relaunch } = await import('@tauri-apps/plugin-process');
       await relaunch();
