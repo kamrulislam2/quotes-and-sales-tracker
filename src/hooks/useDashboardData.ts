@@ -12,6 +12,7 @@ export const useDashboardData = () => {
   const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
@@ -46,6 +47,7 @@ export const useDashboardData = () => {
   // Fetch all records for the selected Month & Year
   const fetchRecords = useCallback(async () => {
     if (!sessionUser || !profile) return;
+    setRecordsLoading(true);
 
     try {
       // Start and end of the selected month
@@ -108,6 +110,8 @@ export const useDashboardData = () => {
     } catch (err) {
       console.error('Error fetching records:', err);
       showToast('error', 'Error loading data: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setRecordsLoading(false);
     }
   }, [sessionUser, profile, selectedYear, selectedMonth, showToast]);
 
@@ -686,6 +690,7 @@ export const useDashboardData = () => {
     sessionUser,
     profile,
     loading,
+    recordsLoading,
     submitting,
     isOnline,
     showToast,

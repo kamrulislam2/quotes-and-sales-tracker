@@ -64,6 +64,7 @@ export default function Dashboard() {
     sessionUser,
     profile,
     loading,
+    recordsLoading,
     submitting,
     isOnline,
     showToast,
@@ -1199,7 +1200,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Stat pills summary Component */}
-                <StatsGrid stats={todayStats} />
+                <StatsGrid stats={todayStats} isLoading={recordsLoading} />
 
                 {/* Today's Records Table Component */}
                 <RecordsTable
@@ -1208,6 +1209,7 @@ export default function Dashboard() {
                   showDate={false}
                   onEdit={(record) => handleOpenEditRecord(record, false)}
                   onDelete={setDeletingRecordId}
+                  isLoading={recordsLoading}
                 />
               </div>
             </div>
@@ -1373,7 +1375,7 @@ export default function Dashboard() {
               </div>
 
               {/* Monthly Stats summary grid */}
-              <StatsGrid stats={monthlyStats} />
+              <StatsGrid stats={monthlyStats} isLoading={recordsLoading} />
 
               {/* Monthly Table Component */}
               <RecordsTable
@@ -1382,6 +1384,7 @@ export default function Dashboard() {
                 showDate={true}
                 onEdit={(record) => handleOpenEditRecord(record, true)}
                 onDelete={setDeletingRecordId}
+                isLoading={recordsLoading}
               />
             </div>
           )}

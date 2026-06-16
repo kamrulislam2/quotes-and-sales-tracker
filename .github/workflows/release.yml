@@ -54,14 +54,15 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-             ### 🚀 What's New in v0.2.2:
-            * **Deffered Update Installation**: Separated the download and installation steps. The app now only downloads the update payload in the background, leaving the installation task dormant until the user explicitly clicks the "Restart to Update" button. This prevents Windows from closing/installing the app automatically.
+             ### 🚀 What's New in v0.2.3:
+            * **Fetching Loader States**: Added visual loading spinner states during database queries instead of displaying "Total Files: 0" and "No records found" while fetching data.
 
-             ### 📋 Previous Features (v0.2.1):
-            * **Maximized Startup State**: Configured the app window to launch fully maximized on startup.
-            * **Dynamic Architecture Downloads**: Added direct installer download buttons on the Login page and a "Get App" navbar dropdown menu in the dashboard. These buttons query the GitHub API to download the correct installers for Windows, macOS Apple Silicon (M1/M2/M3), or macOS Intel.
-            * **Supabase Production Build Injections**: Mapped Supabase keys in the release workflow environment to fix database login issues on compiled client builds.
-            * **Updater Silence Check**: Silenced update check error logs in the background.
+             ### 📋 Previous Features:
+            * **Deferred Update Installation (v0.2.2)**: Separated the download and installation steps. The app now only downloads the update payload in the background, leaving the installation task dormant until the user explicitly clicks the "Restart to Update" button. This prevents Windows from closing/installing the app automatically.
+            * **Maximized Startup State (v0.2.1)**: Configured the app window to launch fully maximized on startup.
+            * **Dynamic Architecture Downloads (v0.2.1)**: Added direct installer download buttons on the Login page and a "Get App" navbar dropdown menu in the dashboard. These buttons query the GitHub API to download the correct installers for Windows, macOS Apple Silicon (M1/M2/M3), or macOS Intel.
+            * **Supabase Production Build Injections (v0.2.1)**: Mapped Supabase keys in the release workflow environment to fix database login issues on compiled client builds.
+            * **Updater Silence Check (v0.2.1)**: Silenced update check error logs in the background.
             * **Offline Standalone App**: Compiles all frontend Next.js code directly into local static files (`output: 'export'`) and bundles them inside the app. The app runs fully offline and starts instantly, without depending on Vercel or internet connection.
             * **Background Auto-Updater**: Integrated Tauri v2's native updater plugin. The app checks for updates in the background.
             * **Restart to Update UI Banner**: Displays a subtle toast banner in the UI when a new update is downloaded and ready, with a "Restart to Update" button that applies updates instantly using Tauri's native relaunch API.

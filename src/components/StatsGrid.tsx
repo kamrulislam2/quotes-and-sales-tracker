@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface Stats {
   total: number;
@@ -18,9 +19,10 @@ interface Stats {
 
 interface StatsGridProps {
   stats: Stats;
+  isLoading?: boolean;
 }
 
-export const StatsGrid: React.FC<StatsGridProps> = ({ stats }) => {
+export const StatsGrid: React.FC<StatsGridProps> = ({ stats, isLoading = false }) => {
   const formatValue = (count: number) => {
     const padded = String(count).padStart(2, '0');
     if (stats.total === 0) return `${padded} (0%)`;
@@ -34,8 +36,13 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats }) => {
 
   return (
     <div className="flex flex-wrap gap-2.5">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-350 shadow-sm flex items-center gap-2">
-        Total Files: <strong className="text-white text-sm">{stats.total}</strong>
+      <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-355 shadow-sm flex items-center gap-2 min-h-9">
+        Total Files:{' '}
+        {isLoading ? (
+          <Loader2 className="animate-spin h-3.5 w-3.5 text-blue-500" />
+        ) : (
+          <strong className="text-white text-sm">{stats.total}</strong>
+        )}
       </div>
       {stats.sale > 0 && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-350 shadow-sm flex items-center gap-2">

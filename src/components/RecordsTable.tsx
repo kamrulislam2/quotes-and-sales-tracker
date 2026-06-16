@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
 import { RecordItem } from '@/types';
 import { formatDate, formatTimeToAMPM } from '@/utils/dashboardHelpers';
 
@@ -9,6 +9,7 @@ interface RecordsTableProps {
   showDate?: boolean;
   onEdit: (record: RecordItem) => void;
   onDelete: (id: string) => void;
+  isLoading?: boolean;
 }
 
 export const RecordsTable: React.FC<RecordsTableProps> = ({
@@ -16,7 +17,8 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
   emptyMessage = 'No file entries found.',
   showDate = false,
   onEdit,
-  onDelete
+  onDelete,
+  isLoading = false
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
@@ -100,7 +102,16 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-850 text-slate-300">
-            {displayedRecords.length === 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-12 text-center text-xs text-slate-500 font-medium">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="animate-spin h-6 w-6 text-blue-500" />
+                    <span className="text-slate-400 font-semibold tracking-wider">Loading records...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : displayedRecords.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-500 font-medium">
                   {emptyMessage}

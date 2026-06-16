@@ -123,7 +123,13 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.2 (Latest)
+### v0.2.3 (Latest)
+
+**Fetching Loader States**
+
+- ✅ **Loading Feedback**: Added visual loading spinner states during database queries instead of displaying "Total Files: 0" and "No records found" while fetching data.
+
+### v0.2.2
 
 **Granular Update Flow Controls & Download Separation**
 
