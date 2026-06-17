@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { X, Loader2, UserPlus, Clipboard, Plus } from 'lucide-react';
 import { CategoryCheckboxList } from '../CategoryCheckboxList';
 
@@ -37,6 +37,16 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
   onClose,
   onCopyPassword
 }) => {
+  // Close on Escape key press
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [handleEscape]);
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4 animate-fade-in">
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto">

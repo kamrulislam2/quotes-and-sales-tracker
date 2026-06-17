@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
@@ -119,57 +119,53 @@ export const useDashboardData = () => {
   const fetchAvailableDates = useCallback(async () => {
     if (!sessionUser || !profile) return;
     try {
-      let allData: { submitted_at: string | null }[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      let hasMore = true;
+      // Optimized: fetch only the earliest and latest submitted_at to determine
+      // the range of year-month pairs, instead of paginating through ALL records.
+      let earliestQuery = supabase
+        .from('records')
+        .select('submitted_at')
+        .order('submitted_at', { ascending: true })
+        .limit(1);
 
-      while (hasMore) {
-        const from = page * pageSize;
-        const to = from + pageSize - 1;
+      let latestQuery = supabase
+        .from('records')
+        .select('submitted_at')
+        .order('submitted_at', { ascending: false })
+        .limit(1);
 
-        let query = supabase
-          .from('records')
-          .select('submitted_at')
-          .range(from, to);
-
-        if (profile.role !== 'admin') {
-          query = query.eq('user_id', sessionUser.id);
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          allData = [...allData, ...data];
-          if (data.length < pageSize) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        } else {
-          hasMore = false;
-        }
+      if (profile.role !== 'admin') {
+        earliestQuery = earliestQuery.eq('user_id', sessionUser.id);
+        latestQuery = latestQuery.eq('user_id', sessionUser.id);
       }
 
+      const [earliestResult, latestResult] = await Promise.all([earliestQuery, latestQuery]);
+
+      if (earliestResult.error) throw earliestResult.error;
+      if (latestResult.error) throw latestResult.error;
+
       const datesSet = new Set<string>();
-      
+
       // Always include current year-month
       const now = new Date();
       const currentYearStr = now.getFullYear().toString();
       const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0');
       datesSet.add(`${currentYearStr}-${currentMonthStr}`);
 
-      allData.forEach(r => {
-        if (r.submitted_at) {
-          const date = new Date(r.submitted_at);
-          if (!isNaN(date.getTime())) {
-            const y = date.getFullYear().toString();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            datesSet.add(`${y}-${m}`);
-          }
+      const earliestDate = earliestResult.data?.[0]?.submitted_at ? new Date(earliestResult.data[0].submitted_at) : null;
+      const latestDate = latestResult.data?.[0]?.submitted_at ? new Date(latestResult.data[0].submitted_at) : null;
+
+      if (earliestDate && !isNaN(earliestDate.getTime()) && latestDate && !isNaN(latestDate.getTime())) {
+        // Generate all year-month pairs in the range [earliest, latest]
+        const cursor = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
+        const end = new Date(latestDate.getFullYear(), latestDate.getMonth(), 1);
+
+        while (cursor <= end) {
+          const y = cursor.getFullYear().toString();
+          const m = String(cursor.getMonth() + 1).padStart(2, '0');
+          datesSet.add(`${y}-${m}`);
+          cursor.setMonth(cursor.getMonth() + 1);
         }
-      });
+      }
 
       const parsedDates = Array.from(datesSet).map(s => {
         const [year, month] = s.split('-');
@@ -481,45 +477,6 @@ export const useDashboardData = () => {
     }
   };
 
-  // Change Own Password (called when force changed via profile settings if desired)
-  const changeOwnPassword = async (newPassword: string) => {
-    if (!sessionUser) return false;
-    setSubmitting(true);
-
-    try {
-      const { error: authError } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (authError) throw authError;
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ has_changed_password: true })
-        .eq('id', sessionUser.id);
-
-      if (profileError) throw profileError;
-
-      setProfile(prev => {
-        if (prev) {
-          const updated = { ...prev, has_changed_password: true };
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('quotes_sales_profile', JSON.stringify(updated));
-          }
-          return updated;
-        }
-        return null;
-      });
-      showToast('success', 'Password updated successfully!');
-      setSubmitting(false);
-      return true;
-    } catch (err) {
-      console.error('Error changing password:', err);
-      showToast('error', 'Error updating password: ' + (err instanceof Error ? err.message : String(err)));
-      setSubmitting(false);
-      return false;
-    }
-  };
 
   // Theme configuration
   useEffect(() => {
@@ -593,18 +550,22 @@ export const useDashboardData = () => {
         const userId = session.user.id;
         setSessionUser(session.user);
 
-        // Fetch user profile with timeout safety net
+        // Fetch user profile with its own independent timeout safety net
         let userProfile: Profile | null = null;
         let fetchSuccess = false;
 
         try {
+          const profileTimeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Profile fetch timed out')), 4000)
+          );
+
           const profileResult = await Promise.race([
             supabase
               .from('profiles')
               .select('*')
               .eq('id', userId)
               .maybeSingle(),
-            timeoutPromise
+            profileTimeoutPromise
           ]) as { data: Profile | null; error: unknown };
 
           const profileError = profileResult?.error;
@@ -751,6 +712,10 @@ export const useDashboardData = () => {
     }
   }, [fetchRecords, showToast]);
 
+  // Debounce ref for real-time record change events to prevent double-fetching
+  // when user's own mutations already trigger explicit fetchRecords() calls.
+  const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Real-time Database Subscriptions
   useEffect(() => {
     if (!sessionUser) return;
@@ -761,8 +726,12 @@ export const useDashboardData = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'records' },
         () => {
-          fetchRecords();
-          fetchAvailableDates();
+          // Debounce: coalesce rapid realtime events (e.g. own mutation + realtime echo)
+          if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
+          realtimeDebounceRef.current = setTimeout(() => {
+            fetchRecords();
+            fetchAvailableDates();
+          }, 500);
         }
       )
       .subscribe();
@@ -807,6 +776,7 @@ export const useDashboardData = () => {
       .subscribe();
 
     return () => {
+      if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
       supabase.removeChannel(recordsChannel);
       supabase.removeChannel(profilesChannel);
     };
@@ -846,7 +816,7 @@ export const useDashboardData = () => {
     resetUserPassword,
     deleteUser,
     adminUpdateUserProfile,
-    changeOwnPassword,
+
     completeFirstTimeSetup,
     handleLogout
   };

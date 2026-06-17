@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { CategoryCheckboxList } from '../CategoryCheckboxList';
 
@@ -32,6 +32,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+
+  // Close on Escape key press
+  const handleEscape = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [handleEscape]);
 
   const isPasswordValid = !changePassword || (newPassword.length >= 6 && newPassword.length <= 12 && newPassword === confirmPassword);
 

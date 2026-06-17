@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase";
+import { downloadLatestRelease, DownloadPlatform } from "@/utils/downloadHelper";
 import { Lock, Mail, AlertCircle, Loader, Eye, EyeOff, Monitor, Apple } from "lucide-react";
 
 export default function LoginPage() {
@@ -28,42 +29,10 @@ export default function LoginPage() {
     setIsTauri(isTauriEnv);
   }, []);
 
-  const handleDownload = async (platform: 'windows' | 'macos-silicon' | 'macos-intel') => {
+  const handleDownload = async (platform: DownloadPlatform) => {
     setDownloadLoading(true);
     try {
-      const res = await fetch("https://api.github.com/repos/kamrulislam2/quotes-and-sales-tracker/releases/latest");
-      if (!res.ok) throw new Error("Failed to fetch release");
-      const release = await res.json();
-      
-      const assets = release.assets || [];
-      let downloadUrl = "";
-
-      if (platform === 'windows') {
-        // Find assets ending in .exe
-        const exeAsset = assets.find((asset: { name: string; browser_download_url: string }) => asset.name.endsWith('.exe'));
-        if (exeAsset) downloadUrl = exeAsset.browser_download_url;
-      } else if (platform === 'macos-silicon') {
-        // Find assets ending in .dmg and containing aarch64 or arm64
-        const siliconAsset = assets.find((asset: { name: string; browser_download_url: string }) => 
-          asset.name.endsWith('.dmg') && (asset.name.includes('aarch64') || asset.name.includes('arm64'))
-        );
-        if (siliconAsset) downloadUrl = siliconAsset.browser_download_url;
-      } else if (platform === 'macos-intel') {
-        // Find assets ending in .dmg and containing x64 or x86_64
-        const intelAsset = assets.find((asset: { name: string; browser_download_url: string }) => 
-          asset.name.endsWith('.dmg') && (asset.name.includes('x64') || asset.name.includes('x86_64'))
-        );
-        if (intelAsset) downloadUrl = intelAsset.browser_download_url;
-      }
-
-      if (downloadUrl) {
-        window.open(downloadUrl, '_blank');
-      } else {
-        window.open("https://github.com/kamrulislam2/quotes-and-sales-tracker/releases/latest", '_blank');
-      }
-    } catch (err) {
-      console.error("Failed to fetch latest download link:", err);
-      window.open("https://github.com/kamrulislam2/quotes-and-sales-tracker/releases/latest", '_blank');
+      await downloadLatestRelease(platform);
     } finally {
       setDownloadLoading(false);
     }

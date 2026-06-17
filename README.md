@@ -123,7 +123,20 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.7 (Latest)
+### v0.2.8 (Latest)
+
+**Code Quality, Performance & Accessibility Improvements**
+
+- ✅ **Shared Download Utility**: Extracted duplicated GitHub download logic from `Navbar.tsx` and `login/page.tsx` into a shared `downloadHelper.ts` utility for better maintainability.
+- ✅ **Independent Profile Timeout**: Fixed a bug where the profile fetch reused the session's timeout promise, giving it almost no time if the session check was slow. Each now gets its own independent 4-second timeout.
+- ✅ **Dead Code Removal**: Removed unused `changeOwnPassword` function from `useDashboardData.ts`.
+- ✅ **Optimized Date Queries**: Replaced the paginated all-records fetch in `fetchAvailableDates` with a lightweight min/max date range query (2 rows instead of potentially thousands).
+- ✅ **Real-time Debounce**: Added 500ms debounce to real-time record subscription to prevent double-fetching when user mutations echo back via WebSocket.
+- ✅ **Modal Escape Key**: All 5 modals (Confirm, EditRecord, EditProfile, AddUser, CustomEntry) now close on `Escape` key press for improved accessibility.
+- ✅ **Spinner Fix**: Fixed submit button spinner width bug in Daily Entry Form (`w-2` → `w-5`).
+- ✅ **Activity Timer Fix**: Added missing `updateLastActivity()` calls to `deleteUser` and `adminUpdateUserProfile` to prevent admin sessions from expiring during user management.
+
+### v0.2.7
 
 **Offline Startup & Cache Recovery**
 
