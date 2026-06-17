@@ -123,7 +123,13 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.9 (Latest)
+### v0.3.0 (Latest)
+
+**Silent Background Sync & Refetches**
+
+- ✅ **Silent Background Fetching**: Implemented `isSilent` mode in `fetchRecords`. Background refetches (such as real-time updates, window focus events, network status restores, and user CRUD actions like add/update/delete) now execute in the background without showing full-screen/table loading spinners. Spinnners are now reserved exclusively for the initial page load.
+
+### v0.2.9
 
 **User Management Loading Improvements**
 

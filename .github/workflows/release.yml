@@ -55,10 +55,11 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-             ### 🚀 What's New in v0.2.9:
-            * **User Table Loader**: Added loading spinner state to the "User Accounts & File Permissions Management" table when fetching data to prevent showing 0 records initially.
+             ### 🚀 What's New in v0.3.0:
+            * **Silent Background Fetching**: Implemented `isSilent` mode in `fetchRecords` to perform database refetches (real-time subscriptions, window focus/visibility changes, network status changes, and user CRUD actions) silently in the background, keeping existing UI content visible and eliminating full-screen loading spinners.
 
              ### 📋 Previous Features:
+            * **User Management Loader (v0.2.9)**: Added loading spinner state to the "User Accounts & File Permissions Management" table when fetching data to prevent showing 0 records initially.
             * **Code Quality, Performance & Accessibility (v0.2.8)**: Extracted duplicate download logic, optimized date range querying, added WebSocket debouncing, fixed modal escape key dismissal, and fixed spinner dimensions.
             * **Offline Startup & Cache Recovery (v0.2.7)**: Local storage profile caching and fallback startup loaders resolve the infinite loading loop.
             * **Global Reload Keyboard Shortcut & Background Auto-Sync (v0.2.6)**: `Cmd+R` / `Ctrl+R` reload and focus/visibility auto-fetch.

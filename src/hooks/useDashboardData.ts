@@ -45,9 +45,9 @@ export const useDashboardData = () => {
   }, []);
 
   // Fetch all records for the selected Month & Year
-  const fetchRecords = useCallback(async () => {
+  const fetchRecords = useCallback(async (isSilent: boolean = false) => {
     if (!sessionUser || !profile) return;
-    setRecordsLoading(true);
+    if (!isSilent) setRecordsLoading(true);
 
     try {
       // Start and end of the selected month
@@ -209,7 +209,7 @@ export const useDashboardData = () => {
       if (error) throw error;
 
       showToast('success', 'Data entry saved successfully!');
-      await fetchRecords();
+      await fetchRecords(true);
       await fetchAvailableDates();
       setSubmitting(false);
       return true;
@@ -232,7 +232,7 @@ export const useDashboardData = () => {
 
       if (error) throw error;
       showToast('success', 'Record deleted successfully!');
-      await fetchRecords();
+      await fetchRecords(true);
       await fetchAvailableDates();
       return true;
     } catch (err) {
@@ -277,7 +277,7 @@ export const useDashboardData = () => {
 
       if (error) throw error;
       showToast('success', 'Record updated successfully!');
-      await fetchRecords();
+      await fetchRecords(true);
       await fetchAvailableDates();
       return true;
     } catch (err) {
@@ -668,7 +668,7 @@ export const useDashboardData = () => {
 
     const handleFocusAndVisibility = () => {
       console.log('Window focused or visible. Checking for new updates...');
-      fetchRecords();
+      fetchRecords(true);
       fetchAvailableDates();
     };
 
@@ -695,7 +695,7 @@ export const useDashboardData = () => {
       const handleOnline = () => {
         setIsOnline(true);
         showToast('success', 'You are back online.');
-        fetchRecords();
+        fetchRecords(true);
       };
       const handleOffline = () => {
         setIsOnline(false);
@@ -729,7 +729,7 @@ export const useDashboardData = () => {
           // Debounce: coalesce rapid realtime events (e.g. own mutation + realtime echo)
           if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
           realtimeDebounceRef.current = setTimeout(() => {
-            fetchRecords();
+            fetchRecords(true);
             fetchAvailableDates();
           }, 500);
         }
