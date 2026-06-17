@@ -123,7 +123,13 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.8 (Latest)
+### v0.2.9 (Latest)
+
+**User Management Loading Improvements**
+
+- ✅ **User Table Loading State**: Added loading spinner state to the "User Accounts & File Permissions Management" table when fetching data to prevent showing 0 records initially.
+
+### v0.2.8
 
 **Code Quality, Performance & Accessibility Improvements**
 

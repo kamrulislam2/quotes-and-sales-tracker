@@ -1431,7 +1431,19 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-850 text-slate-355">
-                    {profilesList.length === 0 ? (
+                    {recordsLoading ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-4 py-12 text-center text-xs text-slate-500 font-medium"
+                        >
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Loader2 className="animate-spin h-6 w-6 text-blue-500" />
+                            <span className="text-slate-400 font-semibold tracking-wider">Loading users...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : profilesList.length === 0 ? (
                       <tr>
                         <td
                           colSpan={5}

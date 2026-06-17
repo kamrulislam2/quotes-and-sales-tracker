@@ -55,14 +55,11 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-             ### 🚀 What's New in v0.2.8:
-            * **Code Quality & Maintainability**: Extracted duplicated GitHub download logic into a shared utility (`downloadHelper.ts`), removed dead `changeOwnPassword` code, and fixed profile fetch using an independent timeout instead of sharing the session timeout.
-            * **Optimized Date Queries**: Replaced the paginated all-records fetch in `fetchAvailableDates` with a lightweight min/max date range query (2 rows instead of thousands).
-            * **Real-time Debounce**: Added 500ms debounce to real-time record subscription to prevent double-fetching when user mutations echo back via WebSocket.
-            * **Modal Escape Key**: All 5 modals now close on `Escape` key press for better accessibility and usability.
-            * **Spinner Fix**: Fixed submit button spinner width bug in Daily Entry Form (`w-2` → `w-5`).
+             ### 🚀 What's New in v0.2.9:
+            * **User Table Loader**: Added loading spinner state to the "User Accounts & File Permissions Management" table when fetching data to prevent showing 0 records initially.
 
              ### 📋 Previous Features:
+            * **Code Quality, Performance & Accessibility (v0.2.8)**: Extracted duplicate download logic, optimized date range querying, added WebSocket debouncing, fixed modal escape key dismissal, and fixed spinner dimensions.
             * **Offline Startup & Cache Recovery (v0.2.7)**: Local storage profile caching and fallback startup loaders resolve the infinite loading loop.
             * **Global Reload Keyboard Shortcut & Background Auto-Sync (v0.2.6)**: `Cmd+R` / `Ctrl+R` reload and focus/visibility auto-fetch.
             * **macOS Apple Silicon CI Build Fix (v0.2.5)**: `CI: true` bypasses AppleScript Finder UI-styling hangs.
