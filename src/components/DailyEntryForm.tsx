@@ -111,7 +111,7 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
         >
           {submitting ? (
             <>
-              <Loader2 className="animate-spin h-5 w-2 text-white" />{" "}
+              <Loader2 className="animate-spin h-5 w-5 text-white" />{" "}
               Submitting...
             </>
           ) : (

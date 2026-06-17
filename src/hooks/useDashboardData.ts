@@ -360,6 +360,7 @@ export const useDashboardData = () => {
 
   // Admin: Delete user
   const deleteUser = async (userId: string) => {
+    updateLastActivity();
     try {
       const { data, error } = await supabase.rpc('delete_user_by_id', {
         p_user_id: userId
@@ -385,6 +386,7 @@ export const useDashboardData = () => {
 
   // Admin: Update user profile details
   const adminUpdateUserProfile = async (userId: string, fullName: string, role: 'admin' | 'user', allowedTypes: string[]) => {
+    updateLastActivity();
     setSubmitting(true);
     try {
       const { error } = await supabase
