@@ -55,11 +55,11 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-             ### 🚀 What's New in v0.2.6:
-            * **Global Reload Keyboard Shortcut**: Added keydown handlers for `Cmd+R` (macOS) and `Ctrl+R` (Windows/Linux) to trigger application reloads inside compiled desktop windows.
-            * **Background Auto-Sync on Focus**: Added document visibility and window focus triggers. Bringing the app to the foreground automatically updates the stats and records table from the database immediately.
+             ### 🚀 What's New in v0.2.7:
+            * **Offline Startup & Cache Recovery**: Added local storage user profile caching and fallback startup loaders. If database connection times out or fails (due to a locked WebView/process on Windows relaunch, or network drops), the app recovers using the cached profile to load the dashboard, resolving the infinite loading loop.
 
              ### 📋 Previous Features:
+            * **Global Reload Keyboard Shortcut & Background Auto-Sync (v0.2.6)**: Added keyboard listeners for `Cmd+R` (macOS) and `Ctrl+R` (Windows/Linux) to reload the application window. Added focus and visibility change event listeners to auto-fetch database updates immediately when the app is brought back to the foreground.
             * **macOS Apple Silicon CI Build Fix (v0.2.5)**: Added `CI: true` configuration in the release workflow. This bypasses AppleScript Finder UI-styling steps that hang on headless runners, fixing the macOS aarch64 DMG bundling pipeline freeze.
             * **Self-Healing Startup Delay & Fetching Loader States (v0.2.4)**: Added a 200ms initialization delay before session queries on mount to ensure Webview handles are ready. Implemented a 4-second safety net auto-reload fallback to resolve white screen hangs, and added visual loading spinners during database queries.
             * **Deferred Update Installation (v0.2.2)**: Separated the download and installation steps. The app now only downloads the update payload in the background, leaving the installation task dormant until the user explicitly clicks the "Restart to Update" button. This prevents Windows from closing/installing the app automatically.

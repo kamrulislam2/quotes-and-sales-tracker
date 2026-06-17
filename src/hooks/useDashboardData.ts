@@ -464,6 +464,9 @@ export const useDashboardData = () => {
 
       if (userProfile) {
         setProfile(userProfile as Profile);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('quotes_sales_profile', JSON.stringify(userProfile));
+        }
       }
 
       setSubmitting(false);
@@ -495,7 +498,16 @@ export const useDashboardData = () => {
 
       if (profileError) throw profileError;
 
-      setProfile(prev => prev ? { ...prev, has_changed_password: true } : null);
+      setProfile(prev => {
+        if (prev) {
+          const updated = { ...prev, has_changed_password: true };
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('quotes_sales_profile', JSON.stringify(updated));
+          }
+          return updated;
+        }
+        return null;
+      });
       showToast('success', 'Password updated successfully!');
       setSubmitting(false);
       return true;
@@ -580,29 +592,79 @@ export const useDashboardData = () => {
         setSessionUser(session.user);
 
         // Fetch user profile with timeout safety net
-        const profileResult = await Promise.race([
-          supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle(),
-          timeoutPromise
-        ]) as { data: unknown; error: unknown };
+        let userProfile: Profile | null = null;
+        let fetchSuccess = false;
 
-        const userProfile = profileResult?.data;
-        const profileError = profileResult?.error;
+        try {
+          const profileResult = await Promise.race([
+            supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .maybeSingle(),
+            timeoutPromise
+          ]) as { data: Profile | null; error: unknown };
 
-        if (profileError || !userProfile) {
-          console.error('User profile not found. Logging out.', profileError);
-          await supabase.auth.signOut();
-          router.push('/login');
-          return;
+          const profileError = profileResult?.error;
+          if (profileError) throw profileError;
+
+          if (profileResult?.data) {
+            userProfile = profileResult.data;
+            fetchSuccess = true;
+            // Cache profile in localStorage
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('quotes_sales_profile', JSON.stringify(userProfile));
+            }
+          }
+        } catch (profileFetchErr) {
+          console.warn('Failed to fetch profile from database, checking cache:', profileFetchErr);
         }
 
-        setProfile(userProfile as Profile);
+        // If fetch failed, try getting it from localStorage cache
+        if (!fetchSuccess && typeof window !== 'undefined') {
+          const cachedProfileStr = localStorage.getItem('quotes_sales_profile');
+          if (cachedProfileStr) {
+            try {
+              userProfile = JSON.parse(cachedProfileStr);
+              console.log('Successfully loaded profile from local cache (offline mode)');
+            } catch (jsonErr) {
+              console.error('Failed to parse cached profile:', jsonErr);
+            }
+          }
+        }
+
+        // If we still don't have a profile, check if we are truly offline or if it's a DB error
+        if (!userProfile) {
+          if (typeof navigator !== 'undefined' && navigator.onLine) {
+            console.error('User profile not found. Logging out.');
+            await supabase.auth.signOut();
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('quotes_sales_profile');
+            }
+            router.push('/login');
+            return;
+          } else {
+            throw new Error('No profile cache available and connection is offline.');
+          }
+        }
+
+        setProfile(userProfile);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching session/profile on load:', err);
+
+        // Try to recover using cached profile if session is available in local storage
+        if (typeof window !== 'undefined') {
+          const cachedProfileStr = localStorage.getItem('quotes_sales_profile');
+          if (cachedProfileStr) {
+            try {
+              const cachedProfile = JSON.parse(cachedProfileStr);
+              setProfile(cachedProfile);
+              setLoading(false);
+              return;
+            } catch {}
+          }
+        }
 
         // Self-healing: if the startup check timed out or failed, try reloading once to resolve locks/initialization bugs
         if (typeof window !== 'undefined') {
@@ -711,6 +773,9 @@ export const useDashboardData = () => {
         (payload) => {
           if (payload.eventType === 'DELETE' && payload.old && payload.old.id === sessionUser.id) {
             console.log('User profile deleted. Force logging out...');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('quotes_sales_profile');
+            }
             supabase.auth.signOut().then(() => {
               setSessionUser(null);
               setProfile(null);
@@ -721,6 +786,9 @@ export const useDashboardData = () => {
           }
           if (payload.eventType === 'UPDATE' && payload.new && payload.new.id === sessionUser.id) {
             setProfile(payload.new as Profile);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('quotes_sales_profile', JSON.stringify(payload.new));
+            }
           }
           // Refresh profiles list for admin
           if (profile?.role === 'admin') {
@@ -743,6 +811,9 @@ export const useDashboardData = () => {
   }, [sessionUser, profile, fetchRecords, fetchAvailableDates, router]);
 
   const handleLogout = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('quotes_sales_profile');
+    }
     await supabase.auth.signOut();
     router.push('/login');
   };

@@ -123,7 +123,13 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v0.2.6 (Latest)
+### v0.2.7 (Latest)
+
+**Offline Startup & Cache Recovery**
+
+- ✅ **Offline Startup & Cache Recovery**: Added local storage user profile caching and fallback startup loaders. If database connection times out or fails (due to a locked WebView/process on Windows relaunch, or network drops), the app recovers using the cached profile to load the dashboard, resolving the infinite loading loop.
+
+### v0.2.6
 
 **Global Reload Shortcut & Background Auto-Sync**
 
