@@ -55,10 +55,17 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-             ### 🚀 What's New in v0.3.0:
+            ### 🚀 What's New in v1.0.0:
+            * **PostgREST 1000-Row Pagination Fix**: Added paginated block requests (`.range()`) in both delta fetching and active pruning loops. This prevents older entries (3000+ data sets) from going missing on client systems.
+            * **Multi-User Cache Isolation**: Added `clearAllCache` triggers in IndexedDB and hooked it to the logout workflow to prevent data mixing between different accounts.
+            * **Network Failure Cache Fallback**: Implemented robust failover catching. In cases where the client indicates it is online but has no database connection (dead routers or server drops), the app falls back to loading local cache instead of throwing blank screen errors.
+            * **Tauri Service Worker Skip**: Bypassed service worker registrations inside native desktop apps to eliminate console `SecurityError` protocol warnings.
+            * **Offline Guards**: Implemented internet connection validation checks to notify users if they attempt to perform server-only admin actions while offline.
+
+            ### 📋 What's New in v0.3.0:
             * **Silent Background Fetching**: Implemented `isSilent` mode in `fetchRecords` to perform database refetches (real-time subscriptions, window focus/visibility changes, network status changes, and user CRUD actions) silently in the background, keeping existing UI content visible and eliminating full-screen loading spinners.
 
-             ### 📋 Previous Features:
+            ### 📋 Previous Features:
             * **User Management Loader (v0.2.9)**: Added loading spinner state to the "User Accounts & File Permissions Management" table when fetching data to prevent showing 0 records initially.
             * **Code Quality, Performance & Accessibility (v0.2.8)**: Extracted duplicate download logic, optimized date range querying, added WebSocket debouncing, fixed modal escape key dismissal, and fixed spinner dimensions.
             * **Offline Startup & Cache Recovery (v0.2.7)**: Local storage profile caching and fallback startup loaders resolve the infinite loading loop.

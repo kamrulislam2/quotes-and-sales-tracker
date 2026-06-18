@@ -1,7 +1,7 @@
 {
   "name": "Quotes",
   "short_name": "Quotes",
-  "description": "Secure attendance and leave tracking system for office staff",
+  "description": "Secure quotes and sales tracker application for office staff",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",

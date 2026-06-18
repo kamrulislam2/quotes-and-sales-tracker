@@ -1,6 +1,8 @@
 # Quotes & Sales Tracker
 
-A modern, high-performance, real-time web application designed to track and manage daily office file entries, including quotes, requotes, reviews, and sales. Built with Next.js and Supabase, it features secure onboarding, role-based access control, dynamic statistics, and real-time database synchronization.
+A modern, high-performance, real-time web application designed to track and manage daily office file entries, including quotes, requotes, reviews, and sales. Built with Next.js and Supabase, it features an offline-first resilient sync engine, secure onboarding, role-based access control, dynamic statistics, and real-time database synchronization.
+
+It runs both as a standard PWA web application and a native desktop app powered by Tauri.
 
 ---
 
@@ -8,31 +10,41 @@ A modern, high-performance, real-time web application designed to track and mana
 
 - **Core**: Next.js 16 (App Router), React 19, TypeScript
 - **Styling**: Tailwind CSS 4, Vanilla CSS
+- **Local Cache & Storage**: IndexedDB (custom transactional store), LocalStorage
 - **Database & Backend**: Supabase (PostgreSQL, Row Level Security, Database Triggers, Real-time Channels, PL/pgSQL RPCs)
 - **Icons**: Lucide React
 - **Notifications**: React Hot Toast (dark slate theme)
-- **Bundler/Dev Server**: Turbopack
+- **Bundler/Dev Server**: Turbopack & Tauri CLI v2
 
 ---
 
 ## ✨ Features
 
 ### 🔐 1. Authentication & Security
-
 - **Codename Login**: Log in directly using your unique codename (e.g. `KI1024`) or email. Custom RPCs map codenames to local account emails behind the scenes.
 - **Role-based Access Control (RBAC)**: Supports `admin` and `user` (staff) roles. Pages, components, and API routes adapt dynamically based on permissions.
 - **Row-Level Security (RLS)**: PostgreSQL policy rules enforce that:
   - Users can only read, write, and delete their own files.
   - Admins can read, update, and manage all users and records.
 
-### 📋 2. Onboarding Flow (First-time Login)
+### 📶 2. Resilient Offline-First Sync Engine (IndexedDB)
+The application implements a robust, transactional local database schema using client IndexedDB (`QuotesOfflineDB`) to enable offline usage:
+- **Local Object Stores**: Uses `records_cache` (records), `profiles_cache` (user profiles), `user_profile_cache` (current user details), `pending_records` (unsynced inserts/updates/deletes outbox), and `sync_metadata` (timestamps).
+- **Background Delta Sync**: Rather than pulling all records, the sync engine checks for database changes since the last sync time with a 30-second clock skew grace period, saving bandwidth.
+- **Full Sync Auto-Fallbacks**: If local caches are empty or session states shift, a full sync is run automatically.
+- **Server-Wins Conflict Resolution**: Resolves concurrent mutations on the server/client by prioritizing the server state and notifying the user of conflicts.
+- **Active Cache Reconciliation**: When loading, the engine runs a fast month/year ID query against Supabase and prunes any records from IndexedDB that were deleted on the server.
+- **Unlimited Pagination Support**: Bypasses the default PostgREST 1000-row query limits in both delta syncs and pruning loops to handle 3000+ logs seamlessly.
+- **Multi-User Cache Isolation**: Wipes all IndexedDB data and metadata (`clearAllCache`) on logout or user changes to prevent cross-account leakage.
+- **Offline Network Failover**: If network connectivity fails (e.g. dead router or Supabase timeout), the UI gracefully fails over to loading data directly from the local cache.
+- **Offline Admin Action Protection**: Safeguards account adjustments by blocking server-only actions (creating users, resets, deletes) when offline, alerting the user with clean notifications.
 
+### 📋 3. Onboarding Flow (First-time Login)
 - When a user logs in for the first time (assigned a default password e.g. `1234`), they are redirected to a secure **Profile Settings & Password Change** screen.
 - Access to the main dashboard is completely locked until they verify their Full Name, Codename, and set a custom password (6 to 12 characters).
 - If the admin updates their password or details later, the onboarding status does not reset unless explicitly required.
 
-### 📊 3. Dynamic Stats Grid & Optimized Counting Rules
-
+### 📊 4. Dynamic Stats Grid & Optimized Counting Rules
 - Real-time aggregated stats of the current day or month's records.
 - **Double-Digit Padding & Percentages**: Every file category displays its count formatted as a two-digit number (e.g. `07`) alongside its relative percentage of the total files count in parentheses, e.g., `Sale: 07 (40%)`.
 - **Other Site Excluded**: The `Total Files` count explicitly excludes `Other Site` entries. `Other Site` displays its count independently but is not counted as a file and does not show a percentage.
@@ -40,40 +52,34 @@ A modern, high-performance, real-time web application designed to track and mana
 - The `Total Files` card always remains visible and does not show a percentage.
 - **Auto-Scale**: Category cards adjust dynamically depending on the selected user's allowed categories.
 
-### 📂 4. File Categories & Validations
-
+### 📂 5. File Categories & Validations
 - Supports 12 distinct file categories: `Quote`, `Requote`, `Requote Van`, `Requote Bike`, `Review`, `Review Van`, `Review Bike`, `Individual Review`, `Other Site`, `Van`, `Bike`, and `Sale`.
 - Admins configure which specific categories a user is allowed to submit.
 - Database triggers (`check_record_type_permission`) validate that users cannot submit records for unauthorized categories.
 
-### 🔎 5. Realtime Search & Filters
-
+### 🔎 6. Realtime Search & Filters
 - **Unified Filters Row**: Search bar is placed directly next to Year, Month, and Specific Date filters in a single aligned row.
 - **Specific Date Filter**: Type and format dates with DD-MM-YYYY automatic mask and visual calendar picker.
 - **Today's Entries**: View logs submitted today with local time formatting, instant search, and delete/edit modals.
 - **Monthly Entry Correction**: Edit entries from the Monthly Entry List and correct the submitted date/time using `DD-MM-YYYY` and `09:21 PM/AM` formats. Daily edits keep the original submitted date/time locked.
 - **Admin View Persistence**: Remembers your All Data / My Data toggle selection across page reloads using `localStorage`.
-- **Excel & PDF Exports**: Download filtered data lists as an Excel spreadsheet (CSV with UTF-8 BOM encoding) or PDF (native OS print-to-PDF layout) directly using the download buttons in the headers.
+- **Excel Export**: Download filtered data lists as an Excel spreadsheet (CSV with UTF-8 BOM encoding) directly using the download button.
 
-### 🧭 6. Dashboard Layout & Table Readability
-
+### 🧭 7. Dashboard Layout & Table Readability
 - **Collapsible Sidebar**: The left navigation can collapse into icon-only mode to give the records table more horizontal space. The sidebar state persists across reloads.
 - **Stable Table Columns**: Monthly date/time and file type columns use fixed minimum widths so values like `09-06-2026` and `Individual Review` stay visually clean.
 - **No-wrap Badges**: File type badges stay on one line and use horizontal table scrolling when space is tight instead of breaking awkwardly.
 
-### ⏱️ 7. 21-Day Inactivity Auto-Logout
-
+### ⏱️ 8. 21-Day Inactivity Auto-Logout
 - Tracks user last active session timestamp in `localStorage`.
 - Automatically logs users out, clears security sessions, and redirects to login if the app is not visited or active for 21 consecutive days.
 
-### 🛠️ 8. User Management (Admin Only)
-
+### 🛠️ 9. User Management (Admin Only)
 - **Create Users**: Direct creation of staff accounts with customized allowed category checkboxes.
 - **Edit Profiles**: Update name, role, and categories, or change their passwords via the UI.
 - **Delete Users**: Permanently remove accounts with confirmation dialogs.
 
-### 📅 9. Custom Entry (Backdated Submissions)
-
+### 📅 10. Custom Entry (Backdated Submissions)
 - **Reusable CustomEntryModal Component**: Intelligent dual-mode modal for submitting entries on past dates.
 - **Admin "All Data" Mode**: Admins can select any user from a dropdown and submit backdated entries for them. Validates submission against the selected user's allowed file categories.
 - **Admin "My Data" & Regular Users**: Display non-editable codename field showing the current user. Users add their own data with a custom date picker supporting manual DD-MM-YYYY input or calendar selection.
@@ -94,6 +100,7 @@ quotes-sales-tracker/
     │   ├── layout.tsx      # App wrapper, Google Font, Global Toast container
     │   ├── page.tsx        # Dashboard Main Page Component (entry & tabs)
     │   ├── globals.css     # Global stylesheets and animation classes
+    │   ├── pwa-register.tsx# Service worker registration (bypassed inside Tauri)
     │   └── login/
     │       └── page.tsx    # Authentication and Codename resolution page
     ├── components/
@@ -112,28 +119,47 @@ quotes-sales-tracker/
     │       ├── EditRecordModal.tsx  # Edit record details modal
     │       └── ConfirmModal.tsx     # Danger validation dialog
     ├── hooks/
-    │   └── useDashboardData.ts # Central React Hook (fetches, triggers, and state)
+    │   └── useDashboardData.ts # Central React Hook (fetches, sync, and state)
     ├── types/
     │   └── index.ts        # TypeScript Interfaces (Profile, RecordItem, FileType)
     └── utils/
         ├── supabase.ts     # Supabase browser client initialization
         ├── validator.ts    # Frontend inputs validator
+        ├── offlineSync.ts  # Transactional IndexedDB manager & Sync engine
         └── dashboardHelpers.ts # Date/time and stats calculations
 ```
 
+---
+
 ## 📝 Changelog
 
-### v0.3.0 (Latest)
+### v1.0.0 (Production Release)
+
+**Resilient Offline-First Synchronization & Major Production Polish**
+
+- ✅ **PostgREST 1000-Row Pagination Fix**: Added paginated block requests (`.range(from, to)`) in both delta fetching and active pruning loops. This prevents older entries (3000+ data sets) from going missing on client systems.
+- ✅ **Multi-User Cache Isolation**: Added `clearAllCache` triggers in `offlineSync.ts` and hooked it to the logout workflow. When a session ends or changes, all IndexedDB data and sync metadata are wiped to avoid data mixing.
+- ✅ **Network Failure Cache Fallback**: Implemented robust failover catching. In cases where the client indicates it is online but has no database connection (dead routers, firewalls, or Supabase drops), the app falls back to loading local cache instead of throwing blank screen errors.
+- ✅ **Tauri Service Worker Skip**: Prevented service worker registrations inside the native desktop app framework to eliminate console `SecurityError` flags.
+- ✅ **Offline Guards**: Implemented internet validation rules to alert users if they attempt to execute admin account alterations while offline.
+
+---
+
+### v0.3.0
 
 **Silent Background Sync & Refetches**
 
-- ✅ **Silent Background Fetching**: Implemented `isSilent` mode in `fetchRecords`. Background refetches (such as real-time updates, window focus events, network status restores, and user CRUD actions like add/update/delete) now execute in the background without showing full-screen/table loading spinners. Spinnners are now reserved exclusively for the initial page load.
+- ✅ **Silent Background Fetching**: Implemented `isSilent` mode in `fetchRecords`. Background refetches (such as real-time updates, window focus events, network status restores, and user CRUD actions like add/update/delete) now execute in the background without showing full-screen/table loading spinners. Spinners are now reserved exclusively for the initial page load.
+
+---
 
 ### v0.2.9
 
 **User Management Loading Improvements**
 
 - ✅ **User Table Loading State**: Added loading spinner state to the "User Accounts & File Permissions Management" table when fetching data to prevent showing 0 records initially.
+
+---
 
 ### v0.2.8
 
@@ -148,11 +174,15 @@ quotes-sales-tracker/
 - ✅ **Spinner Fix**: Fixed submit button spinner width bug in Daily Entry Form (`w-2` → `w-5`).
 - ✅ **Activity Timer Fix**: Added missing `updateLastActivity()` calls to `deleteUser` and `adminUpdateUserProfile` to prevent admin sessions from expiring during user management.
 
+---
+
 ### v0.2.7
 
 **Offline Startup & Cache Recovery**
 
 - ✅ **Offline Startup & Cache Recovery**: Added local storage user profile caching and fallback startup loaders. If database connection times out or fails (due to a locked WebView/process on Windows relaunch, or network drops), the app recovers using the cached profile to load the dashboard, resolving the infinite loading loop.
+
+---
 
 ### v0.2.6
 
@@ -161,11 +191,15 @@ quotes-sales-tracker/
 - ✅ **Global Reload Keyboard Shortcut**: Added keydown handlers for `Cmd+R` (macOS) and `Ctrl+R` (Windows/Linux) to reload the application window.
 - ✅ **Background Auto-Sync on Focus**: Added event listeners for window `focus` and `visibilitychange` to refetch database records immediately when the app window is brought back from the background.
 
+---
+
 ### v0.2.5
 
 **macOS Apple Silicon CI Build Fix**
 
 - ✅ **macOS Apple Silicon CI Build Fix**: Added `CI: true` configuration in the release workflow. This bypasses AppleScript Finder UI-styling steps that hang on headless runners, fixing the macOS aarch64 DMG bundling pipeline freeze.
+
+---
 
 ### v0.2.4
 
@@ -175,9 +209,13 @@ quotes-sales-tracker/
 - ✅ **Self-Healing Auto-Reload**: Added one-time automatic page refresh fallbacks if a connection check fails or times out (using a 4-second safety net), resolving startup white screen hangs.
 - ✅ **Fetching Loader States**: Added visual loading spinner states during database queries instead of displaying "Total Files: 0" and "No records found" while fetching data.
 
+---
+
 ### v0.2.3
 
 *Internal release configurations and loader components refinement.*
+
+---
 
 ### v0.2.2
 
@@ -185,12 +223,16 @@ quotes-sales-tracker/
 
 - ✅ **Granular Update Flow Controls**: Separated Tauri updater package downloading and installation. The app now only downloads the update payload in the background, but defers installation until the user explicitly clicks the "Restart to Update" button. This prevents Windows from closing/installing the app automatically in the background.
 
+---
+
 ### v0.2.1
 
 - ✅ **Maximized Startup State**: Configured the Tauri application window to start fully maximized (`"maximized": true` in `tauri.conf.json`) to provide a complete and immersive layout immediately on launch.
 - ✅ **Dynamic Architecture Downloads**: Added a "Download Desktop App" section on the login page and a "Get App" dropdown menu in the header (Navbar) that only render in web browsers. They query the GitHub Releases API dynamically to let users download the precise installer for **Windows**, **macOS Apple Silicon (M1/M2/M3)**, or **macOS Intel**.
 - ✅ **Supabase Build Injection**: Resolved client database login errors by injecting `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` variables from GitHub Secrets directly into the build environment of the release workflow.
 - ✅ **Updater Silence Check**: Silenced update checker error logs to prevent intrusive error boxes when the user is offline or when no update configuration has been published yet.
+
+---
 
 ### v0.2.0
 
@@ -200,6 +242,8 @@ quotes-sales-tracker/
 - ✅ **Background Auto-Updater**: Integrated Tauri v2's native auto-updater plugin (`@tauri-apps/plugin-updater`). When updates are pushed, the app downloads them automatically in the background.
 - ✅ **Restart to Update UI Banner**: Added a subtle, modern sliding toast banner in the UI. When an update is ready, it provides a "Restart to Update" button that relaunches the app instantly.
 - ✅ **Accurate Percentage Counts**: Modified calculations in `StatsGrid` to display exactly 2 decimal places (e.g., `33.11%`). Replaced rounding logic so that categories with low count (e.g., 1 or 2 files) display their actual decimal percentages (e.g., `0.05%`) instead of rounding down to `0%`.
+
+---
 
 ### v0.1.9
 
@@ -211,12 +255,16 @@ quotes-sales-tracker/
 - ✅ **Tauri Custom File Saving via RFD**: Added native file save dialogs (using the Rust `rfd` crate) triggered from the Vercel remote app.
 - ✅ **Tauri Configuration & Security Policies**: Exposed global Tauri APIs (`withGlobalTauri: true`) and granted safe remote capabilities for Vercel deployment inside the capability configuration rules.
 
+---
+
 ### v0.1.7
 
 **Data Visibility & Export Cleanup**
 
 - ✅ **Snappy Paginated Data Fetching**: Implemented page-by-page fetching in chunks of 1,000 using `.range()` inside `fetchRecords` and `fetchAvailableDates` to query all rows matching the filters. This fixes the PostgREST/Supabase default limit of 1,000 records, restoring visibility of older entries (June 1, 3, 4, etc.) on the dashboard.
 - ✅ **Export Buttons Removed**: Removed all Excel and PDF download buttons, click handlers, and related helper imports from the Daily Entry List and Monthly Logs to keep the dashboard focused.
+
+---
 
 ### v0.1.6
 
@@ -227,6 +275,8 @@ quotes-sales-tracker/
 - ✅ **Table Readability Fixes**: Fixed Monthly Entry List date wrapping by giving the Date/Time column a stable width. File type badges such as `Individual Review` now stay on one line.
 - ✅ **Update Flow Support**: Record updates can optionally include `submitted_at`, while ordinary daily edits continue updating only record details.
 - ✅ **Lint Cleanup**: Removed an unused dashboard import so lint now completes without warnings.
+
+---
 
 ### Previous Release
 
@@ -240,6 +290,8 @@ quotes-sales-tracker/
   - Full form validation against target user's allowed file categories
 - ✅ **Enhanced Form Validation & Error Handling**: Comprehensive validation with proper null/undefined safety checks. Form submission validates all fields and checks against target user's permissions. Clear, user-friendly error messages via toast notifications.
 - ✅ **Data Integrity & Code Quality**: Verified userId and profile handling throughout data flow. All async operations include proper try-catch error handling. Form validations enforce user permission constraints.
+
+---
 
 ### v0.1.4
 
@@ -334,4 +386,4 @@ The project includes a **Tauri Desktop Application Wrapper** configuration. This
    npm run tauri:build
    ```
 
-   - The generated installers (`.dmg` on macOS, `.msi` or `.exe` on Windows, `.deb` on Linux) will be output in the `src-tauri/target/release/bundle/` directory.
+   - The generated installers (`.dmg` on macOS, `.exe` on Windows, `.deb` on Linux) will be output in the `src-tauri/target/release/bundle/` directory.

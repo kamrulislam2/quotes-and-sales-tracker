@@ -65,6 +65,7 @@ export default function Dashboard() {
     profile,
     loading,
     recordsLoading,
+    initialFetchDone,
     submitting,
     isOnline,
     showToast,
@@ -1431,18 +1432,29 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-850 text-slate-355">
-                    {recordsLoading ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="px-4 py-12 text-center text-xs text-slate-500 font-medium"
-                        >
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <Loader2 className="animate-spin h-6 w-6 text-blue-500" />
-                            <span className="text-slate-400 font-semibold tracking-wider">Loading users...</span>
-                          </div>
-                        </td>
-                      </tr>
+                    {!initialFetchDone ? (
+                      Array.from({ length: 4 }).map((_, idx) => (
+                        <tr key={idx} className="hover:bg-slate-900/10 border-b border-slate-850/40">
+                          <td className="px-4 py-3.5">
+                            <div className="h-4 w-16 bg-slate-800 rounded animate-pulse" />
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="h-4 w-28 bg-slate-800 rounded animate-pulse" />
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="h-5 w-14 bg-slate-800/80 rounded-full animate-pulse" />
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="h-4 w-48 bg-slate-800 rounded animate-pulse" />
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <div className="flex justify-end gap-2">
+                              <div className="h-7 w-12 bg-slate-800/80 rounded-lg animate-pulse" />
+                              <div className="h-7 w-12 bg-slate-800/80 rounded-lg animate-pulse" />
+                            </div>
+                          </td>
+                        </tr>
+                      ))
                     ) : profilesList.length === 0 ? (
                       <tr>
                         <td

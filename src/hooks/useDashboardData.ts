@@ -6,6 +6,23 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { Profile, RecordItem, FileType } from '@/types';
 import { toast } from 'react-hot-toast';
+import {
+  saveOfflineRecord,
+  saveOfflineUpdate,
+  saveOfflineDelete,
+  getOfflineRecords,
+  deleteOfflineRecord,
+  syncOfflineData,
+  setCacheData,
+  getCacheData,
+  mergeCacheData,
+  getSyncTimestamp,
+  setSyncTimestamp,
+  purgeStaleCacheData,
+  updateOfflineRecordAction,
+  deleteCacheItem,
+  clearAllCache
+} from '@/utils/offlineSync';
 
 export const useDashboardData = () => {
   const router = useRouter();
@@ -13,6 +30,7 @@ export const useDashboardData = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(true);
+  const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
 
@@ -50,68 +68,269 @@ export const useDashboardData = () => {
     if (!isSilent) setRecordsLoading(true);
 
     try {
-      // Start and end of the selected month
-      const startOfMonth = `${selectedYear}-${selectedMonth}-01T00:00:00.000Z`;
-      // Get last day of month
-      const daysInMonth = new Date(parseInt(selectedYear, 10), parseInt(selectedMonth, 10), 0).getDate();
-      const endOfMonth = `${selectedYear}-${selectedMonth}-${daysInMonth}T23:59:59.999Z`;
-
-      let allData: RecordItem[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const from = page * pageSize;
-        const to = from + pageSize - 1;
-
-        let query = supabase
-          .from('records')
-          .select(`
-            *,
-            profiles (username, full_name)
-          `)
-          .gte('submitted_at', startOfMonth)
-          .lte('submitted_at', endOfMonth)
-          .order('submitted_at', { ascending: false })
-          .range(from, to);
-
-        // If user is a normal user, only fetch their own records
-        if (profile.role !== 'admin') {
-          query = query.eq('user_id', sessionUser.id);
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          allData = [...allData, ...data];
-          if (data.length < pageSize) {
-            hasMore = false;
-          } else {
-            page++;
+      if (navigator.onLine) {
+        try {
+          // 0. Self-healing check: if the user switched accounts or local cache was wiped, clear database cache for full fresh sync
+          const cachedUserId = await getSyncTimestamp('active_user_id');
+          const localCachedItems = await getCacheData<RecordItem>('records_cache');
+          
+          if (cachedUserId !== sessionUser.id || localCachedItems.length === 0) {
+            console.log('User session changed or cache empty. Clearing client cache for a fresh full sync...');
+            await clearAllCache();
+            await setSyncTimestamp('active_user_id', sessionUser.id);
           }
-        } else {
-          hasMore = false;
+
+          // 1. Sync pending offline mutations first
+          try {
+            const syncRes = await syncOfflineData();
+            if (syncRes.success && syncRes.syncedCount > 0) {
+              console.log(`Synced ${syncRes.syncedCount} offline record actions.`);
+              showToast('success', `Synced ${syncRes.syncedCount} offline actions to the server.`);
+            }
+            if (syncRes.conflicts && syncRes.conflicts.length > 0) {
+              syncRes.conflicts.forEach(c => {
+                showToast('error', c.reason);
+              });
+            }
+          } catch (syncErr) {
+            console.error('Failed to sync offline data before fetch:', syncErr);
+          }
+
+          // 2. Fetch data (Delta Pull vs Full Fetch)
+          const lastSynced = await getSyncTimestamp('records');
+
+          if (lastSynced) {
+            // Subtract 30 seconds to account for clock skew/latency between server and client
+            const syncDate = new Date(lastSynced);
+            syncDate.setSeconds(syncDate.getSeconds() - 30);
+            const bufferedSyncTimestamp = syncDate.toISOString();
+
+            // Fetch changes since last sync paginated to bypass the 1000 PostgREST row limit
+            let deltaData: RecordItem[] = [];
+            let deltaPage = 0;
+            const deltaPageSize = 1000;
+            let deltaHasMore = true;
+
+            while (deltaHasMore) {
+              const from = deltaPage * deltaPageSize;
+              const to = from + deltaPageSize - 1;
+
+              let query = supabase
+                .from('records')
+                .select(`
+                  *,
+                  profiles (username, full_name)
+                `)
+                .gte('updated_at', bufferedSyncTimestamp)
+                .range(from, to);
+
+              if (profile.role !== 'admin') {
+                query = query.eq('user_id', sessionUser.id);
+              }
+
+              const { data: pageData, error: pageError } = await query;
+              if (pageError) throw pageError;
+
+              if (pageData && pageData.length > 0) {
+                deltaData = [...deltaData, ...pageData];
+                if (pageData.length < deltaPageSize) {
+                  deltaHasMore = false;
+                } else {
+                  deltaPage++;
+                }
+              } else {
+                deltaHasMore = false;
+              }
+            }
+
+            if (deltaData && deltaData.length > 0) {
+              // Merge delta changes into local IndexedDB cache
+              await mergeCacheData('records_cache', deltaData);
+            }
+            // Set new sync timestamp
+            await setSyncTimestamp('records', new Date().toISOString());
+          } else {
+            // First Sync: Pull all records from database to populate cache
+            let allData: RecordItem[] = [];
+            let page = 0;
+            const pageSize = 1000;
+            let hasMore = true;
+
+            while (hasMore) {
+              const from = page * pageSize;
+              const to = from + pageSize - 1;
+
+              let query = supabase
+                .from('records')
+                .select(`
+                  *,
+                  profiles (username, full_name)
+                `)
+                .order('submitted_at', { ascending: false })
+                .range(from, to);
+
+              // If user is a normal user, only fetch their own records
+              if (profile.role !== 'admin') {
+                query = query.eq('user_id', sessionUser.id);
+              }
+
+              const { data, error } = await query;
+              if (error) throw error;
+
+              if (data && data.length > 0) {
+                allData = [...allData, ...data];
+                if (data.length < pageSize) {
+                  hasMore = false;
+                } else {
+                  page++;
+                }
+              } else {
+                hasMore = false;
+              }
+            }
+
+            // Set cache data with full load
+            await setCacheData('records_cache', allData);
+            await setSyncTimestamp('records', new Date().toISOString());
+          }
+
+          // Clean up cache older than 2 years
+          try {
+            await purgeStaleCacheData('records_cache', 'submitted_at', 730);
+          } catch (purgeErr) {
+            console.error('Failed to purge stale cache:', purgeErr);
+          }
+
+          // If Admin, also fetch and cache the profiles list
+          if (profile.role === 'admin') {
+            const { data: profiles, error: profError } = await supabase
+              .from('profiles')
+              .select('*')
+              .order('username', { ascending: true });
+            
+            if (profError) throw profError;
+            await setCacheData('profiles_cache', profiles || []);
+            setProfilesList(profiles || []);
+          }
+
+          // Active cache pruning: remove cache entries that have been deleted on the server
+          try {
+            const yearNum = parseInt(selectedYear, 10);
+            const monthNum = parseInt(selectedMonth, 10);
+            const startDate = new Date(Date.UTC(yearNum, monthNum - 1, 1, 0, 0, 0, 0)).toISOString();
+            const endDate = new Date(Date.UTC(yearNum, monthNum, 0, 23, 59, 59, 999)).toISOString();
+
+            // Fetch valid server IDs for the current month and user role paginated to bypass PostgREST limit
+            let serverIds: { id: string }[] = [];
+            let idPage = 0;
+            const idPageSize = 1000;
+            let idHasMore = true;
+
+            while (idHasMore) {
+              const from = idPage * idPageSize;
+              const to = from + idPageSize - 1;
+
+              let pageQuery = supabase
+                .from('records')
+                .select('id')
+                .gte('submitted_at', startDate)
+                .lte('submitted_at', endDate)
+                .range(from, to);
+
+              if (profile.role !== 'admin') {
+                pageQuery = pageQuery.eq('user_id', sessionUser.id);
+              }
+
+              const { data: pageData, error: pageError } = await pageQuery;
+              if (pageError) throw pageError;
+
+              if (pageData && pageData.length > 0) {
+                serverIds = [...serverIds, ...pageData];
+                if (pageData.length < idPageSize) {
+                  idHasMore = false;
+                } else {
+                  idPage++;
+                }
+              } else {
+                idHasMore = false;
+              }
+            }
+
+            const serverIdSet = new Set(serverIds.map(row => row.id));
+            
+            // Get cached records for the current user/admin matching selectedMonth & selectedYear
+            const localCached = await getCacheData<RecordItem>('records_cache');
+            const localMonthRecords = localCached.filter(r => {
+              if (profile.role !== 'admin' && r.user_id !== sessionUser.id) return false;
+              if (!r.submitted_at) return false;
+              const date = new Date(r.submitted_at);
+              const y = date.getFullYear().toString();
+              const m = String(date.getMonth() + 1).padStart(2, '0');
+              return y === selectedYear && m === selectedMonth;
+            });
+
+            // Get pending unsynced insertions to make sure we don't prune them
+            const pending = await getOfflineRecords();
+            const pendingInsertIds = new Set(
+              pending.filter(p => p.action === 'insert').map(p => p.localId)
+            );
+
+            // Delete cached records that are not on the server and not in pending outbox
+            for (const r of localMonthRecords) {
+              if (!serverIdSet.has(r.id) && !pendingInsertIds.has(r.id)) {
+                await deleteCacheItem('records_cache', r.id);
+              }
+            }
+          } catch (pruneErr) {
+            console.error('Active cache pruning failed:', pruneErr);
+          }
+        } catch (netError) {
+          console.error('Network sync/fetch failed, falling back to cache:', netError);
+          showToast('error', 'Network error. Loading offline cache...');
         }
       }
 
-      setRecords(allData);
+      // 3. Load aggregated records from local IndexedDB cache (works both Online and Offline)
+      const cachedRecords = await getCacheData<RecordItem>('records_cache');
+      
+      // Filter the cached records in-memory based on selectedMonth/selectedYear and user permissions
+      const filtered = cachedRecords.filter(r => {
+        if (!r.submitted_at) return false;
+        
+        // Check role permission
+        if (profile.role !== 'admin' && r.user_id !== sessionUser.id) return false;
+        
+        // Check year-month matching
+        const date = new Date(r.submitted_at);
+        if (isNaN(date.getTime())) return false;
+        
+        const y = date.getFullYear().toString();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        return y === selectedYear && m === selectedMonth;
+      });
 
-      // If Admin, also fetch the list of profiles
+      // Sort by submitted_at descending
+      filtered.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
+      
+      setRecords(filtered);
+
+      // If Offline or Net Error & Admin, load profiles list from cache
       if (profile.role === 'admin') {
-        const { data: profiles, error: profError } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('username', { ascending: true });
-        if (profError) throw profError;
-        setProfilesList(profiles || []);
+        const cachedProfiles = await getCacheData<Profile>('profiles_cache');
+        setProfilesList(prev => {
+          if (prev.length === 0 || !navigator.onLine) {
+            return cachedProfiles;
+          }
+          return prev;
+        });
       }
+
     } catch (err) {
       console.error('Error fetching records:', err);
       showToast('error', 'Error loading data: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setRecordsLoading(false);
+      setInitialFetchDone(true);
     }
   }, [sessionUser, profile, selectedYear, selectedMonth, showToast]);
 
@@ -119,29 +338,66 @@ export const useDashboardData = () => {
   const fetchAvailableDates = useCallback(async () => {
     if (!sessionUser || !profile) return;
     try {
-      // Optimized: fetch only the earliest and latest submitted_at to determine
-      // the range of year-month pairs, instead of paginating through ALL records.
-      let earliestQuery = supabase
-        .from('records')
-        .select('submitted_at')
-        .order('submitted_at', { ascending: true })
-        .limit(1);
+      let earliestDate: Date | null = null;
+      let latestDate: Date | null = null;
 
-      let latestQuery = supabase
-        .from('records')
-        .select('submitted_at')
-        .order('submitted_at', { ascending: false })
-        .limit(1);
+      if (navigator.onLine) {
+        try {
+          // Optimized: fetch only the earliest and latest submitted_at to determine
+          // the range of year-month pairs, instead of paginating through ALL records.
+          let earliestQuery = supabase
+            .from('records')
+            .select('submitted_at')
+            .order('submitted_at', { ascending: true })
+            .limit(1);
 
-      if (profile.role !== 'admin') {
-        earliestQuery = earliestQuery.eq('user_id', sessionUser.id);
-        latestQuery = latestQuery.eq('user_id', sessionUser.id);
+          let latestQuery = supabase
+            .from('records')
+            .select('submitted_at')
+            .order('submitted_at', { ascending: false })
+            .limit(1);
+
+          if (profile.role !== 'admin') {
+            earliestQuery = earliestQuery.eq('user_id', sessionUser.id);
+            latestQuery = latestQuery.eq('user_id', sessionUser.id);
+          }
+
+          const [earliestResult, latestResult] = await Promise.all([earliestQuery, latestQuery]);
+
+          if (earliestResult.error) throw earliestResult.error;
+          if (latestResult.error) throw latestResult.error;
+
+          earliestDate = earliestResult.data?.[0]?.submitted_at ? new Date(earliestResult.data[0].submitted_at) : null;
+          latestDate = latestResult.data?.[0]?.submitted_at ? new Date(latestResult.data[0].submitted_at) : null;
+        } catch (netError) {
+          console.error('Failed to fetch available dates online, falling back to cache:', netError);
+          // Offline: read min/max from IndexedDB cache
+          const cached = await getCacheData<RecordItem>('records_cache');
+          const userRecords = cached.filter(r => profile.role === 'admin' || r.user_id === sessionUser.id);
+          if (userRecords.length > 0) {
+            const dates = userRecords
+              .map(r => r.submitted_at ? new Date(r.submitted_at).getTime() : 0)
+              .filter(t => t > 0);
+            if (dates.length > 0) {
+              earliestDate = new Date(Math.min(...dates));
+              latestDate = new Date(Math.max(...dates));
+            }
+          }
+        }
+      } else {
+        // Offline: read min/max from IndexedDB cache
+        const cached = await getCacheData<RecordItem>('records_cache');
+        const userRecords = cached.filter(r => profile.role === 'admin' || r.user_id === sessionUser.id);
+        if (userRecords.length > 0) {
+          const dates = userRecords
+            .map(r => r.submitted_at ? new Date(r.submitted_at).getTime() : 0)
+            .filter(t => t > 0);
+          if (dates.length > 0) {
+            earliestDate = new Date(Math.min(...dates));
+            latestDate = new Date(Math.max(...dates));
+          }
+        }
       }
-
-      const [earliestResult, latestResult] = await Promise.all([earliestQuery, latestQuery]);
-
-      if (earliestResult.error) throw earliestResult.error;
-      if (latestResult.error) throw latestResult.error;
 
       const datesSet = new Set<string>();
 
@@ -150,9 +406,6 @@ export const useDashboardData = () => {
       const currentYearStr = now.getFullYear().toString();
       const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0');
       datesSet.add(`${currentYearStr}-${currentMonthStr}`);
-
-      const earliestDate = earliestResult.data?.[0]?.submitted_at ? new Date(earliestResult.data[0].submitted_at) : null;
-      const latestDate = latestResult.data?.[0]?.submitted_at ? new Date(latestResult.data[0].submitted_at) : null;
 
       if (earliestDate && !isNaN(earliestDate.getTime()) && latestDate && !isNaN(latestDate.getTime())) {
         // Generate all year-month pairs in the range [earliest, latest]
@@ -195,6 +448,38 @@ export const useDashboardData = () => {
       const targetUserId = customUserId || sessionUser.id;
       const targetSubmittedAt = customSubmittedAt || new Date().toISOString();
 
+      if (!navigator.onLine) {
+        // Save to offline outbox queue
+        const newOfflineRecord = {
+          user_id: targetUserId,
+          file_name: fileName,
+          branch_name: branchName.toUpperCase().trim(),
+          codename: codename.toUpperCase().trim(),
+          file_type: fileType,
+          submitted_at: targetSubmittedAt
+        };
+
+        const localId = await saveOfflineRecord(newOfflineRecord);
+
+        // Optimistically add to local cache records_cache
+        const cachedRecordItem: RecordItem = {
+          id: localId,
+          ...newOfflineRecord,
+          created_at: new Date().toISOString(),
+          profiles: {
+            username: codename.toUpperCase().trim(),
+            full_name: profile?.full_name || null
+          }
+        };
+        await mergeCacheData('records_cache', [cachedRecordItem]);
+
+        showToast('success', 'Saved offline! Data will sync when online.');
+        await fetchRecords(true);
+        await fetchAvailableDates();
+        setSubmitting(false);
+        return true;
+      }
+
       const { error } = await supabase
         .from('records')
         .insert({
@@ -223,8 +508,34 @@ export const useDashboardData = () => {
 
   // Delete a Record
   const deleteRecord = async (id: string) => {
+    if (!sessionUser) return false;
     updateLastActivity();
     try {
+      if (!navigator.onLine) {
+        // Check if the record is a pending offline insert
+        const pending = await getOfflineRecords();
+        const pendingInsert = pending.find(r => r.localId === id || r.id === id);
+
+        if (pendingInsert && pendingInsert.action === 'insert') {
+          if (pendingInsert.localId) {
+            await deleteOfflineRecord(pendingInsert.localId);
+          }
+        } else {
+          // Server record, queue a deletion action
+          await saveOfflineDelete(id, sessionUser.id);
+        }
+
+        // Remove from local cache optimistically
+        const cached = await getCacheData<RecordItem>('records_cache');
+        const updatedCache = cached.filter(r => r.id !== id);
+        await setCacheData('records_cache', updatedCache);
+
+        showToast('success', 'Deleted offline! Data will sync when online.');
+        await fetchRecords(true);
+        await fetchAvailableDates();
+        return true;
+      }
+
       const { error } = await supabase
         .from('records')
         .delete()
@@ -251,6 +562,7 @@ export const useDashboardData = () => {
     fileType: FileType,
     submittedAt?: string
   ) => {
+    if (!sessionUser) return false;
     updateLastActivity();
     try {
       const updates: {
@@ -270,6 +582,49 @@ export const useDashboardData = () => {
         updates.submitted_at = submittedAt;
       }
 
+      if (!navigator.onLine) {
+        const pending = await getOfflineRecords();
+        const pendingInsert = pending.find(r => r.localId === id || r.id === id);
+
+        if (pendingInsert && pendingInsert.action === 'insert') {
+          // Edit the pending insert record in-place in outbox
+          if (pendingInsert.localId) {
+            await updateOfflineRecordAction(pendingInsert.localId, {
+              file_name: fileName,
+              branch_name: branchName.toUpperCase().trim(),
+              codename: codename.toUpperCase().trim(),
+              file_type: fileType,
+              submitted_at: submittedAt || pendingInsert.submitted_at
+            });
+          }
+        } else {
+          // Server record, queue an update action
+          await saveOfflineUpdate(id, sessionUser.id, updates);
+        }
+
+        // Update local cache optimistically
+        const cached = await getCacheData<RecordItem>('records_cache');
+        const updatedCache = cached.map(r => {
+          if (r.id === id) {
+            return {
+              ...r,
+              ...updates,
+              profiles: {
+                username: codename.toUpperCase().trim(),
+                full_name: r.profiles?.full_name || null
+              }
+            };
+          }
+          return r;
+        });
+        await setCacheData('records_cache', updatedCache);
+
+        showToast('success', 'Updated offline! Data will sync when online.');
+        await fetchRecords(true);
+        await fetchAvailableDates();
+        return true;
+      }
+
       const { error } = await supabase
         .from('records')
         .update(updates)
@@ -287,6 +642,10 @@ export const useDashboardData = () => {
     }
   };
   const createUser = async (username: string, role: 'admin' | 'user', fullName: string, allowedTypes: string[], password?: string) => {
+    if (!navigator.onLine) {
+      showToast('error', 'This action requires an active internet connection.');
+      return null;
+    }
     const activePassword = password || '1234';
     setSubmitting(true);
 
@@ -331,6 +690,10 @@ export const useDashboardData = () => {
 
   // Admin: Reset password of another user
   const resetUserPassword = async (userId: string, newPassword: string) => {
+    if (!navigator.onLine) {
+      showToast('error', 'This action requires an active internet connection.');
+      return false;
+    }
     try {
       const { data, error } = await supabase.rpc('admin_update_user_credentials', {
         p_user_id: userId,
@@ -356,6 +719,10 @@ export const useDashboardData = () => {
 
   // Admin: Delete user
   const deleteUser = async (userId: string) => {
+    if (!navigator.onLine) {
+      showToast('error', 'This action requires an active internet connection.');
+      return false;
+    }
     updateLastActivity();
     try {
       const { data, error } = await supabase.rpc('delete_user_by_id', {
@@ -382,6 +749,10 @@ export const useDashboardData = () => {
 
   // Admin: Update user profile details
   const adminUpdateUserProfile = async (userId: string, fullName: string, role: 'admin' | 'user', allowedTypes: string[]) => {
+    if (!navigator.onLine) {
+      showToast('error', 'This action requires an active internet connection.');
+      return false;
+    }
     updateLastActivity();
     setSubmitting(true);
     try {
@@ -417,6 +788,10 @@ export const useDashboardData = () => {
 
   // Logged-in user complete first-time setup (Customizes username, full name and password)
   const completeFirstTimeSetup = async (username: string, fullName: string, password: string) => {
+    if (!navigator.onLine) {
+      showToast('error', 'This action requires an active internet connection.');
+      return false;
+    }
     if (!sessionUser) return false;
     setSubmitting(true);
 
@@ -662,31 +1037,7 @@ export const useDashboardData = () => {
     }
   }, [loading, sessionUser, profile, selectedYear, selectedMonth, fetchRecords, fetchAvailableDates]);
 
-  // Refetch records when window focus changes or tab becomes visible again (e.g. returning from background)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !sessionUser || !profile) return;
 
-    const handleFocusAndVisibility = () => {
-      console.log('Window focused or visible. Checking for new updates...');
-      fetchRecords(true);
-      fetchAvailableDates();
-    };
-
-    window.addEventListener('focus', handleFocusAndVisibility);
-    
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        handleFocusAndVisibility();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('focus', handleFocusAndVisibility);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [sessionUser, profile, fetchRecords, fetchAvailableDates]);
 
   // Network Status Monitor
   useEffect(() => {
@@ -786,6 +1137,11 @@ export const useDashboardData = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('quotes_sales_profile');
     }
+    try {
+      await clearAllCache();
+    } catch (err) {
+      console.error('Failed to clear cache on logout:', err);
+    }
     await supabase.auth.signOut();
     router.push('/login');
   };
@@ -795,6 +1151,7 @@ export const useDashboardData = () => {
     profile,
     loading,
     recordsLoading,
+    initialFetchDone,
     submitting,
     isOnline,
     showToast,

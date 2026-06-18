@@ -1,5 +1,4 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
 
 interface Stats {
   total: number;
@@ -34,15 +33,22 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ stats, isLoading = false }
     return String(count).padStart(2, '0');
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-wrap gap-2.5">
+        <div className="bg-slate-900/60 border border-slate-850 rounded-xl px-4 py-2 w-28 h-9 animate-pulse" />
+        <div className="bg-slate-900/60 border border-slate-850 rounded-xl px-4 py-2 w-24 h-9 animate-pulse" />
+        <div className="bg-slate-900/60 border border-slate-850 rounded-xl px-4 py-2 w-20 h-9 animate-pulse" />
+        <div className="bg-slate-900/60 border border-slate-850 rounded-xl px-4 py-2 w-24 h-9 animate-pulse" />
+        <div className="bg-slate-900/60 border border-slate-850 rounded-xl px-4 py-2 w-20 h-9 animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-2.5">
       <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-355 shadow-sm flex items-center gap-2 min-h-9">
-        Total Files:{' '}
-        {isLoading ? (
-          <Loader2 className="animate-spin h-3.5 w-3.5 text-blue-500" />
-        ) : (
-          <strong className="text-white text-sm">{stats.total}</strong>
-        )}
+        Total Files: <strong className="text-white text-sm">{stats.total}</strong>
       </div>
       {stats.sale > 0 && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-xs text-slate-350 shadow-sm flex items-center gap-2">

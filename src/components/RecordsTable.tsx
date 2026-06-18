@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
+import { Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { RecordItem } from '@/types';
 import { formatDate, formatTimeToAMPM } from '@/utils/dashboardHelpers';
 
@@ -103,14 +103,34 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-850 text-slate-300">
             {isLoading ? (
-              <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-xs text-slate-500 font-medium">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="animate-spin h-6 w-6 text-blue-500" />
-                    <span className="text-slate-400 font-semibold tracking-wider">Loading records...</span>
-                  </div>
-                </td>
-              </tr>
+              Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={idx} className="hover:bg-slate-900/10 border-b border-slate-850/40">
+                  <td className="px-5 py-4 w-28">
+                    <div className="flex flex-col gap-1.5">
+                      <div className="h-3.5 w-16 bg-slate-800 rounded animate-pulse" />
+                      {showDate && <div className="h-2.5 w-10 bg-slate-850 rounded animate-pulse" />}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="h-3.5 w-40 bg-slate-800 rounded animate-pulse" />
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="h-3.5 w-12 bg-slate-800 rounded animate-pulse" />
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="h-3.5 w-16 bg-slate-800 rounded animate-pulse" />
+                  </td>
+                  <td className="px-5 py-4 w-32">
+                    <div className="h-5 w-20 bg-slate-800/80 rounded-full animate-pulse" />
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <div className="h-7 w-7 bg-slate-800/80 rounded-lg animate-pulse" />
+                      <div className="h-7 w-7 bg-slate-800/80 rounded-lg animate-pulse" />
+                    </div>
+                  </td>
+                </tr>
+              ))
             ) : displayedRecords.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-5 py-8 text-center text-xs text-slate-500 font-medium">
