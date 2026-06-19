@@ -48,3 +48,8 @@ CLAUDE.md
 # Tauri updater keys
 updater.key
 updater.key.pub
+
+# Backups and recovery files
+/chrome_db_backup/
+/extracted_records.json
+/parse_backup_db.py

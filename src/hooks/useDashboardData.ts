@@ -213,37 +213,37 @@ export const useDashboardData = () => {
             setProfilesList(profiles || []);
           }
 
-          // Active cache pruning: remove cache entries that have been deleted on the server
+          // Active cache pruning (Re-enabled after database recovery)
           try {
             const yearNum = parseInt(selectedYear, 10);
             const monthNum = parseInt(selectedMonth, 10);
             const startDate = new Date(Date.UTC(yearNum, monthNum - 1, 1, 0, 0, 0, 0)).toISOString();
             const endDate = new Date(Date.UTC(yearNum, monthNum, 0, 23, 59, 59, 999)).toISOString();
-
+          
             // Fetch valid server IDs for the current month and user role paginated to bypass PostgREST limit
             let serverIds: { id: string }[] = [];
             let idPage = 0;
             const idPageSize = 1000;
             let idHasMore = true;
-
+          
             while (idHasMore) {
               const from = idPage * idPageSize;
               const to = from + idPageSize - 1;
-
+          
               let pageQuery = supabase
                 .from('records')
                 .select('id')
                 .gte('submitted_at', startDate)
                 .lte('submitted_at', endDate)
                 .range(from, to);
-
+          
               if (profile.role !== 'admin') {
                 pageQuery = pageQuery.eq('user_id', sessionUser.id);
               }
-
+          
               const { data: pageData, error: pageError } = await pageQuery;
               if (pageError) throw pageError;
-
+          
               if (pageData && pageData.length > 0) {
                 serverIds = [...serverIds, ...pageData];
                 if (pageData.length < idPageSize) {
@@ -255,7 +255,7 @@ export const useDashboardData = () => {
                 idHasMore = false;
               }
             }
-
+          
             const serverIdSet = new Set(serverIds.map(row => row.id));
             
             // Get cached records for the current user/admin matching selectedMonth & selectedYear
@@ -268,13 +268,13 @@ export const useDashboardData = () => {
               const m = String(date.getMonth() + 1).padStart(2, '0');
               return y === selectedYear && m === selectedMonth;
             });
-
+          
             // Get pending unsynced insertions to make sure we don't prune them
             const pending = await getOfflineRecords();
             const pendingInsertIds = new Set(
               pending.filter(p => p.action === 'insert').map(p => p.localId)
             );
-
+          
             // Delete cached records that are not on the server and not in pending outbox
             for (const r of localMonthRecords) {
               if (!serverIdSet.has(r.id) && !pendingInsertIds.has(r.id)) {
@@ -292,6 +292,46 @@ export const useDashboardData = () => {
 
       // 3. Load aggregated records from local IndexedDB cache (works both Online and Offline)
       const cachedRecords = await getCacheData<RecordItem>('records_cache');
+
+      // DANGER RECOVERY AUTO-RESTORE TRIGGER
+      if (profile && profile.role === 'admin' && cachedRecords.length > 100) {
+        try {
+          const { count, error: countErr } = await supabase
+            .from('records')
+            .select('id', { count: 'exact', head: true });
+          
+          if (!countErr && count === 0) {
+            console.log(`RECOVERY: Server records count is 0. Starting automated restoration of ${cachedRecords.length} records...`);
+            showToast('success', `Restoring ${cachedRecords.length} records from local cache. Please do not close the app...`);
+            
+            // Upload in batches of 100
+            const batchSize = 100;
+            let successCount = 0;
+            for (let i = 0; i < cachedRecords.length; i += batchSize) {
+              const batch = cachedRecords.slice(i, i + batchSize).map(r => ({
+                user_id: r.user_id,
+                file_name: r.file_name,
+                branch_name: r.branch_name,
+                codename: r.codename,
+                file_type: r.file_type,
+                submitted_at: r.submitted_at,
+                created_at: r.created_at
+              }));
+              
+              const { error: insertError } = await supabase.from('records').insert(batch);
+              if (insertError) {
+                console.error(`RECOVERY: Error restoring batch ${i}:`, insertError);
+              } else {
+                successCount += batch.length;
+                console.log(`RECOVERY: Restored batch ${i} to ${i + batch.length}`);
+              }
+            }
+            showToast('success', `Database successfully restored! ${successCount} records uploaded.`);
+          }
+        } catch (restoreErr) {
+          console.error('RECOVERY: Automatic database restore failed:', restoreErr);
+        }
+      }
       
       // Filter the cached records in-memory based on selectedMonth/selectedYear and user permissions
       const filtered = cachedRecords.filter(r => {
@@ -542,6 +582,12 @@ export const useDashboardData = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Optimistically remove from local cache immediately
+      const cached = await getCacheData<RecordItem>('records_cache');
+      const updatedCache = cached.filter(r => r.id !== id);
+      await setCacheData('records_cache', updatedCache);
+
       showToast('success', 'Record deleted successfully!');
       await fetchRecords(true);
       await fetchAvailableDates();

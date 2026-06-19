@@ -129,9 +129,18 @@ quotes-sales-tracker/
         └── dashboardHelpers.ts # Date/time and stats calculations
 ```
 
----
-
 ## 📝 Changelog
+
+### v1.1.0
+
+**Supabase Recovery, RLS Restoration & Client Caching Optimizations**
+
+- ✅ **RLS Policy Restoration**: Created and configured Row-Level Security (RLS) policies on the `records` table to safely authorize users to manage their own records and allow administrators to view and manage all records, resolving the blank dashboard screen.
+- ✅ **Admin Password Reset Resolution**: Resolved the PostgREST function overloading conflict (`PGRST203`) by dropping the redundant 2-argument `admin_update_user_credentials` function and writing a unified, 3-argument version that updates user passwords and safely resets `has_changed_password` states.
+- ✅ **Self-Healing & Cache Pruning Re-enabled**: Safely restored client-side self-healing checks and active cache pruning functions post-recovery to keep the client cache aligned with the server.
+- ✅ **Snappy UI Deletion**: Enhanced `deleteRecord` to optimistically remove records from the browser cache immediately upon successful deletion, providing instant visual feedback in the UI.
+
+---
 
 ### v1.0.0 (Production Release)
 

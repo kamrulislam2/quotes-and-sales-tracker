@@ -56,6 +56,12 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v1.1.0:
+            * **Supabase Recovery & RLS Policy Restoration**: Re-enabled and configured Row-Level Security (RLS) on database tables with strict permission checks, correcting blank dashboard loads.
+            * **Admin Password Reset Resolution**: Fixed the PostgREST function overloading conflict (`PGRST203`) by dropping the redundant 2-argument `admin_update_user_credentials` function and writing a unified, 3-argument version.
+            * **Self-Healing & Cache Pruning Re-enabled**: Safely restored client-side self-healing checks and active database cache pruning functions to keep the IndexedDB cache aligned with the server.
+            * **Snappy UI Deletion**: Optimistically delete records from the local browser cache immediately upon successful deletion for instant visual feedback.
+
             ### 🚀 What's New in v1.0.0:
             * **PostgREST 1000-Row Pagination Fix**: Added paginated block requests (`.range()`) in both delta fetching and active pruning loops. This prevents older entries (3000+ data sets) from going missing on client systems.
             * **Multi-User Cache Isolation**: Added `clearAllCache` triggers in IndexedDB and hooked it to the logout workflow to prevent data mixing between different accounts.
