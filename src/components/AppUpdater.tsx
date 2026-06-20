@@ -88,8 +88,15 @@ export default function AppUpdater() {
       if (typeof window !== 'undefined') {
         localStorage.setItem('quotes_sales_just_updated', 'true');
       }
-      const { relaunch } = await import('@tauri-apps/plugin-process');
-      await relaunch();
+      
+      const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__ !== undefined;
+      if (isTauri) {
+        // Invoke our custom delayed relaunch command to prevent WebView2 directory conflicts on Windows
+        const { invoke } = (window as any).__TAURI__.core;
+        await invoke('custom_relaunch');
+      } else {
+        window.location.reload();
+      }
     } catch (err) {
       console.error('Failed to install and relaunch app:', err);
       setError('Relaunch and install failed. Please close and reopen the app manually.');
