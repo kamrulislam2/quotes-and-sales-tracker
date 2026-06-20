@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { FileType } from '@/types';
+import { BranchSelector } from '../BranchSelector';
 
 interface EditRecordModalProps {
   editFileName: string;
@@ -89,11 +90,9 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-slate-355 mb-1">Branch Name</label>
-            <input
-              type="text"
+            <BranchSelector
               value={editBranchName}
-              onChange={(e) => setEditBranchName(e.target.value.toUpperCase())}
-              className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onChange={setEditBranchName}
             />
           </div>
 

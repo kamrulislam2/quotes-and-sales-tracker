@@ -2,6 +2,7 @@ import React from "react";
 import { FileText, MapPin, UserCheck, Plus, Loader2 } from "lucide-react";
 import { FileType } from "@/types";
 import { CategorySelector } from "./CategorySelector";
+import { BranchSelector } from "./BranchSelector";
 
 interface DailyEntryFormProps {
   fileName: string;
@@ -59,13 +60,9 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
           <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-blue-500" /> Branch Name
           </label>
-          <input
-            type="text"
-            required
-            placeholder="e.g. MK, NN, RIDE"
+          <BranchSelector
             value={branchName}
-            onChange={(e) => setBranchName(e.target.value.toUpperCase())}
-            className="block w-full px-3.5 py-2.5 bg-slate-955 border border-slate-800 rounded-xl text-white placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
+            onChange={setBranchName}
           />
         </div>
 

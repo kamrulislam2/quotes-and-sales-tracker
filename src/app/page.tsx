@@ -12,6 +12,7 @@ import { AddUserModal } from "@/components/modals/AddUserModal";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
 import { AdminViewToggle } from "@/components/AdminViewToggle";
+import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { validator } from "@/utils/validator";
 import {
   calculateSummaryStats,
@@ -40,6 +41,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   FileSpreadsheet,
+  TrendingUp,
 } from "lucide-react";
 
 const ALL_12_FILE_TYPES = [
@@ -89,10 +91,10 @@ export default function Dashboard() {
     handleLogout,
   } = dashboardData;
 
-  // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management)
-  const [activeTab, setActiveTab] = useState<"entry" | "monthly" | "users">(
-    "entry",
-  );
+  // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics)
+  const [activeTab, setActiveTab] = useState<
+    "entry" | "monthly" | "users" | "analytics"
+  >("entry");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Load active tab preference in localStorage on mount or when profile loads
@@ -100,17 +102,24 @@ export default function Dashboard() {
     const savedTab = localStorage.getItem("quotes_sales_active_tab");
     if (
       savedTab &&
-      (savedTab === "entry" || savedTab === "monthly" || savedTab === "users")
+      (savedTab === "entry" ||
+        savedTab === "monthly" ||
+        savedTab === "users" ||
+        savedTab === "analytics")
     ) {
       if (savedTab === "users" && profile?.role !== "admin") {
         setActiveTab("entry");
       } else {
-        setActiveTab(savedTab as "entry" | "monthly" | "users");
+        setActiveTab(
+          savedTab as "entry" | "monthly" | "users" | "analytics",
+        );
       }
     }
   }, [profile]);
 
-  const handleTabChange = (tab: "entry" | "monthly" | "users") => {
+  const handleTabChange = (
+    tab: "entry" | "monthly" | "users" | "analytics",
+  ) => {
     setActiveTab(tab);
     localStorage.setItem("quotes_sales_active_tab", tab);
   };
@@ -1081,6 +1090,30 @@ export default function Dashboard() {
                 Monthly Entry List
               </span>
             </button>
+            <button
+              onClick={() => handleTabChange("analytics")}
+              title={isSidebarCollapsed ? "Analytics" : undefined}
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                isSidebarCollapsed
+                  ? "justify-center gap-3 md:gap-0 px-3 py-3"
+                  : "gap-3 px-4 py-3"
+              } ${
+                activeTab === "analytics"
+                  ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
+                  : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
+              }`}
+            >
+              <TrendingUp className="h-5 w-5 shrink-0" />
+              <span
+                className={`whitespace-nowrap transition-all duration-200 ${
+                  isSidebarCollapsed
+                    ? "md:w-0 md:opacity-0 md:overflow-hidden"
+                    : "opacity-100"
+                }`}
+              >
+                Analytics
+              </span>
+            </button>
             {profile?.role === "admin" && (
               <button
                 onClick={() => handleTabChange("users")}
@@ -1536,6 +1569,15 @@ export default function Dashboard() {
                 </table>
               </div>
             </div>
+          )}
+
+          {/* TAB 4: PERFORMANCE ANALYTICS */}
+          {activeTab === "analytics" && (
+            <AnalyticsPanel
+              records={records}
+              profilesList={profilesList}
+              profile={profile}
+            />
           )}
         </section>
       </main>

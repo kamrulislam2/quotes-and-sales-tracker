@@ -131,10 +131,21 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v1.2.0
+
+**Branch Selector optimizations, Period-over-Period Growth, Category Breakdown list, Operational Insights, and Skeleton Loader**
+
+- ✅ **Advanced Branch Selector Dropdown**: Built a custom selector dropdown with intelligent sub-options for specific branch variations (e.g. `PRIDE COMPARE` and `EAZY COMPARE`) to prevent spelling errors and simplify input logs.
+- ✅ **Period-over-Period (PoP) Comparison Badges**: Integrated automatic growth metrics comparing current Stats cards against previous period limits (previous month/year), rendered as Emerald-Green / Rose-Red glassmorphic badges.
+- ✅ **File Category Distribution Breakdown**: Created a full-height, double-column category breakdown component covering all 12 custom file types.
+- ✅ **Automated Operational Insights**: Implemented day-by-day averages, dynamic dominant file selectors, and automated textual summaries.
+- ✅ **Premium UI Skeleton Loader**: Introduced a custom, pulse-animated skeleton page loader to make page loads feel responsive.
+
 ### v1.1.0
 
-**Supabase Recovery, RLS Restoration & Client Caching Optimizations**
+**Supabase Recovery, RLS Restoration, Client Caching Optimizations & Interactive Performance Analytics**
 
+- ✅ **Interactive Performance Analytics Panel**: Added a custom, highly interactive, and responsive SVG-based analytics dashboard. Displays real-time metrics cards, monthly grouped bar charts with tooltips, branch-level contribution distribution, a staff leaderboard (admin-only), and a day-by-day progression chart (staff-only).
 - ✅ **RLS Policy Restoration**: Created and configured Row-Level Security (RLS) policies on the `records` table to safely authorize users to manage their own records and allow administrators to view and manage all records, resolving the blank dashboard screen.
 - ✅ **Admin Password Reset Resolution**: Resolved the PostgREST function overloading conflict (`PGRST203`) by dropping the redundant 2-argument `admin_update_user_credentials` function and writing a unified, 3-argument version that updates user passwords and safely resets `has_changed_password` states.
 - ✅ **Self-Healing & Cache Pruning Re-enabled**: Safely restored client-side self-healing checks and active cache pruning functions post-recovery to keep the client cache aligned with the server.

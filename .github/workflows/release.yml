@@ -56,7 +56,15 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v1.2.0:
+            * **Advanced Branch Selector Dropdown**: Built a custom selector dropdown with intelligent sub-options for specific branch variations (e.g. `PRIDE COMPARE` and `EAZY COMPARE`) to prevent spelling errors and simplify input logs.
+            * **Period-over-Period (PoP) Comparison Badges**: Integrated automatic growth metrics comparing current Stats cards against previous period limits (previous month/year), rendered as Emerald-Green / Rose-Red glassmorphic badges.
+            * **File Category Distribution Breakdown**: Created a full-height, double-column category breakdown component covering all 12 custom file types.
+            * **Automated Operational Insights**: Implemented day-by-day averages, dynamic dominant file selectors, and automated textual summaries.
+            * **Premium UI Skeleton Loader**: Introduced a custom, pulse-animated skeleton page loader to make page loads feel responsive.
+
             ### 🚀 What's New in v1.1.0:
+            * **Interactive Performance Analytics Dashboard**: Added a custom, zero-dependency SVG-based performance panel displaying real-time metrics, monthly trends with hover tooltips, branch contribution lists, an admin staff leaderboard, and a day-by-day staff progression line chart.
             * **Supabase Recovery & RLS Policy Restoration**: Re-enabled and configured Row-Level Security (RLS) on database tables with strict permission checks, correcting blank dashboard loads.
             * **Admin Password Reset Resolution**: Fixed the PostgREST function overloading conflict (`PGRST203`) by dropping the redundant 2-argument `admin_update_user_credentials` function and writing a unified, 3-argument version.
             * **Self-Healing & Cache Pruning Re-enabled**: Safely restored client-side self-healing checks and active database cache pruning functions to keep the IndexedDB cache aligned with the server.
