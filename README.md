@@ -131,6 +131,14 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v1.4.0
+
+**System Theme Match, Deferred Sync Toasts, and Audit Log Tuning**
+
+- ✅ **System Theme Auto-Toggle**: Detects user's OS color scheme preferences (Windows/macOS) and updates the theme dynamically on the fly with live listeners. Manual toggle selection overrides system preferences and locks in localStorage.
+- ✅ **Deferred Success Toasts**: Synchronized all database-connected operations (records creation/updates/deletions, user CRUD, password updates, and onboarding setup) to show success toasts only after Supabase queries execute and dashboard state is refetched/re-rendered.
+- ✅ **Audit Log Database Tuning**: Disabled `CREATE_RECORD` logs to save storage space and avoid database bloat from high monthly submission volumes (5,000–10,000 logs). Added logging for `EXPORT_EXCEL` events to track report generation details.
+
 ### v1.2.0
 
 **Branch Selector optimizations, Period-over-Period Growth, Category Breakdown list, Operational Insights, and Skeleton Loader**

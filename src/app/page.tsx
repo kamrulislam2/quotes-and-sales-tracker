@@ -84,6 +84,7 @@ export default function Dashboard() {
     availableDates,
     addRecord,
     deleteRecord,
+    deleteRecords,
     updateRecord,
     createUser,
     resetUserPassword,
@@ -94,6 +95,7 @@ export default function Dashboard() {
     auditLogs,
     auditLogsLoading,
     fetchAuditLogs,
+    logActivity,
   } = dashboardData;
 
   // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics), 'audit_logs' (Audit Logs)
@@ -308,6 +310,9 @@ export default function Dashboard() {
 
   // Record deletion state for confirmation modal
   const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
+
+  // Bulk record deletion state for confirmation modal
+  const [bulkDeletingRecordIds, setBulkDeletingRecordIds] = useState<string[] | null>(null);
 
   // Force Change Password / Onboarding Customization Modal State
   const [ownFullName, setOwnFullName] = useState(
@@ -528,11 +533,21 @@ export default function Dashboard() {
   const handleExportTodayExcel = () => {
     const todayStr = new Date().toLocaleDateString("en-CA");
     exportToCSV(todayFilteredRecords, `Today_Logs_${todayStr}`);
+    logActivity(
+      "EXPORT_EXCEL",
+      null,
+      `Exported today's records (Count: ${todayFilteredRecords.length}) to Excel`
+    );
   };
 
   const handleExportMonthlyExcel = () => {
     const monthName = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1).toLocaleString('en-US', { month: 'long' });
     exportToCSV(monthlyFilteredRecords, `Monthly_Logs_${monthName}_${selectedYear}`);
+    logActivity(
+      "EXPORT_EXCEL",
+      null,
+      `Exported monthly records for ${monthName} ${selectedYear} (Count: ${monthlyFilteredRecords.length}) to Excel`
+    );
   };
 
   // Clear filters
@@ -1309,6 +1324,9 @@ export default function Dashboard() {
                   onEdit={(record) => handleOpenEditRecord(record, false)}
                   onDelete={setDeletingRecordId}
                   isLoading={recordsLoading}
+                  currentUserId={sessionUser?.id}
+                  isAdmin={profile?.role === "admin"}
+                  onBulkDelete={setBulkDeletingRecordIds}
                 />
               </div>
             </div>
@@ -1484,6 +1502,9 @@ export default function Dashboard() {
                 onEdit={(record) => handleOpenEditRecord(record, true)}
                 onDelete={setDeletingRecordId}
                 isLoading={recordsLoading}
+                currentUserId={sessionUser?.id}
+                isAdmin={profile?.role === "admin"}
+                onBulkDelete={setBulkDeletingRecordIds}
               />
             </div>
           )}
@@ -1822,6 +1843,25 @@ export default function Dashboard() {
         title="Delete File Record"
         message="Are you sure you want to permanently delete this file record? This action cannot be undone."
         confirmText="Delete Record"
+        cancelText="Cancel"
+        isDanger={true}
+      />
+
+      {/* MODAL 6b: BULK DELETE RECORD CONFIRMATION */}
+      <ConfirmModal
+        isOpen={!!bulkDeletingRecordIds}
+        onClose={() => setBulkDeletingRecordIds(null)}
+        onConfirm={async () => {
+          if (bulkDeletingRecordIds) {
+            const success = await deleteRecords(bulkDeletingRecordIds);
+            if (success) {
+              setBulkDeletingRecordIds(null);
+            }
+          }
+        }}
+        title="Delete Selected Records"
+        message={`Are you sure you want to permanently delete the ${bulkDeletingRecordIds?.length} selected file records? This action cannot be undone.`}
+        confirmText="Delete Records"
         cancelText="Cancel"
         isDanger={true}
       />

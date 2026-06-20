@@ -556,9 +556,9 @@ export const useDashboardData = () => {
         };
         await mergeCacheData('records_cache', [cachedRecordItem]);
 
-        showToast('success', 'Saved offline! Data will sync when online.');
         await fetchRecords(true);
         await fetchAvailableDates();
+        showToast('success', 'Saved offline! Data will sync when online.');
         setSubmitting(false);
         return true;
       }
@@ -576,16 +576,9 @@ export const useDashboardData = () => {
 
       if (error) throw error;
 
-      // Audit Log
-      await logActivity(
-        'CREATE_RECORD',
-        null,
-        `Logged a new ${fileType} for file: '${fileName}' (Branch: ${branchName.toUpperCase().trim()})`
-      );
-
-      showToast('success', 'Data entry saved successfully!');
       await fetchRecords(true);
       await fetchAvailableDates();
+      showToast('success', 'Data entry saved successfully!');
       setSubmitting(false);
       return true;
     } catch (err) {
@@ -631,9 +624,9 @@ export const useDashboardData = () => {
         const updatedCache = cached.filter(r => r.id !== id);
         await setCacheData('records_cache', updatedCache);
 
-        showToast('success', 'Deleted offline! Data will sync when online.');
         await fetchRecords(true);
         await fetchAvailableDates();
+        showToast('success', 'Deleted offline! Data will sync when online.');
         return true;
       }
 
@@ -656,13 +649,69 @@ export const useDashboardData = () => {
       const updatedCache = cached.filter(r => r.id !== id);
       await setCacheData('records_cache', updatedCache);
 
-      showToast('success', 'Record deleted successfully!');
       await fetchRecords(true);
       await fetchAvailableDates();
+      showToast('success', 'Record deleted successfully!');
       return true;
     } catch (err) {
       console.error('Error deleting record:', err);
       showToast('error', 'Failed to delete record: ' + (err instanceof Error ? err.message : String(err)));
+      return false;
+    }
+  };
+
+  // Delete multiple records (Bulk Delete)
+  const deleteRecords = async (ids: string[]) => {
+    if (!sessionUser) return false;
+    updateLastActivity();
+
+    // Cache info resolution for audit logging
+    let deletedDetails = `${ids.length} records`;
+    try {
+      const cached = await getCacheData<RecordItem>('records_cache');
+      const targetRecords = cached.filter(r => ids.includes(r.id));
+      if (targetRecords.length > 0) {
+        deletedDetails = targetRecords
+          .map(r => `'${r.file_name}' (${r.file_type} for ${r.branch_name})`)
+          .join(', ');
+      }
+    } catch (cacheErr) {
+      console.error('Failed to read cache for audit log info:', cacheErr);
+    }
+
+    try {
+      if (!navigator.onLine) {
+        showToast('error', 'This action requires an active internet connection.');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('records')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+
+      // Audit Log
+      await logActivity(
+        'DELETE_RECORD',
+        null,
+        `Deleted ${ids.length} records in bulk: ${deletedDetails}`
+      );
+
+      // Optimistically remove from local cache immediately
+      const cached = await getCacheData<RecordItem>('records_cache');
+      const updatedCache = cached.filter(r => !ids.includes(r.id));
+      await setCacheData('records_cache', updatedCache);
+      setRecords(updatedCache);
+
+      await fetchRecords(true);
+      await fetchAvailableDates();
+      showToast('success', `${ids.length} records deleted successfully!`);
+      return true;
+    } catch (err) {
+      console.error('Error deleting records in bulk:', err);
+      showToast('error', 'Failed to delete records: ' + (err instanceof Error ? err.message : String(err)));
       return false;
     }
   };
@@ -744,9 +793,9 @@ export const useDashboardData = () => {
         });
         await setCacheData('records_cache', updatedCache);
 
-        showToast('success', 'Updated offline! Data will sync when online.');
         await fetchRecords(true);
         await fetchAvailableDates();
+        showToast('success', 'Updated offline! Data will sync when online.');
         return true;
       }
 
@@ -764,9 +813,9 @@ export const useDashboardData = () => {
         `Updated record ${oldDetails} -> '${fileName}' (${fileType} for ${branchName.toUpperCase().trim()})`
       );
 
-      showToast('success', 'Record updated successfully!');
       await fetchRecords(true);
       await fetchAvailableDates();
+      showToast('success', 'Record updated successfully!');
       return true;
     } catch (err) {
       console.error('Error updating record:', err);
@@ -809,14 +858,14 @@ export const useDashboardData = () => {
         `Created new user account '${username.toUpperCase().trim()}' (${fullName}) with role '${role}'`
       );
 
-      showToast('success', `User created successfully! Password: ${activePassword}`);
-      
       // Refresh the profiles list
       const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
         .order('username', { ascending: true });
       if (profiles) setProfilesList(profiles);
+
+      showToast('success', `User created successfully! Password: ${activePassword}`);
 
       setSubmitting(false);
       return activePassword; // return the password so admin can copy it
@@ -895,8 +944,8 @@ export const useDashboardData = () => {
         `Deleted user account: ${targetName}`
       );
 
-      showToast('success', 'User deleted successfully!');
       setProfilesList(prev => prev.filter(p => p.id !== userId));
+      showToast('success', 'User deleted successfully!');
       return true;
     } catch (err) {
       console.error('Error deleting user:', err);
@@ -935,14 +984,14 @@ export const useDashboardData = () => {
         `Updated permissions for user '${targetName}' (Role: ${role}, Allowed Types: ${allowedTypes.join(', ')})`
       );
 
-      showToast('success', 'User profile updated successfully!');
-      
       // Refresh profiles list
       const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
         .order('username', { ascending: true });
       if (profiles) setProfilesList(profiles);
+
+      showToast('success', 'User profile updated successfully!');
 
       setSubmitting(false);
       return true;
@@ -994,15 +1043,6 @@ export const useDashboardData = () => {
         }
       }
 
-      showToast('success', 'Profile and password saved successfully!');
-
-      // Audit Log
-      await logActivity(
-        'ONBOARD_USER',
-        null,
-        `Completed onboarding & customized profile (Codename: ${username.toUpperCase().trim()}, Name: ${fullName})`
-      );
-      
       // Reload profile
       const { data: userProfile } = await supabase
         .from('profiles')
@@ -1016,6 +1056,15 @@ export const useDashboardData = () => {
           localStorage.setItem('quotes_sales_profile', JSON.stringify(userProfile));
         }
       }
+
+      // Audit Log
+      await logActivity(
+        'ONBOARD_USER',
+        null,
+        `Completed onboarding & customized profile (Codename: ${username.toUpperCase().trim()}, Name: ${fullName})`
+      );
+
+      showToast('success', 'Profile and password saved successfully!');
 
       setSubmitting(false);
       return true;
@@ -1031,13 +1080,54 @@ export const useDashboardData = () => {
   // Theme configuration
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme') || 'dark';
-      setTheme(savedTheme as 'dark' | 'light');
-      if (savedTheme === 'light') {
+      const savedTheme = localStorage.getItem('theme');
+      let initialTheme: 'dark' | 'light' = 'dark';
+      
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        initialTheme = savedTheme;
+      } else {
+        // System preference detection (Method 1)
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        initialTheme = prefersDark ? 'dark' : 'light';
+      }
+
+      setTheme(initialTheme);
+      if (initialTheme === 'light') {
         document.documentElement.classList.remove('dark');
       } else {
         document.documentElement.classList.add('dark');
       }
+
+      // Live listener for system theme preference changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+        // Only change theme if user hasn't explicitly set a preference in localStorage
+        if (!localStorage.getItem('theme')) {
+          const newTheme = e.matches ? 'dark' : 'light';
+          setTheme(newTheme);
+          if (newTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+          } else {
+            document.documentElement.classList.add('dark');
+          }
+        }
+      };
+
+      // Use the modern API and fallback for older environments if needed
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', handleSystemThemeChange);
+      } else {
+        // Fallback for older browsers
+        (mediaQuery as any).addListener(handleSystemThemeChange);
+      }
+
+      return () => {
+        if (mediaQuery.removeEventListener) {
+          mediaQuery.removeEventListener('change', handleSystemThemeChange);
+        } else {
+          (mediaQuery as any).removeListener(handleSystemThemeChange);
+        }
+      };
     }
   }, []);
 
@@ -1360,6 +1450,7 @@ export const useDashboardData = () => {
     fetchRecords,
     addRecord,
     deleteRecord,
+    deleteRecords,
     updateRecord,
     createUser,
     resetUserPassword,
@@ -1370,6 +1461,7 @@ export const useDashboardData = () => {
     fetchAuditLogs,
 
     completeFirstTimeSetup,
-    handleLogout
+    handleLogout,
+    logActivity
   };
 };
