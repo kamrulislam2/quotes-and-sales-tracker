@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RecordItem, Profile } from '@/types';
-import { 
-  FileText, 
-  TrendingUp, 
-  CheckCircle, 
-  Percent, 
-  Calendar, 
-  Award, 
-  MapPin, 
-  Clock 
+import {
+  FileText,
+  TrendingUp,
+  CheckCircle,
+  Percent,
+  Calendar,
+  Award,
+  MapPin,
+  Clock
 } from 'lucide-react';
 import { getCacheData } from '@/utils/offlineSync';
 
@@ -16,6 +16,7 @@ interface AnalyticsPanelProps {
   records: RecordItem[];
   profilesList: Profile[];
   profile: Profile | null;
+  recordsLoading?: boolean;
 }
 
 const GrowthBadge: React.FC<{ trend: 'up' | 'down' | 'neutral'; label: string }> = ({ trend, label }) => {
@@ -50,6 +51,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   records,
   profilesList,
   profile,
+  recordsLoading = false,
 }) => {
   // Load all records from IndexedDB cache asynchronously to get complete annual stats
   const [allRecords, setAllRecords] = useState<RecordItem[]>([]);
@@ -63,31 +65,16 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
       }
       try {
         const cached = await getCacheData<RecordItem>('records_cache');
-        
-        // Filter by user role if not admin
-        const filtered = cached.filter(r => {
-          if (profile?.role !== 'admin' && r.user_id !== profile?.id) {
-            return false;
-          }
-          return true;
-        });
-        
-        setAllRecords(filtered);
+        setAllRecords(cached);
       } catch (err) {
         console.error('Failed to load cached records for analytics:', err);
       } finally {
-        if (isFirstLoad.current) {
-          setTimeout(() => {
-            setIsLoading(false);
-            isFirstLoad.current = false;
-          }, 500);
-        } else {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
+        isFirstLoad.current = false;
       }
     };
     loadAllCachedRecords();
-  }, [records, profile]);
+  }, [records]);
 
   // Get available years dynamically from all cached records
   const availableYears = useMemo(() => {
@@ -149,22 +136,11 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     color: string;
   } | null>(null);
 
-  // Tooltip state for personal line chart
-  const [hoveredPoint, setHoveredPoint] = useState<{
-    x: number;
-    y: number;
-    day: number;
-    quotes: number;
-    sales: number;
-  } | null>(null);
-
   // Toggle States for Filters
   const [metricsTimeScope, setMetricsTimeScope] = useState<'yearly' | 'monthly'>('yearly');
-  
 
-
-  // Filter records by selected year
-  const yearRecords = useMemo(() => {
+  // Filter all system records by selected year
+  const systemYearRecords = useMemo(() => {
     return allRecords.filter(r => {
       if (!r.submitted_at) return false;
       const date = new Date(r.submitted_at);
@@ -172,19 +148,19 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     });
   }, [allRecords, selectedYear]);
 
-  // Filter records for general metrics cards
-  const metricsFilteredRecords = useMemo(() => {
+  // Filter system records for current selected month/year scope
+  const systemMetricsFilteredRecords = useMemo(() => {
     if (metricsTimeScope === 'yearly') {
-      return yearRecords;
+      return systemYearRecords;
     } else {
-      return yearRecords.filter(r => {
+      return systemYearRecords.filter(r => {
         if (!r.submitted_at) return false;
         const date = new Date(r.submitted_at);
         const mStr = String(date.getMonth() + 1).padStart(2, '0');
         return mStr === selectedMonth;
       });
     }
-  }, [yearRecords, metricsTimeScope, selectedMonth]);
+  }, [systemYearRecords, metricsTimeScope, selectedMonth]);
 
   // General Metrics (Quotes, Requotes, Sales, Conversion rate)
   const stats = useMemo(() => {
@@ -192,7 +168,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     let requotes = 0;
     let sales = 0;
 
-    metricsFilteredRecords.forEach(r => {
+    systemMetricsFilteredRecords.forEach(r => {
       const type = r.file_type;
       if (type === 'Quote') {
         quotes++;
@@ -211,12 +187,12 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
       sales,
       conversionRate: parseFloat(conversionRate)
     };
-  }, [metricsFilteredRecords]);
+  }, [systemMetricsFilteredRecords]);
 
-  // Filter records for the previous period (to calculate period-over-period growth)
-  const previousPeriodFilteredRecords = useMemo(() => {
+  // Filter system records for the previous period (to calculate period-over-period growth)
+  const previousSystemPeriodFilteredRecords = useMemo(() => {
     const currentYearNum = parseInt(selectedYear, 10);
-    
+
     if (metricsTimeScope === 'yearly') {
       const prevYear = (currentYearNum - 1).toString();
       return allRecords.filter(r => {
@@ -228,15 +204,15 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
       const currentMonthNum = parseInt(selectedMonth, 10);
       let prevYear = currentYearNum;
       let prevMonthNum = currentMonthNum - 1;
-      
+
       if (prevMonthNum === 0) {
         prevMonthNum = 12;
         prevYear = currentYearNum - 1;
       }
-      
+
       const prevYearStr = prevYear.toString();
       const prevMonthStr = String(prevMonthNum).padStart(2, '0');
-      
+
       return allRecords.filter(r => {
         if (!r.submitted_at) return false;
         const date = new Date(r.submitted_at);
@@ -251,7 +227,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     let requotes = 0;
     let sales = 0;
 
-    previousPeriodFilteredRecords.forEach(r => {
+    previousSystemPeriodFilteredRecords.forEach(r => {
       const type = r.file_type;
       if (type === 'Quote') {
         quotes++;
@@ -270,47 +246,43 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
       sales,
       conversionRate: parseFloat(conversionRate)
     };
-  }, [previousPeriodFilteredRecords]);
+  }, [previousSystemPeriodFilteredRecords]);
 
   // Helpers for growth calculation
   const getGrowthStats = (current: number, previous: number) => {
     if (previous === 0) {
       if (current === 0) {
-        return { trend: 'neutral' as const, label: '0%' };
+        return { trend: 'neutral' as const, label: '0.00%' };
       }
-      return { trend: 'up' as const, label: '+100%' };
+      return { trend: 'up' as const, label: '+100.00%' };
     }
     const finalChange = ((current - previous) / Math.abs(previous)) * 100;
     const trend = finalChange > 0 ? ('up' as const) : finalChange < 0 ? ('down' as const) : ('neutral' as const);
-    const label = finalChange > 0 ? `+${finalChange.toFixed(2)}%` : finalChange < 0 ? `${finalChange.toFixed(2)}%` : '0%';
+    const label = finalChange > 0 ? `+${finalChange.toFixed(2)}%` : finalChange < 0 ? `${finalChange.toFixed(2)}%` : '0.00%';
     return { trend, label };
   };
 
   const getRateGrowthStats = (current: number, previous: number) => {
     const diff = current - previous;
     const trend = diff > 0 ? ('up' as const) : diff < 0 ? ('down' as const) : ('neutral' as const);
-    const label = diff > 0 ? `+${diff.toFixed(2)}%` : diff < 0 ? `${diff.toFixed(2)}%` : '0%';
+    const label = diff > 0 ? `+${diff.toFixed(2)}%` : diff < 0 ? `${diff.toFixed(2)}%` : '0.00%';
     return { trend, label };
   };
 
-  // Category Breakdown logic for all 12 custom categories
+  // Category Breakdown logic for all 12 categories
   const categoryBreakdown = useMemo(() => {
-    const counts: Record<string, number> = {
-      'Quote': 0,
-      'Requote': 0,
-      'Requote Van': 0,
-      'Requote Bike': 0,
-      'Review': 0,
-      'Review Van': 0,
-      'Review Bike': 0,
-      'Individual Review': 0,
-      'Other Site': 0,
-      'Van': 0,
-      'Bike': 0,
-      'Sale': 0
-    };
+    const all12Categories = [
+      'Quote', 'Requote', 'Requote Van', 'Requote Bike', 'Review',
+      'Review Van', 'Review Bike', 'Individual Review', 'Other Site',
+      'Van', 'Bike', 'Sale'
+    ];
 
-    metricsFilteredRecords.forEach(r => {
+    const counts: Record<string, number> = {};
+    all12Categories.forEach(cat => {
+      counts[cat] = 0;
+    });
+
+    systemMetricsFilteredRecords.forEach(r => {
       if (r.file_type && counts[r.file_type] !== undefined) {
         counts[r.file_type]++;
       }
@@ -326,7 +298,14 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
 
     // Sort descending by count, then by name
     return formatted.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [metricsFilteredRecords]);
+  }, [systemMetricsFilteredRecords]);
+
+  const dominantActivity = useMemo(() => {
+    if (categoryBreakdown.length === 0 || categoryBreakdown.every(c => c.count === 0)) {
+      return { name: 'None', count: 0, percentage: 0 };
+    }
+    return categoryBreakdown[0];
+  }, [categoryBreakdown]);
 
   const getCategoryColor = (name: string) => {
     switch (name) {
@@ -377,14 +356,16 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
       fullName: monthsList[i].name,
       quotes: 0,
       requotes: 0,
-      sales: 0
+      sales: 0,
+      total: 0
     }));
 
-    yearRecords.forEach(r => {
+    systemYearRecords.forEach(r => {
       if (!r.submitted_at) return;
       const date = new Date(r.submitted_at);
       const monthIdx = date.getMonth();
       if (monthIdx >= 0 && monthIdx < 12) {
+        months[monthIdx].total++;
         const type = r.file_type;
         if (type === 'Quote') {
           months[monthIdx].quotes++;
@@ -397,7 +378,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     });
 
     return months;
-  }, [yearRecords]);
+  }, [systemYearRecords]);
 
   // Calculate highest monthly value to scale the Y axis on bar chart
   const maxMonthlyVal = useMemo(() => {
@@ -413,7 +394,8 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   // Branches Contribution data (Show top 5 only)
   const branchData = useMemo(() => {
     const branches: Record<string, number> = {};
-    metricsFilteredRecords.forEach(r => {
+
+    systemMetricsFilteredRecords.forEach(r => {
       if (r.branch_name) {
         const bName = r.branch_name.toUpperCase().trim();
         branches[bName] = (branches[bName] || 0) + 1;
@@ -424,7 +406,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count);
 
-    const totalInScope = metricsFilteredRecords.length;
+    const totalInScope = systemMetricsFilteredRecords.length;
 
     const formatted = sortedBranches.map(b => ({
       ...b,
@@ -432,12 +414,12 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     }));
 
     return formatted.slice(0, 5);
-  }, [metricsFilteredRecords]);
+  }, [systemMetricsFilteredRecords]);
 
-  // Leaderboard data (Admin view only - Show top 5 only)
+  // Leaderboard data (Show top 5 only)
   const leaderboardData = useMemo(() => {
     const usersCount: Record<string, { name: string; codename: string; count: number }> = {};
-    
+
     // Initialize profiles list
     profilesList.forEach(p => {
       usersCount[p.id] = {
@@ -448,7 +430,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     });
 
     // Count records
-    metricsFilteredRecords.forEach(r => {
+    systemMetricsFilteredRecords.forEach(r => {
       if (r.user_id && usersCount[r.user_id]) {
         usersCount[r.user_id].count++;
       }
@@ -459,57 +441,11 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
       .sort((a, b) => b.count - a.count);
 
     return sortedLeaderboard.slice(0, 5);
-  }, [metricsFilteredRecords, profilesList]);
+  }, [systemMetricsFilteredRecords, profilesList]);
 
-  // Personal user stats over the selected month and year (Staff view only)
-  const userDailyData = useMemo(() => {
-    if (!profile) return [];
-    
-    // Get number of days in the selected month
-    const yearNum = parseInt(selectedYear, 10);
-    const monthNum = parseInt(selectedMonth, 10);
-    const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
 
-    const days = Array.from({ length: daysInMonth }, (_, i) => ({
-      day: i + 1,
-      quotes: 0,
-      sales: 0
-    }));
 
-    // Filter year records by current month and current logged-in user
-    const userMonthRecords = yearRecords.filter(r => {
-      if (r.user_id !== profile.id || !r.submitted_at) return false;
-      const date = new Date(r.submitted_at);
-      const mStr = String(date.getMonth() + 1).padStart(2, '0');
-      return mStr === selectedMonth;
-    });
-
-    userMonthRecords.forEach(r => {
-      const date = new Date(r.submitted_at);
-      const dayNum = date.getDate();
-      if (dayNum >= 1 && dayNum <= daysInMonth) {
-        const type = r.file_type;
-        if (type === 'Quote') {
-          days[dayNum - 1].quotes++;
-        } else if (type === 'Sale') {
-          days[dayNum - 1].sales++;
-        }
-      }
-    });
-
-    return days;
-  }, [yearRecords, selectedMonth, selectedYear, profile]);
-
-  const maxDailyVal = useMemo(() => {
-    let max = 5;
-    userDailyData.forEach(d => {
-      const val = Math.max(d.quotes, d.sales);
-      if (val > max) max = val;
-    });
-    return Math.ceil(max / 2) * 2;
-  }, [userDailyData]);
-
-  if (isLoading) {
+  if (recordsLoading || isLoading) {
     return (
       <div className="space-y-6">
         {/* Skeleton Upper Filter Header */}
@@ -637,26 +573,24 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
           <p className="text-xs text-slate-400 mt-0.5 font-medium">Visualize your quotes, requotes, sales records, and leaderboard trends.</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+        <div className="flex flex-row flex-nowrap items-center gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 w-full lg:w-auto custom-scrollbar">
           {/* Time Scope Toggle: Yearly vs Monthly */}
           <div className="flex items-center bg-slate-950/40 border border-slate-850 p-1 rounded-xl">
             <button
               onClick={() => setMetricsTimeScope('yearly')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                metricsTimeScope === 'yearly'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white font-medium'
-              }`}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${metricsTimeScope === 'yearly'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white font-medium'
+                }`}
             >
               Yearly
             </button>
             <button
               onClick={() => setMetricsTimeScope('monthly')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                metricsTimeScope === 'monthly'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white font-medium'
-              }`}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${metricsTimeScope === 'monthly'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white font-medium'
+                }`}
             >
               Monthly
             </button>
@@ -692,20 +626,22 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
         </div>
       </div>
 
-      {/* Grid: 4 Key Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Grid: Key Metrics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Card 1: Total Quotes */}
         <div className="relative overflow-hidden bg-slate-950/30 border border-slate-800/40 hover:border-blue-500/30 p-5 rounded-2xl shadow-xl transition-all duration-300 group hover:shadow-blue-950/10">
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 rounded-full blur-2xl group-hover:bg-blue-600/10 transition-all duration-300"></div>
-          <div className="flex justify-between items-start">
-            <div className="space-y-1.5">
+          <div className="flex justify-between items-start gap-2">
+            <div className="space-y-1.5 min-w-0">
               <p className="text-xs font-semibold text-slate-400">Total Quotes</p>
-              <div className="flex items-center gap-2 mt-1">
-                <h3 className="text-3xl font-extrabold text-white tracking-tight">{stats.quotes}</h3>
-                <GrowthBadge {...getGrowthStats(stats.quotes, previousStats.quotes)} />
+              <div className="space-y-1 mt-1.5">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight break-all">{stats.quotes}</h3>
+                <div>
+                  <GrowthBadge {...getGrowthStats(stats.quotes, previousStats.quotes)} />
+                </div>
               </div>
             </div>
-            <div className="p-2.5 bg-blue-600/15 border border-blue-500/20 text-blue-400 rounded-xl">
+            <div className="p-2.5 bg-blue-600/15 border border-blue-500/20 text-blue-400 rounded-xl shrink-0">
               <FileText className="h-5 w-5" />
             </div>
           </div>
@@ -718,15 +654,17 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
         {/* Card 2: Total Requotes */}
         <div className="relative overflow-hidden bg-slate-950/30 border border-slate-800/40 hover:border-purple-500/30 p-5 rounded-2xl shadow-xl transition-all duration-300 group hover:shadow-purple-950/10">
           <div className="absolute top-0 right-0 w-24 h-24 bg-purple-600/5 rounded-full blur-2xl group-hover:bg-purple-600/10 transition-all duration-300"></div>
-          <div className="flex justify-between items-start">
-            <div className="space-y-1.5">
+          <div className="flex justify-between items-start gap-2">
+            <div className="space-y-1.5 min-w-0">
               <p className="text-xs font-semibold text-slate-400">Total Requotes</p>
-              <div className="flex items-center gap-2 mt-1">
-                <h3 className="text-3xl font-extrabold text-white tracking-tight">{stats.requotes}</h3>
-                <GrowthBadge {...getGrowthStats(stats.requotes, previousStats.requotes)} />
+              <div className="space-y-1 mt-1.5">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight break-all">{stats.requotes}</h3>
+                <div>
+                  <GrowthBadge {...getGrowthStats(stats.requotes, previousStats.requotes)} />
+                </div>
               </div>
             </div>
-            <div className="p-2.5 bg-purple-600/15 border border-purple-500/20 text-purple-400 rounded-xl">
+            <div className="p-2.5 bg-purple-600/15 border border-purple-500/20 text-purple-400 rounded-xl shrink-0">
               <Clock className="h-5 w-5" />
             </div>
           </div>
@@ -739,15 +677,17 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
         {/* Card 3: Total Sales */}
         <div className="relative overflow-hidden bg-slate-950/30 border border-slate-800/40 hover:border-emerald-500/30 p-5 rounded-2xl shadow-xl transition-all duration-300 group hover:shadow-emerald-950/10">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 rounded-full blur-2xl group-hover:bg-emerald-600/10 transition-all duration-300"></div>
-          <div className="flex justify-between items-start">
-            <div className="space-y-1.5">
+          <div className="flex justify-between items-start gap-2">
+            <div className="space-y-1.5 min-w-0">
               <p className="text-xs font-semibold text-slate-400">Total Sales</p>
-              <div className="flex items-center gap-2 mt-1">
-                <h3 className="text-3xl font-extrabold text-white tracking-tight">{stats.sales}</h3>
-                <GrowthBadge {...getGrowthStats(stats.sales, previousStats.sales)} />
+              <div className="space-y-1 mt-1.5">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight break-all">{stats.sales}</h3>
+                <div>
+                  <GrowthBadge {...getGrowthStats(stats.sales, previousStats.sales)} />
+                </div>
               </div>
             </div>
-            <div className="p-2.5 bg-emerald-600/15 border border-emerald-500/20 text-emerald-400 rounded-xl">
+            <div className="p-2.5 bg-emerald-600/15 border border-emerald-500/20 text-emerald-400 rounded-xl shrink-0">
               <CheckCircle className="h-5 w-5" />
             </div>
           </div>
@@ -760,15 +700,17 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
         {/* Card 4: Conversion Rate */}
         <div className="relative overflow-hidden bg-slate-950/30 border border-slate-800/40 hover:border-amber-500/30 p-5 rounded-2xl shadow-xl transition-all duration-300 group hover:shadow-amber-950/10">
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-600/5 rounded-full blur-2xl group-hover:bg-amber-600/10 transition-all duration-300"></div>
-          <div className="flex justify-between items-start">
-            <div className="space-y-1.5">
+          <div className="flex justify-between items-start gap-2">
+            <div className="space-y-1.5 min-w-0">
               <p className="text-xs font-semibold text-slate-400">Conversion Rate</p>
-              <div className="flex items-center gap-2 mt-1">
-                <h3 className="text-3xl font-extrabold text-white tracking-tight">{stats.conversionRate}%</h3>
-                <GrowthBadge {...getRateGrowthStats(stats.conversionRate, previousStats.conversionRate)} />
+              <div className="space-y-1 mt-1.5">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight break-all">{stats.conversionRate.toFixed(2)}%</h3>
+                <div>
+                  <GrowthBadge {...getRateGrowthStats(stats.conversionRate, previousStats.conversionRate)} />
+                </div>
               </div>
             </div>
-            <div className="p-2.5 bg-amber-600/15 border border-amber-500/20 text-amber-400 rounded-xl">
+            <div className="p-2.5 bg-amber-600/15 border border-amber-500/20 text-amber-400 rounded-xl shrink-0">
               <Percent className="h-5 w-5" />
             </div>
           </div>
@@ -790,8 +732,8 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
 
           {/* Custom SVG Grouped Bar Chart */}
           <div className="w-full h-64 relative">
-            <svg 
-              viewBox="0 0 800 300" 
+            <svg
+              viewBox="0 0 800 300"
               className="w-full h-full"
               onMouseLeave={() => setHoveredBar(null)}
             >
@@ -809,6 +751,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
                   <stop offset="0%" stopColor="#10b981" stopOpacity="0.85" />
                   <stop offset="100%" stopColor="#047857" stopOpacity="0.4" />
                 </linearGradient>
+
               </defs>
 
               {/* Horizontal Grid lines */}
@@ -817,21 +760,21 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
                 const gridVal = Math.round(maxMonthlyVal - (idx * maxMonthlyVal) / 4);
                 return (
                   <g key={idx}>
-                    <line 
-                      x1="50" 
-                      y1={y} 
-                      x2="780" 
-                      y2={y} 
-                      stroke="#334155" 
-                      strokeWidth="1" 
-                      strokeDasharray="4 4" 
+                    <line
+                      x1="50"
+                      y1={y}
+                      x2="780"
+                      y2={y}
+                      stroke="#334155"
+                      strokeWidth="1"
+                      strokeDasharray="4 4"
                       opacity="0.3"
                     />
-                    <text 
-                      x="40" 
-                      y={y + 4} 
-                      fill="#94a3b8" 
-                      fontSize="10" 
+                    <text
+                      x="40"
+                      y={y + 4}
+                      fill="#94a3b8"
+                      fontSize="10"
                       textAnchor="end"
                       fontWeight="600"
                     >
@@ -845,7 +788,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
               {monthlyData.map((data, idx) => {
                 const monthWidth = (780 - 50) / 12;
                 const xStart = 50 + idx * monthWidth;
-                
+
                 // Bar height scales
                 const chartHeight = 200; // 230 - 30
                 const qHeight = maxMonthlyVal > 0 ? (data.quotes / maxMonthlyVal) * chartHeight : 0;
@@ -854,7 +797,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
 
                 const barWidth = 10;
                 const gap = 3;
-                
+
                 // X offsets inside the month group
                 const qX = xStart + (monthWidth / 2) - barWidth - barWidth / 2 - gap;
                 const rX = xStart + (monthWidth / 2) - barWidth / 2;
@@ -865,124 +808,126 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
                 return (
                   <g key={idx}>
                     {/* Month Label */}
-                    <text 
-                      x={xStart + monthWidth / 2} 
-                      y="255" 
-                      fill="#94a3b8" 
-                      fontSize="10" 
+                    <text
+                      x={xStart + monthWidth / 2}
+                      y="255"
+                      fill="#94a3b8"
+                      fontSize="10"
                       textAnchor="middle"
                       fontWeight="600"
                     >
                       {data.name}
                     </text>
 
-                    {/* Quote Bar */}
-                    {data.quotes > 0 && (
-                      <rect
-                        x={qX}
-                        y={baseLineY - qHeight}
-                        width={barWidth}
-                        height={qHeight}
-                        fill="url(#quoteGrad)"
-                        rx="2"
-                        ry="2"
-                        className="cursor-pointer transition-all duration-250 hover:brightness-125"
-                        onMouseEnter={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const container = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                          if (rect && container) {
-                            setHoveredBar({
-                              x: rect.left - container.left + barWidth / 2,
-                              y: rect.top - container.top - 40,
-                              month: data.fullName,
-                              label: 'Quotes',
-                              value: data.quotes,
-                              color: '#3b82f6'
-                            });
-                          }
-                        }}
-                      />
-                    )}
+                    <>
+                      {/* Quote Bar */}
+                      {data.quotes > 0 && (
+                        <rect
+                          x={qX}
+                          y={baseLineY - qHeight}
+                          width={barWidth}
+                          height={qHeight}
+                          fill="url(#quoteGrad)"
+                          rx="2"
+                          ry="2"
+                          className="cursor-pointer transition-all duration-250 hover:brightness-125"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const container = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                            if (rect && container) {
+                              setHoveredBar({
+                                x: rect.left - container.left + barWidth / 2,
+                                y: rect.top - container.top - 40,
+                                month: data.fullName,
+                                label: 'Quotes',
+                                value: data.quotes,
+                                color: '#3b82f6'
+                              });
+                            }
+                          }}
+                        />
+                      )}
 
-                    {/* Requote Bar */}
-                    {data.requotes > 0 && (
-                      <rect
-                        x={rX}
-                        y={baseLineY - rHeight}
-                        width={barWidth}
-                        height={rHeight}
-                        fill="url(#requoteGrad)"
-                        rx="2"
-                        ry="2"
-                        className="cursor-pointer transition-all duration-250 hover:brightness-125"
-                        onMouseEnter={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const container = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                          if (rect && container) {
-                            setHoveredBar({
-                              x: rect.left - container.left + barWidth / 2,
-                              y: rect.top - container.top - 40,
-                              month: data.fullName,
-                              label: 'Requotes',
-                              value: data.requotes,
-                              color: '#a855f7'
-                            });
-                          }
-                        }}
-                      />
-                    )}
+                      {/* Requote Bar */}
+                      {data.requotes > 0 && (
+                        <rect
+                          x={rX}
+                          y={baseLineY - rHeight}
+                          width={barWidth}
+                          height={rHeight}
+                          fill="url(#requoteGrad)"
+                          rx="2"
+                          ry="2"
+                          className="cursor-pointer transition-all duration-250 hover:brightness-125"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const container = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                            if (rect && container) {
+                              setHoveredBar({
+                                x: rect.left - container.left + barWidth / 2,
+                                y: rect.top - container.top - 40,
+                                month: data.fullName,
+                                label: 'Requotes',
+                                value: data.requotes,
+                                color: '#a855f7'
+                              });
+                            }
+                          }}
+                        />
+                      )}
 
-                    {/* Sale Bar */}
-                    {data.sales > 0 && (
-                      <rect
-                        x={sX}
-                        y={baseLineY - sHeight}
-                        width={barWidth}
-                        height={sHeight}
-                        fill="url(#saleGrad)"
-                        rx="2"
-                        ry="2"
-                        className="cursor-pointer transition-all duration-250 hover:brightness-125"
-                        onMouseEnter={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const container = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                          if (rect && container) {
-                            setHoveredBar({
-                              x: rect.left - container.left + barWidth / 2,
-                              y: rect.top - container.top - 40,
-                              month: data.fullName,
-                              label: 'Sales',
-                              value: data.sales,
-                              color: '#10b981'
-                            });
-                          }
-                        }}
-                      />
-                    )}
+                      {/* Sale Bar */}
+                      {data.sales > 0 && (
+                        <rect
+                          x={sX}
+                          y={baseLineY - sHeight}
+                          width={barWidth}
+                          height={sHeight}
+                          fill="url(#saleGrad)"
+                          rx="2"
+                          ry="2"
+                          className="cursor-pointer transition-all duration-250 hover:brightness-125"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const container = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
+                            if (rect && container) {
+                              setHoveredBar({
+                                x: rect.left - container.left + barWidth / 2,
+                                y: rect.top - container.top - 40,
+                                month: data.fullName,
+                                label: 'Sales',
+                                value: data.sales,
+                                color: '#10b981'
+                              });
+                            }
+                          }}
+                        />
+                      )}
+                    </>
                   </g>
                 );
               })}
 
               {/* Bottom Solid axis line */}
-              <line 
-                x1="50" 
-                y1="230" 
-                x2="780" 
-                y2="230" 
-                stroke="#475569" 
-                strokeWidth="1" 
+              <line
+                x1="50"
+                y1="230"
+                x2="780"
+                y2="230"
+                stroke="#475569"
+                strokeWidth="1"
                 opacity="0.5"
               />
             </svg>
 
             {/* Render HTML Hover Tooltip for monthly bar chart */}
             {hoveredBar && (
-              <div 
+              <div
                 className="absolute bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[11px] text-white shadow-2xl pointer-events-none z-45 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100"
-                style={{ 
-                  left: `${hoveredBar.x}px`, 
-                  top: `${hoveredBar.y}px`, 
-                  transform: 'translateX(-50%)' 
+                style={{
+                  left: `${hoveredBar.x}px`,
+                  top: `${hoveredBar.y}px`,
+                  transform: 'translateX(-50%)'
                 }}
               >
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{hoveredBar.month}</span>
@@ -1012,7 +957,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
           </div>
         </div>
 
-        {/* Right column: Branch distributions (Unified for both Admin & Staff) */}
+        {/* Right column: Branch distributions */}
         <div className="bg-slate-950/30 border border-slate-800/40 p-5 rounded-2xl shadow-xl flex flex-col h-full">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6">
             <h4 className="text-sm font-bold text-white flex items-center gap-2">
@@ -1045,10 +990,10 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
                       <span className="font-bold text-slate-350">{branch.name}</span>
                       <span className="font-extrabold text-white">{branch.count} entries ({branch.percentage}%)</span>
                     </div>
-                    
+
                     {/* Progress Bar */}
                     <div className="w-full h-2.5 bg-slate-900 border border-slate-850 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className={`h-full bg-gradient-to-r ${colorClass} rounded-full transition-all duration-1000 ease-out`}
                         style={{ width: `${branch.percentage}%` }}
                       ></div>
@@ -1061,257 +1006,68 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
         </div>
       </div>
 
-      {/* Segment 3: Bottom Section (Admin view gets Staff Leaderboard, User view gets Daily Progression chart) */}
+      {/* Segment 3: Bottom Section (Leaderboard) */}
       <div className="bg-slate-950/30 border border-slate-800/40 p-5 rounded-2xl shadow-xl min-h-80">
-        {profile?.role === 'admin' ? (
-          /* ADMIN VIEW: Leaderboard */
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <Award className="h-4.5 w-4.5 text-amber-400" />
-                Staff Performance Leaderboard ({metricsTimeScope === 'yearly' ? selectedYear : `${monthsList.find(m => m.value === selectedMonth)?.name.substring(0, 3)} ${selectedYear}`})
-              </h4>
-            </div>
-
-            {leaderboardData.length === 0 ? (
-              <div className="flex flex-col justify-center items-center text-slate-500 py-12">
-                <Award className="h-10 w-10 text-slate-650 stroke-[1.5] mb-2" />
-                <p className="text-xs">No active staff records found.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                {leaderboardData.map((user, idx) => {
-                  const medalColors = [
-                    'bg-amber-500/10 border-amber-500/30 text-amber-500 shadow-amber-900/5',
-                    'bg-slate-400/10 border-slate-400/30 text-slate-350 shadow-slate-900/5',
-                    'bg-amber-700/10 border-amber-700/30 text-amber-700 shadow-amber-900/5',
-                    'bg-slate-900 border-slate-800 text-slate-400',
-                    'bg-slate-900 border-slate-800 text-slate-400',
-                  ];
-
-                  return (
-                    <div 
-                      key={user.codename} 
-                      className="relative overflow-hidden bg-slate-950/50 border border-slate-850 hover:border-slate-800 p-4 rounded-xl flex flex-col justify-between items-center text-center shadow-lg transition-all duration-300 hover:scale-[1.02] group"
-                    >
-                      {/* Rank Medal */}
-                      <span className={`w-8 h-8 rounded-full border text-xs font-extrabold flex items-center justify-center shadow-md ${idx < 5 ? medalColors[idx] : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
-                        {idx + 1}
-                      </span>
-
-                      <div className="mt-3.5 space-y-1">
-                        <h5 className="text-xs font-extrabold text-white truncate max-w-full group-hover:text-blue-400 transition-colors">{user.name}</h5>
-                        <p className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">{user.codename}</p>
-                      </div>
-
-                      <div className="mt-4 pt-3.5 border-t border-slate-900/30 w-full">
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Submissions</span>
-                        <span className="text-lg font-extrabold text-blue-400 mt-1 block">{user.count}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* STAFF/USER VIEW: Daily activity chart */
-          <div>
-            <h4 className="text-sm font-bold text-white mb-6 flex items-center gap-2">
-              <TrendingUp className="h-4.5 w-4.5 text-indigo-400" />
-              My Daily Submission Progression (For Month: {monthsList.find(m => m.value === selectedMonth)?.name} {selectedYear})
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              <Award className="h-4.5 w-4.5 text-amber-400" />
+              Staff Performance Leaderboard ({metricsTimeScope === 'yearly' ? selectedYear : `${monthsList.find(m => m.value === selectedMonth)?.name.substring(0, 3)} ${selectedYear}`})
             </h4>
+          </div>
 
-            {/* Custom SVG Line / Area Chart for daily counts */}
-            <div className="w-full h-64 relative">
-              <svg 
-                viewBox="0 0 800 240" 
-                className="w-full h-full"
-                onMouseLeave={() => setHoveredPoint(null)}
-              >
-                {/* Gradient for area fills */}
-                <defs>
-                  <linearGradient id="userQuoteArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
-                  </linearGradient>
-                  <linearGradient id="userSaleArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
+          {leaderboardData.length === 0 ? (
+            <div className="flex flex-col justify-center items-center text-slate-500 py-12">
+              <Award className="h-10 w-10 text-slate-650 stroke-[1.5] mb-2" />
+              <p className="text-xs">No active staff records found.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+              {leaderboardData.map((user, idx) => {
+                const medalColors = [
+                  'bg-amber-500/10 border-amber-500/30 text-amber-500 shadow-amber-900/5',
+                  'bg-slate-400/10 border-slate-400/30 text-slate-350 shadow-slate-900/5',
+                  'bg-amber-700/10 border-amber-700/30 text-amber-700 shadow-amber-900/5',
+                  'bg-slate-900 border-slate-800 text-slate-400',
+                  'bg-slate-900 border-slate-800 text-slate-400',
+                ];
 
-                {/* Grid lines */}
-                {Array.from({ length: 4 }).map((_, idx) => {
-                  const y = 20 + idx * 55;
-                  const gridVal = Math.round(maxDailyVal - (idx * maxDailyVal) / 3);
-                  return (
-                    <g key={idx}>
-                      <line 
-                        x1="45" 
-                        y1={y} 
-                        x2="780" 
-                        y2={y} 
-                        stroke="#334155" 
-                        strokeWidth="1" 
-                        strokeDasharray="4 4" 
-                        opacity="0.2"
-                      />
-                      <text 
-                        x="35" 
-                        y={y + 4} 
-                        fill="#94a3b8" 
-                        fontSize="9" 
-                        textAnchor="end"
-                        fontWeight="600"
-                      >
-                        {gridVal}
-                      </text>
-                    </g>
-                  );
-                })}
+                return (
+                  <div
+                    key={user.codename}
+                    className="relative overflow-hidden bg-slate-950/50 border border-slate-850 hover:border-slate-800 p-4 rounded-xl flex flex-col justify-between items-center text-center shadow-lg transition-all duration-300 hover:scale-[1.02] group"
+                  >
+                    {/* Rank Medal */}
+                    <span className={`w-8 h-8 rounded-full border text-xs font-extrabold flex items-center justify-center shadow-md ${idx < 5 ? medalColors[idx] : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                      {idx + 1}
+                    </span>
 
-                {/* Draw Areas and Lines */}
-                {(() => {
-                  if (userDailyData.length === 0) return null;
-                  const totalDays = userDailyData.length;
-                  const stepX = (780 - 45) / (totalDays - 1 || 1);
-                  const graphHeight = 165; // 185 - 20
-
-                  // Calculate coordinates
-                  const points = userDailyData.map((d, idx) => {
-                    const x = 45 + idx * stepX;
-                    const qY = maxDailyVal > 0 ? 185 - (d.quotes / maxDailyVal) * graphHeight : 185;
-                    const sY = maxDailyVal > 0 ? 185 - (d.sales / maxDailyVal) * graphHeight : 185;
-                    return { x, qY, sY, quotes: d.quotes, sales: d.sales, day: d.day };
-                  });
-
-                  // Build SVG path strings
-                  const quotesPath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.qY}`).join(' ');
-                  const salesPath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.sY}`).join(' ');
-
-                  const quotesArea = `${quotesPath} L ${points[points.length - 1].x} 185 L ${points[0].x} 185 Z`;
-                  const salesArea = `${salesPath} L ${points[points.length - 1].x} 185 L ${points[0].x} 185 Z`;
-
-                  return (
-                    <g>
-                      {/* X Axis text markings (every 5 days) */}
-                      {points.filter((_, idx) => idx % 4 === 0 || idx === points.length - 1).map(p => (
-                        <g key={p.day}>
-                          <line x1={p.x} y1="185" x2={p.x} y2="190" stroke="#475569" strokeWidth="1" opacity="0.6" />
-                          <text x={p.x} y="205" fill="#94a3b8" fontSize="9" textAnchor="middle" fontWeight="600">
-                            Day {p.day}
-                          </text>
-                        </g>
-                      ))}
-
-                      {/* Area plots */}
-                      <path d={quotesArea} fill="url(#userQuoteArea)" />
-                      <path d={salesArea} fill="url(#userSaleArea)" />
-
-                      {/* Line plots */}
-                      <path d={quotesPath} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" />
-                      <path d={salesPath} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-
-                      {/* Circular points hover dots */}
-                      {points.map((p, idx) => (
-                        <g key={idx}>
-                          {/* Quotes point dot */}
-                          {p.quotes > 0 && (
-                            <circle cx={p.x} cy={p.qY} r="3" fill="#1e3a8a" stroke="#3b82f6" strokeWidth="1.5" />
-                          )}
-                          {/* Sales point dot */}
-                          {p.sales > 0 && (
-                            <circle cx={p.x} cy={p.sY} r="3" fill="#064e3b" stroke="#10b981" strokeWidth="1.5" />
-                          )}
-                          
-                          {/* Interactive vertical hover block */}
-                          <rect
-                            x={p.x - stepX / 2}
-                            y="15"
-                            width={stepX}
-                            height="175"
-                            fill="transparent"
-                            className="cursor-pointer"
-                            onMouseEnter={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              const container = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
-                              if (rect && container) {
-                                setHoveredPoint({
-                                  x: rect.left - container.left + rect.width / 2,
-                                  y: Math.min(p.qY, p.sY) - 55, // show above the higher point
-                                  day: p.day,
-                                  quotes: p.quotes,
-                                  sales: p.sales
-                                });
-                              }
-                            }}
-                          />
-                        </g>
-                      ))}
-                    </g>
-                  );
-                })()}
-
-                {/* Bottom Baseline */}
-                <line x1="45" y1="185" x2="780" y2="185" stroke="#475569" strokeWidth="1.2" opacity="0.6" />
-              </svg>
-
-              {/* Render HTML Tooltip for Daily line progression chart */}
-              {hoveredPoint && (
-                <div 
-                  className="absolute bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[11px] text-white shadow-2xl pointer-events-none z-45 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-100"
-                  style={{ 
-                    left: `${hoveredPoint.x}px`, 
-                    top: `${hoveredPoint.y}px`, 
-                    transform: 'translateX(-50%)' 
-                  }}
-                >
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Day {hoveredPoint.day}</span>
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        <span className="font-semibold text-slate-350">Quotes:</span>
-                      </div>
-                      <span className="font-extrabold text-blue-400">{hoveredPoint.quotes}</span>
+                    <div className="mt-3.5 space-y-1">
+                      <h5 className="text-xs font-extrabold text-white truncate max-w-full group-hover:text-blue-400 transition-colors">{user.name}</h5>
+                      <p className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">{user.codename}</p>
                     </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span className="font-semibold text-slate-350">Sales:</span>
-                      </div>
-                      <span className="font-extrabold text-emerald-450">{hoveredPoint.sales}</span>
+
+                    <div className="mt-4 pt-3.5 border-t border-slate-900/30 w-full">
+                      <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Submissions</span>
+                      <span className="text-lg font-extrabold text-blue-400 mt-1 block">{user.count}</span>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
-
-            {/* Line legends */}
-            <div className="flex justify-center items-center gap-6 mt-3 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-3.5 h-1 bg-blue-500 rounded"></span>
-                <span className="text-slate-400 font-medium">My Quotes</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3.5 h-1 bg-emerald-500 rounded"></span>
-                <span className="text-slate-400 font-medium">My Sales Conversions</span>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Segment 4: Category Breakdown & Operational Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 columns: Category Distribution */}
-        <div className="lg:col-span-2 bg-slate-950/30 border border-slate-800/40 p-5 rounded-2xl shadow-xl flex flex-col min-h-96">
+        <div className="lg:col-span-2 bg-slate-955/30 border border-slate-800/40 p-5 rounded-2xl shadow-xl flex flex-col min-h-96">
           <h4 className="text-sm font-bold text-white mb-5 flex items-center gap-2">
             <FileText className="h-4.5 w-4.5 text-blue-400 animate-pulse" />
             File Category Distribution Breakdown ({metricsTimeScope === 'yearly' ? selectedYear : `${monthsList.find(m => m.value === selectedMonth)?.name} ${selectedYear}`})
           </h4>
-          
+
           <p className="text-xs text-slate-400 mb-4 font-medium">
             Detailed breakdown of all 12 custom file types submitted during the selected period.
           </p>
@@ -1325,10 +1081,10 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
                     <span className="font-bold text-slate-350">{cat.name}</span>
                     <span className="font-extrabold text-white">{cat.count} <span className="text-[10px] text-slate-500 font-bold">({cat.percentage}%)</span></span>
                   </div>
-                  
+
                   {/* Progress Bar */}
                   <div className="w-full h-2 bg-slate-955 rounded-full overflow-hidden border border-slate-850">
-                    <div 
+                    <div
                       className={`h-full bg-gradient-to-r ${bgGradientClass} rounded-full transition-all duration-1000 ease-out`}
                       style={{ width: `${cat.percentage}%` }}
                     ></div>
@@ -1352,7 +1108,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
               <div className="bg-slate-900/40 border border-slate-850 p-4 rounded-xl space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Average Submissions / Day</span>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-extrabold text-white">{(metricsFilteredRecords.length / scopedDaysCount).toFixed(1)}</span>
+                  <span className="text-2xl font-extrabold text-white">{(systemMetricsFilteredRecords.length / scopedDaysCount).toFixed(1)}</span>
                   <span className="text-xs text-slate-400 font-semibold">entries / day</span>
                 </div>
               </div>
@@ -1361,9 +1117,9 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
               <div className="bg-slate-900/40 border border-slate-850 p-4 rounded-xl space-y-1.5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Dominant Submission Type</span>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-extrabold text-white truncate max-w-[65%]">{categoryBreakdown[0]?.name || 'None'}</span>
+                  <span className="text-xs font-extrabold text-white truncate max-w-[65%]">{dominantActivity.name}</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
-                    {categoryBreakdown[0]?.count || 0} files
+                    {dominantActivity.count} files
                   </span>
                 </div>
               </div>
@@ -1373,13 +1129,12 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
           <div className="mt-6 pt-4 border-t border-slate-800/50">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-2">Automated Executive Summary</span>
             <p className="text-xs text-slate-350 leading-relaxed font-medium">
-              {metricsFilteredRecords.length === 0 ? (
+              {systemMetricsFilteredRecords.length === 0 ? (
                 "No submission activities recorded for this period. Start logging entries to view insights."
               ) : (
-                `During this period, a total of ${metricsFilteredRecords.length} records were processed. The system achieved a sales conversion rate of ${stats.conversionRate}% (${stats.sales} sales out of ${stats.quotes} quotes). ${
-                  categoryBreakdown[0]?.count > 0 
-                    ? `The primary driver of activity was ${categoryBreakdown[0].name}, contributing to ${categoryBreakdown[0].percentage}% of all operations.` 
-                    : ''
+                `During this period, a total of ${systemMetricsFilteredRecords.length} records were processed. The system achieved a sales conversion rate of ${stats.conversionRate.toFixed(2)}% (${stats.sales} sales out of ${stats.quotes} quotes). ${dominantActivity.count > 0
+                  ? `The primary driver of activity was ${dominantActivity.name}, contributing to ${dominantActivity.percentage.toFixed(2)}% of all operations.`
+                  : ''
                 }`
               )}
             </p>
