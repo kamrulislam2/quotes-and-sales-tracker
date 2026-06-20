@@ -13,6 +13,7 @@ import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
 import { AdminViewToggle } from "@/components/AdminViewToggle";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
+import { AuditLogsPanel } from "@/components/AuditLogsPanel";
 import { validator } from "@/utils/validator";
 import {
   calculateSummaryStats,
@@ -42,6 +43,7 @@ import {
   PanelLeftOpen,
   FileSpreadsheet,
   TrendingUp,
+  ScrollText,
 } from "lucide-react";
 
 const ALL_12_FILE_TYPES = [
@@ -89,11 +91,14 @@ export default function Dashboard() {
     adminUpdateUserProfile,
     completeFirstTimeSetup,
     handleLogout,
+    auditLogs,
+    auditLogsLoading,
+    fetchAuditLogs,
   } = dashboardData;
 
-  // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics)
+  // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics), 'audit_logs' (Audit Logs)
   const [activeTab, setActiveTab] = useState<
-    "entry" | "monthly" | "users" | "analytics"
+    "entry" | "monthly" | "users" | "analytics" | "audit_logs"
   >("entry");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -105,30 +110,41 @@ export default function Dashboard() {
       (savedTab === "entry" ||
         savedTab === "monthly" ||
         savedTab === "users" ||
-        savedTab === "analytics")
+        savedTab === "analytics" ||
+        savedTab === "audit_logs")
     ) {
       if (
-        (savedTab === "users" || savedTab === "analytics") &&
+        (savedTab === "users" || savedTab === "analytics" || savedTab === "audit_logs") &&
         profile?.role !== "admin"
       ) {
         setActiveTab("entry");
       } else {
         setActiveTab(
-          savedTab as "entry" | "monthly" | "users" | "analytics",
+          savedTab as "entry" | "monthly" | "users" | "analytics" | "audit_logs",
         );
       }
     }
   }, [profile]);
 
   const handleTabChange = (
-    tab: "entry" | "monthly" | "users" | "analytics",
+    tab: "entry" | "monthly" | "users" | "analytics" | "audit_logs",
   ) => {
-    if ((tab === "users" || tab === "analytics") && profile?.role !== "admin") {
+    if (
+      (tab === "users" || tab === "analytics" || tab === "audit_logs") &&
+      profile?.role !== "admin"
+    ) {
       return;
     }
     setActiveTab(tab);
     localStorage.setItem("quotes_sales_active_tab", tab);
   };
+
+  // Fetch audit logs when activeTab becomes 'audit_logs'
+  useEffect(() => {
+    if (activeTab === "audit_logs" && profile?.role === "admin") {
+      fetchAuditLogs();
+    }
+  }, [activeTab, profile, fetchAuditLogs]);
 
   // Load and save sidebar width preference
   useEffect(() => {
@@ -177,6 +193,9 @@ export default function Dashboard() {
 
   // Today's Table Search Query
   const [todaySearchQuery, setTodaySearchQuery] = useState("");
+
+  // User Management Search Query
+  const [userSearchQuery, setUserSearchQuery] = useState("");
 
   // Monthly Table Date filter state
   const [selectedDate, setSelectedDate] = useState("");
@@ -482,6 +501,18 @@ export default function Dashboard() {
       return true;
     });
   }, [todayRecords, todaySearchQuery]);
+
+  // Filtered users for User Management Tab
+  const filteredProfiles = useMemo(() => {
+    return profilesList.filter((u) => {
+      if (!userSearchQuery) return true;
+      const q = userSearchQuery.toLowerCase().trim();
+      const nameMatch = (u.full_name || "").toLowerCase().includes(q);
+      const codenameMatch = u.username.toLowerCase().includes(q);
+      const roleMatch = u.role.toLowerCase().includes(q);
+      return nameMatch || codenameMatch || roleMatch;
+    });
+  }, [profilesList, userSearchQuery]);
 
   // Statistics calculation for today's entries (filtered by search terms)
   const todayStats = useMemo(() => {
@@ -1148,6 +1179,32 @@ export default function Dashboard() {
                 </span>
               </button>
             )}
+            {profile?.role === "admin" && (
+              <button
+                onClick={() => handleTabChange("audit_logs")}
+                title={isSidebarCollapsed ? "Audit Logs" : undefined}
+                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                  isSidebarCollapsed
+                    ? "justify-center gap-3 md:gap-0 px-3 py-3"
+                    : "gap-3 px-4 py-3"
+                } ${
+                  activeTab === "audit_logs"
+                    ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
+                    : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
+                }`}
+              >
+                <ScrollText className="h-5 w-5 shrink-0" />
+                <span
+                  className={`whitespace-nowrap transition-all duration-200 ${
+                    isSidebarCollapsed
+                      ? "md:w-0 md:opacity-0 md:overflow-hidden"
+                      : "opacity-100"
+                  }`}
+                >
+                  Audit Logs
+                </span>
+              </button>
+            )}
           </div>
         </aside>
 
@@ -1455,11 +1512,34 @@ export default function Dashboard() {
                 </button>
               </div>
 
+              {/* Search Bar for Users */}
+              <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-850 flex flex-col md:flex-row gap-3 items-center">
+                <div className="relative flex-1 w-full">
+                  <input
+                    type="text"
+                    placeholder="Search users by name, codename, or role (e.g. admin or user)..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="block w-full pl-8 pr-8 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs h-9"
+                  />
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-555" />
+                  {userSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setUserSearchQuery("")}
+                      className="absolute right-2.5 top-2.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all cursor-pointer"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Full Width Users List Table */}
               <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-850 space-y-4 overflow-x-auto">
                 <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
                   <Shield className="h-4 w-4 text-blue-500" />
-                  Registered Users List ({profilesList.length})
+                  Registered Users List ({filteredProfiles.length})
                 </h3>
 
                 <table className="w-full text-left text-xs border-collapse">
@@ -1496,7 +1576,7 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ))
-                    ) : profilesList.length === 0 ? (
+                    ) : filteredProfiles.length === 0 ? (
                       <tr>
                         <td
                           colSpan={5}
@@ -1506,7 +1586,7 @@ export default function Dashboard() {
                         </td>
                       </tr>
                     ) : (
-                      profilesList.map((u) => (
+                      filteredProfiles.map((u) => (
                         <tr
                           key={u.id}
                           className="hover:bg-slate-900/30 transition-all"
@@ -1587,6 +1667,15 @@ export default function Dashboard() {
               profile={profile}
             />
           )}
+
+          {/* TAB 5: SYSTEM AUDIT LOGS */}
+          {activeTab === "audit_logs" && profile?.role === "admin" && (
+            <AuditLogsPanel
+              logs={auditLogs}
+              isLoading={auditLogsLoading}
+              onRefresh={fetchAuditLogs}
+            />
+          )}
         </section>
       </main>
 
@@ -1629,19 +1718,33 @@ export default function Dashboard() {
               showToast("error", "Please allow at least one file type.");
               return;
             }
-            const success = await adminUpdateUserProfile(
-              editingProfile.id,
-              editUserFullName,
-              editUserRole,
-              editUserAllowedTypes,
-            );
-            if (success) {
+
+            const isFullNameSame = (editingProfile.full_name || "").trim() === editUserFullName.trim();
+            const isRoleSame = editingProfile.role === editUserRole;
+            const oldAllowedTypes = editingProfile.allowed_types || [];
+            const isAllowedTypesSame =
+              oldAllowedTypes.length === editUserAllowedTypes.length &&
+              oldAllowedTypes.every((t) => editUserAllowedTypes.includes(t));
+
+            const hasProfileChanges = !isFullNameSame || !isRoleSame || !isAllowedTypesSame;
+
+            let profileUpdateSuccess = true;
+            if (hasProfileChanges) {
+              profileUpdateSuccess = await adminUpdateUserProfile(
+                editingProfile.id,
+                editUserFullName,
+                editUserRole,
+                editUserAllowedTypes,
+              );
+            }
+
+            if (profileUpdateSuccess) {
               if (newPasswordToSet) {
                 const pwSuccess = await resetUserPassword(
                   editingProfile.id,
                   newPasswordToSet,
                 );
-                if (!pwSuccess) {
+                if (!pwSuccess && hasProfileChanges) {
                   showToast(
                     "error",
                     "Profile updated, but password reset failed.",

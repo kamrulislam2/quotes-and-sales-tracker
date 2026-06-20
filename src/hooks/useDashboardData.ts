@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
-import { Profile, RecordItem, FileType } from '@/types';
+import { Profile, RecordItem, FileType, AuditLogItem } from '@/types';
 import { toast } from 'react-hot-toast';
 import {
   saveOfflineRecord,
@@ -45,6 +45,10 @@ export const useDashboardData = () => {
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [profilesList, setProfilesList] = useState<Profile[]>([]);
   const [availableDates, setAvailableDates] = useState<{ year: string; month: string }[]>([]);
+
+  // Audit Logs
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [auditLogsLoading, setAuditLogsLoading] = useState(false);
 
   // Theme Toggle state
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -471,6 +475,45 @@ export const useDashboardData = () => {
     }
   }, [sessionUser, profile]);
 
+  // Fetch System Audit Logs (Admins only)
+  const fetchAuditLogs = useCallback(async () => {
+    if (!sessionUser || !profile || profile.role !== 'admin') return;
+    setAuditLogsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setAuditLogs(data || []);
+    } catch (err) {
+      console.error('Error fetching audit logs:', err);
+    } finally {
+      setAuditLogsLoading(false);
+    }
+  }, [sessionUser, profile]);
+
+  // Insert a new activity log
+  const logActivity = useCallback(async (actionType: string, targetId: string | null, details: string) => {
+    if (!sessionUser || !profile) return;
+    try {
+      await supabase.from('audit_logs').insert({
+        actor_id: sessionUser.id,
+        actor_codename: profile.username,
+        action_type: actionType,
+        target_id: targetId,
+        details: details
+      });
+      // Automatically refresh logs if active
+      if (navigator.onLine && profile.role === 'admin') {
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      console.error('Failed to log audit activity:', err);
+    }
+  }, [sessionUser, profile, fetchAuditLogs]);
+
   // Add a new Quote or Sales Entry
   const addRecord = async (
     fileName: string,
@@ -533,6 +576,13 @@ export const useDashboardData = () => {
 
       if (error) throw error;
 
+      // Audit Log
+      await logActivity(
+        'CREATE_RECORD',
+        null,
+        `Logged a new ${fileType} for file: '${fileName}' (Branch: ${branchName.toUpperCase().trim()})`
+      );
+
       showToast('success', 'Data entry saved successfully!');
       await fetchRecords(true);
       await fetchAvailableDates();
@@ -550,6 +600,17 @@ export const useDashboardData = () => {
   const deleteRecord = async (id: string) => {
     if (!sessionUser) return false;
     updateLastActivity();
+
+    let recordDetails = `ID ${id}`;
+    try {
+      const cached = await getCacheData<RecordItem>('records_cache');
+      const targetRecord = cached.find(r => r.id === id);
+      if (targetRecord) {
+        recordDetails = `'${targetRecord.file_name}' (${targetRecord.file_type} for ${targetRecord.branch_name}) by ${targetRecord.codename}`;
+      }
+    } catch (cacheErr) {
+      console.error('Failed to read cache for audit log info:', cacheErr);
+    }
     try {
       if (!navigator.onLine) {
         // Check if the record is a pending offline insert
@@ -583,6 +644,13 @@ export const useDashboardData = () => {
 
       if (error) throw error;
 
+      // Audit Log
+      await logActivity(
+        'DELETE_RECORD',
+        id,
+        `Deleted record: ${recordDetails}`
+      );
+
       // Optimistically remove from local cache immediately
       const cached = await getCacheData<RecordItem>('records_cache');
       const updatedCache = cached.filter(r => r.id !== id);
@@ -610,6 +678,17 @@ export const useDashboardData = () => {
   ) => {
     if (!sessionUser) return false;
     updateLastActivity();
+
+    let oldDetails = `ID ${id}`;
+    try {
+      const cached = await getCacheData<RecordItem>('records_cache');
+      const targetRecord = cached.find(r => r.id === id);
+      if (targetRecord) {
+        oldDetails = `'${targetRecord.file_name}' (${targetRecord.file_type} for ${targetRecord.branch_name})`;
+      }
+    } catch (cacheErr) {
+      console.error('Failed to read cache for audit log info:', cacheErr);
+    }
     try {
       const updates: {
         file_name: string;
@@ -677,6 +756,14 @@ export const useDashboardData = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Audit Log
+      await logActivity(
+        'UPDATE_RECORD',
+        id,
+        `Updated record ${oldDetails} -> '${fileName}' (${fileType} for ${branchName.toUpperCase().trim()})`
+      );
+
       showToast('success', 'Record updated successfully!');
       await fetchRecords(true);
       await fetchAvailableDates();
@@ -714,6 +801,13 @@ export const useDashboardData = () => {
         setSubmitting(false);
         return null;
       }
+
+      // Audit Log
+      await logActivity(
+        'CREATE_USER',
+        null,
+        `Created new user account '${username.toUpperCase().trim()}' (${fullName}) with role '${role}'`
+      );
 
       showToast('success', `User created successfully! Password: ${activePassword}`);
       
@@ -754,6 +848,15 @@ export const useDashboardData = () => {
         return false;
       }
 
+      // Audit Log
+      const targetProfile = profilesList.find(p => p.id === userId);
+      const targetName = targetProfile ? `${targetProfile.username} (${targetProfile.full_name || 'N/A'})` : `ID ${userId}`;
+      await logActivity(
+        'RESET_PASSWORD',
+        userId,
+        `Reset password for user: ${targetName}`
+      );
+
       showToast('success', 'Password changed successfully!');
       return true;
     } catch (err) {
@@ -782,6 +885,15 @@ export const useDashboardData = () => {
         showToast('error', result.message || 'Failed to delete user.');
         return false;
       }
+
+      // Audit Log
+      const targetProfile = profilesList.find(p => p.id === userId);
+      const targetName = targetProfile ? `${targetProfile.username} (${targetProfile.full_name || 'N/A'})` : `ID ${userId}`;
+      await logActivity(
+        'DELETE_USER',
+        userId,
+        `Deleted user account: ${targetName}`
+      );
 
       showToast('success', 'User deleted successfully!');
       setProfilesList(prev => prev.filter(p => p.id !== userId));
@@ -812,6 +924,16 @@ export const useDashboardData = () => {
         .eq('id', userId);
 
       if (error) throw error;
+
+      // Try to resolve target user info
+      const targetProfile = profilesList.find(p => p.id === userId);
+      const targetName = targetProfile ? `${targetProfile.username}` : `ID ${userId}`;
+      // Audit Log
+      await logActivity(
+        'UPDATE_USER',
+        userId,
+        `Updated permissions for user '${targetName}' (Role: ${role}, Allowed Types: ${allowedTypes.join(', ')})`
+      );
 
       showToast('success', 'User profile updated successfully!');
       
@@ -873,6 +995,13 @@ export const useDashboardData = () => {
       }
 
       showToast('success', 'Profile and password saved successfully!');
+
+      // Audit Log
+      await logActivity(
+        'ONBOARD_USER',
+        null,
+        `Completed onboarding & customized profile (Codename: ${username.toUpperCase().trim()}, Name: ${fullName})`
+      );
       
       // Reload profile
       const { data: userProfile } = await supabase
@@ -1172,12 +1301,29 @@ export const useDashboardData = () => {
       )
       .subscribe();
 
+    let auditLogsChannel: any = null;
+    if (profile?.role === 'admin') {
+      auditLogsChannel = supabase
+        .channel('realtime-audit-logs-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'audit_logs' },
+          () => {
+            fetchAuditLogs();
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       if (realtimeDebounceRef.current) clearTimeout(realtimeDebounceRef.current);
       supabase.removeChannel(recordsChannel);
       supabase.removeChannel(profilesChannel);
+      if (auditLogsChannel) {
+        supabase.removeChannel(auditLogsChannel);
+      }
     };
-  }, [sessionUser, profile, fetchRecords, fetchAvailableDates, router]);
+  }, [sessionUser, profile, fetchRecords, fetchAvailableDates, fetchAuditLogs, router]);
 
   const handleLogout = async () => {
     if (typeof window !== 'undefined') {
@@ -1219,6 +1365,9 @@ export const useDashboardData = () => {
     resetUserPassword,
     deleteUser,
     adminUpdateUserProfile,
+    auditLogs,
+    auditLogsLoading,
+    fetchAuditLogs,
 
     completeFirstTimeSetup,
     handleLogout
