@@ -13,19 +13,9 @@ export default function AppUpdater() {
   const [dismissed, setDismissed] = useState(false);
   const [updateRef, setUpdateRef] = useState<Update | null>(null);
 
-  // Self-healing reload on first launch after an update relaunch
+  // Global keyboard shortcut listener for Cmd+R (macOS) and Ctrl+R (Windows/Linux) reload
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const justUpdated = localStorage.getItem('quotes_sales_just_updated');
-      if (justUpdated === 'true') {
-        localStorage.removeItem('quotes_sales_just_updated');
-        // Wait 800ms for old process to fully die, then reload the webview
-        setTimeout(() => {
-          window.location.reload();
-        }, 800);
-      }
-
-      // Global keyboard shortcut listener for Cmd+R (macOS) and Ctrl+R (Windows/Linux) reload
       const handleKeyDown = (e: KeyboardEvent) => {
         const isR = e.key.toLowerCase() === 'r';
         const isCmdOrCtrl = e.metaKey || e.ctrlKey;
@@ -84,10 +74,7 @@ export default function AppUpdater() {
         // Install the downloaded update package
         await updateRef.install();
       }
-      // Set update flag to trigger a self-healing reload on next launch
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('quotes_sales_just_updated', 'true');
-      }
+
       
       const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__ !== undefined;
       if (isTauri) {

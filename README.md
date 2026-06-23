@@ -131,6 +131,13 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v1.4.2
+
+**Detailed Audit Logging and Relaunch Loading Freeze Fix**
+
+- ✅ **Specific User Audit Logs**: Enhanced the `UPDATE_USER` audit logging description. It now performs a smart diff comparison to output only the specific user properties changed (Full Name, Role, or specific file permission items newly Granted or Revoked) instead of listing all 12 allowed file types on every single edit.
+- ✅ **Post-Update Reload Freeze Fix**: Removed the legacy frontend self-healing reload workaround on component mount and update-flag setting. The 2-second backend delay relaunch already fully mitigates WebView2 locking, so removing the redundant reload prevents the app from interrupting session initialization and freezing on the loading spinner.
+
 ### v1.4.1
 
 **System Theme Match, Deferred Sync Toasts, Audit Log Tuning, and Windows Relaunch Fix**

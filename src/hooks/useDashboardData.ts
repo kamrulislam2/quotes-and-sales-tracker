@@ -974,14 +974,55 @@ export const useDashboardData = () => {
 
       if (error) throw error;
 
-      // Try to resolve target user info
+      // Try to resolve target user info and track specific changes
       const targetProfile = profilesList.find(p => p.id === userId);
       const targetName = targetProfile ? `${targetProfile.username}` : `ID ${userId}`;
+
+      const changes: string[] = [];
+      if (targetProfile) {
+        const oldName = (targetProfile.full_name || '').trim();
+        const newName = fullName.trim();
+        if (oldName !== newName) {
+          changes.push(`Name: '${oldName}' → '${newName}'`);
+        }
+
+        const oldRole = targetProfile.role;
+        const newRole = role;
+        if (oldRole !== newRole) {
+          changes.push(`Role: '${oldRole}' → '${newRole}'`);
+        }
+
+        const oldAllowed = [...(targetProfile.allowed_types || [])].sort();
+        const newAllowed = [...allowedTypes].sort();
+        const oldAllowedStr = oldAllowed.join(', ');
+        const newAllowedStr = newAllowed.sort().join(', ');
+
+        if (oldAllowedStr !== newAllowedStr) {
+          const added = allowedTypes.filter(x => !(targetProfile.allowed_types || []).includes(x));
+          const removed = (targetProfile.allowed_types || []).filter(x => !allowedTypes.includes(x));
+
+          const permChanges: string[] = [];
+          if (added.length > 0) {
+            permChanges.push(`Granted: [${added.join(', ')}]`);
+          }
+          if (removed.length > 0) {
+            permChanges.push(`Revoked: [${removed.join(', ')}]`);
+          }
+          changes.push(`Permissions: ${permChanges.join(' & ')}`);
+        }
+      } else {
+        changes.push(`Name: '${fullName.trim()}', Role: '${role}', Allowed Types: [${allowedTypes.join(', ')}]`);
+      }
+
+      const logDetails = changes.length > 0 
+        ? `Updated user '${targetName}' properties (${changes.join(' | ')})`
+        : `Updated user '${targetName}' (no changes made)`;
+
       // Audit Log
       await logActivity(
         'UPDATE_USER',
         userId,
-        `Updated permissions for user '${targetName}' (Role: ${role}, Allowed Types: ${allowedTypes.join(', ')})`
+        logDetails
       );
 
       // Refresh profiles list
