@@ -3,18 +3,22 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { Navbar } from "@/components/Navbar";
-import { StatsGrid } from "@/components/StatsGrid";
-import { RecordsTable } from "@/components/RecordsTable";
-import { DailyEntryForm } from "@/components/DailyEntryForm";
+const StatsGrid = lazy(() => import("@/components/StatsGrid").then(m => ({ default: m.StatsGrid })));
+const RecordsTable = lazy(() => import("@/components/RecordsTable").then(m => ({ default: m.RecordsTable })));
+const DailyEntryForm = lazy(() => import("@/components/DailyEntryForm").then(m => ({ default: m.DailyEntryForm })));
 import { EditRecordModal } from "@/components/modals/EditRecordModal";
 import { EditProfileModal } from "@/components/modals/EditProfileModal";
 import { AddUserModal } from "@/components/modals/AddUserModal";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
 import { AdminViewToggle } from "@/components/AdminViewToggle";
+import { SkeletonLoader } from "@/components/SkeletonLoader";
 const AnalyticsPanel = lazy(() => import("@/components/AnalyticsPanel").then(m => ({ default: m.AnalyticsPanel })));
 const AuditLogsPanel = lazy(() => import("@/components/AuditLogsPanel").then(m => ({ default: m.AuditLogsPanel })));
 const QuoteRulesPanel = lazy(() => import("@/components/QuoteRulesPanel").then(m => ({ default: m.QuoteRulesPanel })));
+const CopyHelperPanel = lazy(() => import("@/components/CopyHelperPanel").then(m => ({ default: m.CopyHelperPanel })));
+const SaveFileHelperPanel = lazy(() => import("@/components/SaveFileHelperPanel").then(m => ({ default: m.SaveFileHelperPanel })));
+const UserManagementPanel = lazy(() => import("@/components/UserManagementPanel").then(m => ({ default: m.UserManagementPanel })));
 import { validator } from "@/utils/validator";
 import {
   calculateSummaryStats,
@@ -27,15 +31,11 @@ import {
   Loader2,
   Calendar,
   Users,
-  Trash2,
   Clock,
   Eye,
   EyeOff,
-  UserPlus,
   Info,
   UserCheck,
-  Shield,
-  Edit,
   X,
   XCircle,
   CheckCircle,
@@ -47,9 +47,8 @@ import {
   FileSpreadsheet,
   TrendingUp,
   ScrollText,
-  Copy,
-  ArrowLeft,
   BookOpen,
+  Save,
 } from "lucide-react";
 
 const ALL_12_FILE_TYPES = [
@@ -330,22 +329,61 @@ export default function Dashboard() {
     useState(false);
 
   // Copy Helper States
-  const [showReportHelper, setShowReportHelper] = useState(false);
-
-  useEffect(() => {
+  const [showReportHelper, setShowReportHelper] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("quotes_sales_show_report_helper");
-      if (saved === "true") {
-        setShowReportHelper(true);
+      return localStorage.getItem("quotes_sales_show_report_helper") === "true";
+    }
+    return false;
+  });
+
+  // Save File States
+  const [showSaveFileHelper, setShowSaveFileHelper] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("quotes_sales_show_save_file_helper") === "true";
+    }
+    return false;
+  });
+  const [savedRecordIds, setSavedRecordIds] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("quotes_sales_saved_record_ids");
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  const [savedDocuments, setSavedDocuments] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("quotes_sales_saved_documents");
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  const [savedFilePath, setSavedFilePath] = useState<string | null>(null);
+  const [selectedRecordIdForSave, setSelectedRecordIdForSave] = useState<string | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const fileHandlesRef = useRef<Record<string, any>>({});
+  const baseDirectoryHandleRef = useRef<any>(null);
+  const [baseDirectory, setBaseDirectory] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const savedDate = localStorage.getItem("quotes_sales_base_save_dir_date");
+      const todayDate = new Date().toDateString();
+      if (savedDate === todayDate) {
+        return localStorage.getItem("quotes_sales_base_save_dir") || null;
       }
     }
-  }, []);
+    return null;
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("quotes_sales_show_report_helper", String(showReportHelper));
     }
   }, [showReportHelper]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("quotes_sales_show_save_file_helper", String(showSaveFileHelper));
+    }
+  }, [showSaveFileHelper]);
   const [spokeTo, setSpokeTo] = useState("Online");
   const [soldDate, setSoldDate] = useState(() => {
     const d = new Date();
@@ -419,6 +457,312 @@ export default function Dashboard() {
   }, [todayUserRecords]);
 
   const hasSubmissions = todayUserRecords.length > 0;
+
+  // Save File Action Handlers
+  const wrapHtmlForDocx = (contentHtml: string) => {
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.15;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+  }
+  table, th, td {
+    border: 1px solid #a0aec0;
+  }
+  th, td {
+    padding: 8px;
+    text-align: left;
+  }
+</style>
+</head>
+<body>
+  ${contentHtml}
+</body>
+</html>`;
+  };
+    const fallbackDownload = (htmlContent: string, fileName: string) => {
+    const blob = new Blob([htmlContent], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleChooseDirectory = async () => {
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI__ !== undefined;
+      const todayDate = new Date().toDateString();
+
+      if (isTauri) {
+        const { invoke } = (window as any).__TAURI__.core;
+        const selectedDir = await invoke("pick_directory") as string;
+        setBaseDirectory(selectedDir);
+        localStorage.setItem("quotes_sales_base_save_dir", selectedDir);
+        localStorage.setItem("quotes_sales_base_save_dir_date", todayDate);
+        showToast("success", `Save directory set to: ${selectedDir}`);
+        return selectedDir;
+      } else {
+        if (typeof window !== "undefined" && "showDirectoryPicker" in window) {
+          const handle = await (window as any).showDirectoryPicker();
+          baseDirectoryHandleRef.current = handle;
+          
+          const label = `Local_Directory/${handle.name}`;
+          setBaseDirectory(label);
+          localStorage.setItem("quotes_sales_base_save_dir", label);
+          localStorage.setItem("quotes_sales_base_save_dir_date", todayDate);
+          showToast("success", `Save directory set to: ${handle.name}`);
+          return label;
+        } else {
+          showToast("error", "Directory picking is not supported by this browser. Files will download normally.");
+          return null;
+        }
+      }
+    } catch (err) {
+      const errMsg = String(err);
+      if (!errMsg.includes("AbortError") && !errMsg.includes("cancelled")) {
+        showToast("error", `Failed to select directory: ${errMsg}`);
+      }
+      return null;
+    }
+  };
+
+  const handleSaveAsWord = async () => {
+    if (!selectedRecordIdForSave) {
+      showToast("error", "Please select a record (circle checkbox) to generate the file name.");
+      return;
+    }
+    const record = todayUserRecords.find(r => r.id === selectedRecordIdForSave);
+    if (!record) {
+      showToast("error", "Selected record not found.");
+      return;
+    }
+
+    const editorHtml = editorRef.current?.innerHTML || "";
+    if (!editorHtml || editorHtml.trim() === "" || editorHtml === "<br>") {
+      showToast("error", "Please paste some content into the input field first.");
+      return;
+    }
+
+    // 1. Get or choose base directory
+    let currentBaseDir = baseDirectory;
+    const isTauri = typeof window !== "undefined" && (window as any).__TAURI__ !== undefined;
+    
+    if (isTauri) {
+      if (!currentBaseDir) {
+        currentBaseDir = await handleChooseDirectory();
+        if (!currentBaseDir) return; // Cancelled
+      }
+    } else {
+      if (typeof window !== "undefined" && "showDirectoryPicker" in window) {
+        if (!baseDirectoryHandleRef.current) {
+          currentBaseDir = await handleChooseDirectory();
+          if (!currentBaseDir) return; // Cancelled
+        }
+      }
+    }
+
+    // 2. Determine subfolder (Sold/Unsold for Sales, None for others)
+    let subFolder: string | null = null;
+    if (record.file_type === "Sale") {
+      if (record.file_name.endsWith(" [SOLD]")) {
+        subFolder = "Sold";
+      } else if (record.file_name.endsWith(" [UNSOLD]")) {
+        subFolder = "Unsold";
+      } else {
+        subFolder = "Sold"; // Default
+      }
+    }
+
+    const cleanName = record.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, "");
+    const generatedFileName = `${cleanName} ${record.branch_name} ${record.file_type}.docx`;
+
+    try {
+      const wrappedHtml = wrapHtmlForDocx(editorHtml);
+      let savedPath = "";
+
+      if (isTauri) {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(wrappedHtml);
+        const { invoke } = (window as any).__TAURI__.core;
+
+        savedPath = await invoke("save_file_to_dir", {
+          baseDir: currentBaseDir,
+          subFolder,
+          fileName: generatedFileName,
+          content: Array.from(bytes),
+        }) as string;
+      } else {
+        // Web Fallback: Use directory handle to write file
+        if (baseDirectoryHandleRef.current) {
+          try {
+            let targetDirHandle = baseDirectoryHandleRef.current;
+            if (subFolder) {
+              targetDirHandle = await baseDirectoryHandleRef.current.getDirectoryHandle(subFolder, { create: true });
+            }
+            const fileHandle = await targetDirHandle.getFileHandle(generatedFileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(wrappedHtml);
+            await writable.close();
+            
+            savedPath = `Local_File/${baseDirectoryHandleRef.current.name}/${subFolder ? subFolder + "/" : ""}${generatedFileName}`;
+            fileHandlesRef.current[savedPath] = fileHandle;
+          } catch (writeErr) {
+            console.error("Failed to write to file handle:", writeErr);
+            fallbackDownload(wrappedHtml, generatedFileName);
+            savedPath = `Web_Downloads/${generatedFileName}`;
+          }
+        } else {
+          fallbackDownload(wrappedHtml, generatedFileName);
+          savedPath = `Web_Downloads/${generatedFileName}`;
+        }
+      }
+
+      showToast("success", `File saved successfully!`);
+
+      const newDocId = crypto.randomUUID();
+      const newDoc = {
+        id: newDocId,
+        filename: generatedFileName,
+        filePath: savedPath,
+        htmlContent: editorHtml,
+        recordId: record.id,
+        savedAt: new Date().toISOString(),
+      };
+
+      const updatedDocs = [newDoc, ...savedDocuments];
+      setSavedDocuments(updatedDocs);
+      localStorage.setItem("quotes_sales_saved_documents", JSON.stringify(updatedDocs));
+
+      const updatedRecordIds = [...savedRecordIds, record.id];
+      setSavedRecordIds(updatedRecordIds);
+      localStorage.setItem("quotes_sales_saved_record_ids", JSON.stringify(updatedRecordIds));
+
+      setSavedFilePath(savedPath);
+    } catch (err) {
+      const errMsg = String(err);
+      if (errMsg !== "Save cancelled") {
+        showToast("error", `Failed to save file: ${errMsg}`);
+      }
+    }
+  };
+
+  const handleUpdateWord = async () => {
+    if (!savedFilePath) {
+      showToast("error", "No active file path. Please click 'Save As' first.");
+      return;
+    }
+
+    const editorHtml = editorRef.current?.innerHTML || "";
+    if (!editorHtml || editorHtml.trim() === "" || editorHtml === "<br>") {
+      showToast("error", "Editor content is empty.");
+      return;
+    }
+
+    try {
+      const isTauri = typeof window !== "undefined" && (window as any).__TAURI__ !== undefined;
+      const wrappedHtml = wrapHtmlForDocx(editorHtml);
+
+      if (isTauri) {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(wrappedHtml);
+        const { invoke } = (window as any).__TAURI__.core;
+
+        await invoke("overwrite_file", {
+          filePath: savedFilePath,
+          content: Array.from(bytes),
+        });
+        showToast("success", `File updated successfully!`);
+      } else {
+        // Web Fallback: Check if file handle exists to overwrite
+        const cachedHandle = fileHandlesRef.current[savedFilePath];
+        if (cachedHandle) {
+          try {
+            const writable = await cachedHandle.createWritable();
+            await writable.write(wrappedHtml);
+            await writable.close();
+            showToast("success", `File updated successfully!`);
+          } catch (writeErr) {
+            console.error("Failed to write to file handle:", writeErr);
+            const handle = await (window as any).showSaveFilePicker({
+              suggestedName: savedFilePath.split("/").pop() || "document.docx",
+              types: [{
+                description: 'Word Document (.docx)',
+                accept: {
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+                }
+              }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(wrappedHtml);
+            await writable.close();
+            
+            fileHandlesRef.current[savedFilePath] = handle;
+            showToast("success", `File updated successfully!`);
+          }
+        } else {
+          const filename = savedFilePath.split("/").pop() || "document.docx";
+          fallbackDownload(wrappedHtml, filename);
+          showToast("success", `Updated file downloaded as ${filename}`);
+        }
+      }
+
+      const updatedDocs = savedDocuments.map(doc => {
+        if (doc.filePath === savedFilePath) {
+          return { ...doc, htmlContent: editorHtml };
+        }
+        return doc;
+      });
+      setSavedDocuments(updatedDocs);
+      localStorage.setItem("quotes_sales_saved_documents", JSON.stringify(updatedDocs));
+    } catch (err) {
+      showToast("error", `Failed to update file: ${err}`);
+    }
+  };
+
+  const handleEditDocument = (doc: any) => {
+    setSavedFilePath(doc.filePath);
+    setSelectedRecordIdForSave(doc.recordId);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = doc.htmlContent;
+    }
+    showToast("success", `Loaded "${doc.filename}" for editing.`);
+  };
+
+  const handleCancelEdit = () => {
+    setSavedFilePath(null);
+    setSelectedRecordIdForSave(null);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = "";
+    }
+  };
+
+  const handleDeleteDocument = (docId: string, recordId: string) => {
+    const updatedDocs = savedDocuments.filter(d => d.id !== docId);
+    setSavedDocuments(updatedDocs);
+    localStorage.setItem("quotes_sales_saved_documents", JSON.stringify(updatedDocs));
+
+    const updatedRecordIds = savedRecordIds.filter(id => id !== recordId);
+    setSavedRecordIds(updatedRecordIds);
+    localStorage.setItem("quotes_sales_saved_record_ids", JSON.stringify(updatedRecordIds));
+
+    if (selectedRecordIdForSave === recordId) {
+      setSavedFilePath(null);
+      setSelectedRecordIdForSave(null);
+      if (editorRef.current) editorRef.current.innerHTML = "";
+    }
+    showToast("success", "Document removed from tracker list.");
+  };
 
   const copyBox1 = async () => {
     const plainText = `Helped By: ${codenameInput || profile?.username || ""}\nSpoke to: ${spokeTo}\nSold Date: ${soldDate}\nPC Used: ${pcUsed}`;
@@ -545,6 +889,7 @@ export default function Dashboard() {
 
   // Bulk record deletion state for confirmation modal
   const [bulkDeletingRecordIds, setBulkDeletingRecordIds] = useState<string[] | null>(null);
+  const [isBulkDeletingInProgress, setIsBulkDeletingInProgress] = useState(false);
 
   // Force Change Password / Onboarding Customization Modal State
   const [ownFullName, setOwnFullName] = useState(
@@ -1529,20 +1874,22 @@ export default function Dashboard() {
               </div>
 
               {/* Data Entry Form Component */}
-              <DailyEntryForm
-                fileName={fileName}
-                setFileName={setFileName}
-                branchName={branchName}
-                setBranchName={setBranchName}
-                codenameInput={codenameInput}
-                setCodenameInput={setCodenameInput}
-                fileType={fileType}
-                setFileType={setFileType}
-                allowedCategories={allowedCategories}
-                submitting={submitting}
-                onSubmit={handleAddEntry}
-                isAdmin={false}
-              />
+              <Suspense fallback={<SkeletonLoader type="form" />}>
+                <DailyEntryForm
+                  fileName={fileName}
+                  setFileName={setFileName}
+                  branchName={branchName}
+                  setBranchName={setBranchName}
+                  codenameInput={codenameInput}
+                  setCodenameInput={setCodenameInput}
+                  fileType={fileType}
+                  setFileType={setFileType}
+                  allowedCategories={allowedCategories}
+                  submitting={submitting}
+                  onSubmit={handleAddEntry}
+                  isAdmin={false}
+                />
+              </Suspense>
 
               {/* Today's Data Title and Summary Stats */}
               <div className="border-t border-slate-800/80 pt-6 space-y-4">
@@ -1565,7 +1912,10 @@ export default function Dashboard() {
                   {/* Filter Controls */}
                   <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
                     <button
-                      onClick={() => setShowReportHelper(!showReportHelper)}
+                      onClick={() => {
+                        setShowReportHelper(!showReportHelper);
+                        if (showSaveFileHelper) setShowSaveFileHelper(false);
+                      }}
                       className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-all cursor-pointer shadow-md text-xs font-semibold ${
                         showReportHelper
                           ? "border-blue-500/35 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300"
@@ -1575,6 +1925,22 @@ export default function Dashboard() {
                     >
                       <ScrollText className="h-3.5 w-3.5" />
                       <span>Copy Helper</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowSaveFileHelper(!showSaveFileHelper);
+                        if (showReportHelper) setShowReportHelper(false);
+                      }}
+                      className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-all cursor-pointer shadow-md text-xs font-semibold ${
+                        showSaveFileHelper
+                          ? "border-blue-500/35 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300"
+                          : "border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white"
+                      }`}
+                      title="Save Outlook Data as Word"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      <span>Save File</span>
                     </button>
 
                     <button
@@ -1596,186 +1962,53 @@ export default function Dashboard() {
                 </div>
 
                 {showReportHelper ? (
-                  <div className="bg-slate-955/20 border border-slate-850 rounded-2xl p-5 space-y-6 animate-fade-in">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h4 className="text-md font-bold text-white flex items-center gap-2">
-                          <ScrollText className="h-4.5 w-4.5 text-blue-500" />
-                          Sales & Files Copy Helper Dashboard
-                        </h4>
-                        <p className="text-[11px] text-slate-450 mt-0.5">
-                          Copy pre-formatted logs for Slack, WhatsApp, or reports.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setShowReportHelper(false)}
-                        className="flex items-center justify-center p-2 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer"
-                        title="Back to Table"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {/* Box 1: Info */}
-                      <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4.5 relative group">
-                        <button
-                          onClick={copyBox1}
-                          className="absolute right-3 top-3 p-1.5 bg-slate-955 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer shadow-md"
-                          title="Copy to Clipboard"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
-                        <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Box 1: Session Info</h5>
-                        <div className="space-y-2.5 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">Helped By:</span>
-                            <span className="text-white font-bold">{codenameInput || profile?.username || "N/A"}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">Spoke to:</span>
-                            <input
-                              type="text"
-                              value={spokeTo}
-                              onChange={(e) => setSpokeTo(e.target.value)}
-                              className="w-32 px-2.5 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white text-right placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">Sold Date:</span>
-                            <input
-                              type="text"
-                              value={soldDate}
-                              onChange={(e) => setSoldDate(e.target.value)}
-                              className="w-32 px-2.5 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white text-right placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">PC Used:</span>
-                            <input
-                              type="text"
-                              value={pcUsed}
-                              onChange={(e) => handlePcUsedChange(e.target.value)}
-                              className="w-32 px-2.5 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white text-right placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Box 3: Quick Static Texts */}
-                      <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4.5 flex flex-col justify-between">
-                        <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Box 3: Quick Copy Actions</h5>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between p-2 bg-slate-955 border border-slate-850 rounded-lg group">
-                            <span className="text-xs text-slate-200">Online selling process done & updated.</span>
-                            <button
-                              onClick={copyText1}
-                              className="p-1 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-md transition-all cursor-pointer"
-                              title="Copy text"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </button>
-                          </div>
-                          <div className="flex items-center justify-between p-2 bg-slate-955 border border-slate-850 rounded-lg group">
-                            <span className="text-xs text-slate-200">Saved & Updated.</span>
-                            <button
-                              onClick={copyText2}
-                              className="p-1 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-md transition-all cursor-pointer"
-                              title="Copy text"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Box 2: Sales Attempt stats */}
-                      <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4.5 relative group">
-                        <button
-                          onClick={copyBox2}
-                          className="absolute right-3 top-3 p-1.5 bg-slate-955 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer shadow-md"
-                          title="Copy to Clipboard"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
-                        <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Box 2: Sales Summary</h5>
-                        <div className="space-y-2.5 text-xs">
-                          <div className="flex items-center justify-between border-b border-slate-850 pb-2">
-                            <span className="text-slate-200 font-bold">Sales Report | Date: {soldDate}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-400 font-medium">Total Attempt:</span>
-                            <span className="text-white font-semibold">{totalAttempt} Sale</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-emerald-400 font-medium">Sold:</span>
-                            <span className="text-emerald-300 font-semibold">{soldCount} Sale</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-rose-450 font-medium">Unsold:</span>
-                            <span className="text-rose-350 font-semibold">{unsoldCount} Sale</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Box 4: Detail list of today's files */}
-                      <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4.5 relative group">
-                        <button
-                          onClick={copyBox4}
-                          className="absolute right-3 top-3 p-1.5 bg-slate-955 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer shadow-md"
-                          title="Copy to Clipboard"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
-                        <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Box 4: Detailed Report</h5>
-                        <div className="space-y-2.5 text-xs max-h-48 overflow-y-auto pr-1">
-                          <div className="flex flex-col border-b border-slate-850 pb-2">
-                            <span className="text-slate-200 font-bold">
-                              {allSales && hasSubmissions ? 'Sales Report' : 'Files Report'} | Date: {soldDate}
-                            </span>
-                            <span className="text-slate-450 text-[10px] mt-0.5 font-semibold">
-                              {allSales && hasSubmissions 
-                                ? `Total Sale: ${todayUserRecords.length} Sale` 
-                                : `Total Files: ${todayUserRecords.length} File`}
-                            </span>
-                          </div>
-                          <div className="border-t border-slate-800/40 my-1 pt-1.5 space-y-1">
-                            {todayUserRecords.length > 0 ? (
-                              todayUserRecords.map((r, i) => {
-                                const cleanName = r.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, '');
-                                return (
-                                  <div key={r.id || i} className="text-slate-300 font-mono text-[11px] py-0.5">
-                                    {cleanName} {r.branch_name} {r.file_type}
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <div className="text-slate-500 italic text-[11px]">No entries today</div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Comment/Important Notes Box */}
-                    <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-4 space-y-2.5">
-                      <div className="flex justify-between items-center">
-                        <h5 className="text-xs font-bold text-rose-500 uppercase tracking-wider">Important Notes</h5>
-                        <button
-                          onClick={copyNotes}
-                          className="p-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-md transition-all cursor-pointer"
-                          title="Copy Notes"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <textarea
-                        value={reportNotes}
-                        onChange={(e) => handleNotesChange(e.target.value)}
-                        className="w-full h-20 bg-slate-955 border border-slate-800 rounded-lg text-rose-400 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-rose-500/30 text-xs p-3 font-semibold resize-none"
-                      />
-                    </div>
-                  </div>
+                  <Suspense fallback={<SkeletonLoader type="copy-helper" />}>
+                    <CopyHelperPanel
+                      profile={profile}
+                      codenameInput={codenameInput}
+                      spokeTo={spokeTo}
+                      setSpokeTo={setSpokeTo}
+                      soldDate={soldDate}
+                      setSoldDate={setSoldDate}
+                      pcUsed={pcUsed}
+                      handlePcUsedChange={handlePcUsedChange}
+                      reportNotes={reportNotes}
+                      handleNotesChange={handleNotesChange}
+                      totalAttempt={totalAttempt}
+                      soldCount={soldCount}
+                      unsoldCount={unsoldCount}
+                      allSales={allSales}
+                      hasSubmissions={hasSubmissions}
+                      todayUserRecords={todayUserRecords}
+                      copyBox1={copyBox1}
+                      copyBox2={copyBox2}
+                      copyBox4={copyBox4}
+                      copyText1={copyText1}
+                      copyText2={copyText2}
+                      copyNotes={copyNotes}
+                      setShowReportHelper={setShowReportHelper}
+                    />
+                  </Suspense>
+                ) : showSaveFileHelper ? (
+                  <Suspense fallback={<SkeletonLoader type="save-file" />}>
+                    <SaveFileHelperPanel
+                      editorRef={editorRef}
+                      baseDirectory={baseDirectory}
+                      handleChooseDirectory={handleChooseDirectory}
+                      todayUserRecords={todayUserRecords}
+                      savedRecordIds={savedRecordIds}
+                      selectedRecordIdForSave={selectedRecordIdForSave}
+                      setSelectedRecordIdForSave={setSelectedRecordIdForSave}
+                      savedFilePath={savedFilePath}
+                      handleUpdateWord={handleUpdateWord}
+                      handleCancelEdit={handleCancelEdit}
+                      handleSaveAsWord={handleSaveAsWord}
+                      savedDocuments={savedDocuments}
+                      handleEditDocument={handleEditDocument}
+                      handleDeleteDocument={handleDeleteDocument}
+                      setShowSaveFileHelper={setShowSaveFileHelper}
+                    />
+                  </Suspense>
                 ) : (
                   <>
                     {/* Search Filters for Today's Table - BEFORE Stats */}
@@ -1803,20 +2036,24 @@ export default function Dashboard() {
                     </div>
 
                     {/* Stat pills summary Component */}
-                    <StatsGrid stats={todayStats} isLoading={recordsLoading} />
+                    <Suspense fallback={<SkeletonLoader type="stats" />}>
+                      <StatsGrid stats={todayStats} isLoading={recordsLoading} />
+                    </Suspense>
 
                     {/* Today's Records Table Component */}
-                    <RecordsTable
-                      records={todayFilteredRecords}
-                      emptyMessage="No file entries for today matching the filters."
-                      showDate={false}
-                      onEdit={(record) => handleOpenEditRecord(record, false)}
-                      onDelete={setDeletingRecordId}
-                      isLoading={recordsLoading}
-                      currentUserId={sessionUser?.id}
-                      isAdmin={profile?.role === "admin"}
-                      onBulkDelete={setBulkDeletingRecordIds}
-                    />
+                    <Suspense fallback={<SkeletonLoader type="table" />}>
+                      <RecordsTable
+                        records={todayFilteredRecords}
+                        emptyMessage="No file entries for today matching the filters."
+                        showDate={false}
+                        onEdit={(record) => handleOpenEditRecord(record, false)}
+                        onDelete={setDeletingRecordId}
+                        isLoading={recordsLoading}
+                        currentUserId={sessionUser?.id}
+                        isAdmin={profile?.role === "admin"}
+                        onBulkDelete={setBulkDeletingRecordIds}
+                      />
+                    </Suspense>
                   </>
                 )}
               </div>
@@ -1983,210 +2220,51 @@ export default function Dashboard() {
               </div>
 
               {/* Monthly Stats summary grid */}
-              <StatsGrid stats={monthlyStats} isLoading={recordsLoading} />
+              <Suspense fallback={<SkeletonLoader type="stats" />}>
+                <StatsGrid stats={monthlyStats} isLoading={recordsLoading} />
+              </Suspense>
 
               {/* Monthly Table Component */}
-              <RecordsTable
-                records={monthlyFilteredRecords}
-                emptyMessage="No file records found matching the filters."
-                showDate={true}
-                onEdit={(record) => handleOpenEditRecord(record, true)}
-                onDelete={setDeletingRecordId}
-                isLoading={recordsLoading}
-                currentUserId={sessionUser?.id}
-                isAdmin={profile?.role === "admin"}
-                onBulkDelete={setBulkDeletingRecordIds}
-              />
+              <Suspense fallback={<SkeletonLoader type="table" />}>
+                <RecordsTable
+                  records={monthlyFilteredRecords}
+                  emptyMessage="No file records found matching the filters."
+                  showDate={true}
+                  onEdit={(record) => handleOpenEditRecord(record, true)}
+                  onDelete={setDeletingRecordId}
+                  isLoading={recordsLoading}
+                  currentUserId={sessionUser?.id}
+                  isAdmin={profile?.role === "admin"}
+                  onBulkDelete={setBulkDeletingRecordIds}
+                />
+              </Suspense>
             </div>
           )}
 
           {/* TAB 3: USER MANAGEMENT (Admin Only) */}
           {activeTab === "users" && profile?.role === "admin" && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-bold text-white">
-                    User Accounts & File Permissions Management
-                  </h2>
-                  <p className="text-xs text-slate-450 mt-1">
-                    Create new staff accounts and select which file types they
-                    are permitted to submit.
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setGeneratedPassword(null);
-                    setIsAddUserModalOpen(true);
-                  }}
-                  className="sm:self-end flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl shadow-lg text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-blue-950/20 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 shrink-0 cursor-pointer"
-                >
-                  <UserPlus className="h-4 w-4" /> Add User
-                </button>
-              </div>
-
-              {/* Search Bar for Users */}
-              <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-850 flex flex-col md:flex-row gap-3 items-center">
-                <div className="relative flex-1 w-full">
-                  <input
-                    type="text"
-                    placeholder="Search users by name, codename, or role (e.g. admin or user)..."
-                    value={userSearchQuery}
-                    onChange={(e) => setUserSearchQuery(e.target.value)}
-                    className="block w-full pl-8 pr-8 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs h-9"
-                  />
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-555" />
-                  {userSearchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setUserSearchQuery("")}
-                      className="absolute right-2.5 top-2.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all cursor-pointer"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Full Width Users List Table */}
-              <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-850 space-y-4 overflow-x-auto">
-                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <Shield className="h-4 w-4 text-blue-500" />
-                  Registered Users List ({filteredProfiles.length})
-                </h3>
-
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-955 border-b border-slate-850 text-slate-400 font-semibold uppercase">
-                      <th className="px-4 py-3">Codename</th>
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Role</th>
-                      <th className="px-4 py-3">Categories</th>
-                      <th className="px-4 py-3">Rules Perm</th>
-                      <th className="px-4 py-3 text-right">Manage</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-850 text-slate-355">
-                    {!initialFetchDone ? (
-                      Array.from({ length: 4 }).map((_, idx) => (
-                        <tr key={idx} className="hover:bg-slate-900/10 border-b border-slate-850/40">
-                          <td className="px-4 py-3.5">
-                            <div className="h-4 w-16 bg-slate-800 rounded animate-pulse" />
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="h-4 w-28 bg-slate-800 rounded animate-pulse" />
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="h-5 w-14 bg-slate-800/80 rounded-full animate-pulse" />
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="h-4 w-48 bg-slate-800 rounded animate-pulse" />
-                          </td>
-                          <td className="px-4 py-3.5 text-right">
-                            <div className="flex justify-end gap-2">
-                              <div className="h-7 w-12 bg-slate-800/80 rounded-lg animate-pulse" />
-                              <div className="h-7 w-12 bg-slate-800/80 rounded-lg animate-pulse" />
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : filteredProfiles.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-4 py-8 text-center text-slate-550"
-                        >
-                          No registered users found.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredProfiles.map((u) => (
-                        <tr
-                          key={u.id}
-                          className="hover:bg-slate-900/30 transition-all"
-                        >
-                          <td className="px-4 py-2.5 font-bold text-white">
-                            {u.username.toUpperCase()}
-                          </td>
-                          <td className="px-4 py-2.5">{u.full_name || "-"}</td>
-                          <td className="px-4 py-2.5">
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                u.role === "admin"
-                                  ? "bg-purple-950/50 border-purple-900/60 text-purple-450"
-                                  : "bg-blue-950/50 border-blue-900/60 text-blue-450"
-                              }`}
-                            >
-                              {u.role === "admin" ? "Admin" : "User"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <div className="flex flex-wrap gap-1">
-                              {(u.allowed_types || []).map((t) => (
-                                <span
-                                  key={t}
-                                  className="bg-slate-900 border border-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded"
-                                >
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            {u.role === "admin" ? (
-                              <span className="text-[10px] text-slate-500 italic">Always (Admin)</span>
-                            ) : u.can_manage_rules ? (
-                              <span className="text-[10px] font-bold text-emerald-450 px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-900/60">
-                                Allowed
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-500">Not Allowed</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-2.5 text-right">
-                            <div className="flex justify-end gap-2.5 items-center">
-                              <button
-                                onClick={() => {
-                                  setEditingProfile(u);
-                                  setEditUserFullName(u.full_name || "");
-                                  setEditUserRole(u.role);
-                                  setEditUserAllowedTypes(
-                                    u.allowed_types || [],
-                                  );
-                                  setEditUserCanManageRules(u.role === 'admin' ? true : !!u.can_manage_rules);
-                                }}
-                                className="p-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all duration-200 hover:scale-125 cursor-pointer"
-                                title="Edit Profile"
-                              >
-                                <Edit className="h-3.5 w-3.5" />
-                              </button>
-                              {u.id !== sessionUser?.id && (
-                                <button
-                                  onClick={() => {
-                                    setDeletingUserAccount({
-                                      id: u.id,
-                                      username: u.username,
-                                    });
-                                  }}
-                                  className="p-1.5 bg-slate-900 hover:bg-red-950/20 border border-slate-800 text-red-500 hover:text-red-400 rounded-lg transition-all duration-200 hover:scale-125 cursor-pointer"
-                                  title="Delete Account"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <Suspense fallback={<SkeletonLoader type="users" />}>
+              <UserManagementPanel
+                filteredProfiles={filteredProfiles}
+                initialFetchDone={initialFetchDone}
+                userSearchQuery={userSearchQuery}
+                setUserSearchQuery={setUserSearchQuery}
+                setEditingProfile={setEditingProfile}
+                setEditUserFullName={setEditUserFullName}
+                setEditUserRole={setEditUserRole}
+                setEditUserAllowedTypes={setEditUserAllowedTypes}
+                setEditUserCanManageRules={setEditUserCanManageRules}
+                setDeletingUserAccount={setDeletingUserAccount}
+                setGeneratedPassword={setGeneratedPassword}
+                setIsAddUserModalOpen={setIsAddUserModalOpen}
+                sessionUser={sessionUser}
+              />
+            </Suspense>
           )}
 
           {/* TAB 4: PERFORMANCE ANALYTICS */}
           {activeTab === "analytics" && profile?.role === "admin" && (
-            <Suspense fallback={<div className="flex items-center justify-center py-20 gap-2 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /> Loading Analytics...</div>}>
+            <Suspense fallback={<SkeletonLoader type="analytics" />}>
               <AnalyticsPanel
                 records={records}
                 profilesList={profilesList}
@@ -2197,7 +2275,7 @@ export default function Dashboard() {
 
           {/* TAB 5: SYSTEM AUDIT LOGS */}
           {activeTab === "audit_logs" && profile?.role === "admin" && (
-            <Suspense fallback={<div className="flex items-center justify-center py-20 gap-2 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /> Loading Audit Logs...</div>}>
+            <Suspense fallback={<SkeletonLoader type="audit-logs" />}>
               <AuditLogsPanel
                 logs={auditLogs}
                 isLoading={auditLogsLoading}
@@ -2208,7 +2286,7 @@ export default function Dashboard() {
 
           {/* TAB 6: QUOTE RULES */}
           {activeTab === "rules" && (
-            <Suspense fallback={<div className="flex items-center justify-center py-20 gap-2 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /> Loading Quote Rules...</div>}>
+            <Suspense fallback={<SkeletonLoader type="rules" />}>
               <QuoteRulesPanel
                 profile={profile}
                 sessionUser={sessionUser}
@@ -2415,9 +2493,15 @@ export default function Dashboard() {
         onClose={() => setBulkDeletingRecordIds(null)}
         onConfirm={async () => {
           if (bulkDeletingRecordIds) {
-            const success = await deleteRecords(bulkDeletingRecordIds);
-            if (success) {
-              setBulkDeletingRecordIds(null);
+            const idsToDelete = [...bulkDeletingRecordIds];
+            setBulkDeletingRecordIds(null);
+            setIsBulkDeletingInProgress(true);
+            try {
+              await deleteRecords(idsToDelete);
+            } catch (err) {
+              console.error("Bulk delete failed:", err);
+            } finally {
+              setIsBulkDeletingInProgress(false);
             }
           }
         }}
@@ -2438,6 +2522,24 @@ export default function Dashboard() {
         adminMode={profile?.role === "admin" && adminViewMode === "all"}
         onSubmit={handleAdminCustomEntrySubmit}
       />
+
+      {/* BULK DELETING OVERLAY */}
+      {isBulkDeletingInProgress && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-[9999] flex flex-col items-center justify-center select-none">
+          <div className="flex flex-col items-center p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl animate-fade-in max-w-sm w-full mx-4 text-center">
+            <div className="relative w-12 h-12 flex items-center justify-center">
+              <div className="w-10 h-10 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin"></div>
+            </div>
+            <h4 className="text-sm font-bold text-white mt-4 uppercase tracking-wider">Deleting Records...</h4>
+            <p className="text-xs text-slate-400 mt-2">
+              Please wait while the selected entries are being permanently removed from the database.
+            </p>
+            <p className="text-[10px] text-slate-500 mt-4 italic">
+              You can reload the page if it hangs.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

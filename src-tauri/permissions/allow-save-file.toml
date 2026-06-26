@@ -1,4 +1,4 @@
 [[permission]]
 identifier = "allow-save-file"
-description = "Enables the save_file command"
-commands.allow = ["save_file"]
+description = "Enables the save_file, overwrite_file, pick_directory, and save_file_to_dir commands"
+commands.allow = ["save_file", "overwrite_file", "pick_directory", "save_file_to_dir"]
