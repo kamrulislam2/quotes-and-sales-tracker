@@ -140,6 +140,8 @@ export default function Dashboard() {
 
   // Load active tab preference in localStorage on mount or when profile loads
   useEffect(() => {
+    if (!profile) return; // Do not check or update active tab until profile is fully loaded to prevent flickering
+    
     const savedTab = localStorage.getItem("quotes_sales_active_tab");
     if (
       savedTab &&
@@ -152,7 +154,7 @@ export default function Dashboard() {
     ) {
       if (
         (savedTab === "users" || savedTab === "analytics" || savedTab === "audit_logs") &&
-        profile?.role !== "admin"
+        profile.role !== "admin"
       ) {
         setActiveTab("entry");
       } else {
