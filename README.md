@@ -143,12 +143,17 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v2.0.3
+
+**macOS App Relaunch Error Fix & Windows Update Relaunch Lock Resolution**
+
+- ✅ **macOS App Relaunch Error Fix**: Resolved "Relaunch and install failed" updater errors on macOS by switching the relaunch mechanism on non-Windows platforms to Tauri's official process plugin (`app.restart()`) instead of spawning the raw binary directly inside the sandboxed `.app` bundle context.
+- ✅ **Windows Update Launch Lock & Freeze Resolution**: Fixed the issue where updating the app on Windows caused it to hang on "Loading, please wait..." or a white screen. By adding a 1.2-second startup delay on Windows, the new process gives the exiting old process time to fully terminate and release its WebView2 user data directory and SQLite cache database file locks.
+
 ### v2.0.2
 
 **Escape Key for Choice Modal, Dynamic Branch Filtering, Seeding Lock & State Deduplication**
 
-- ✅ **macOS App Relaunch Error Fix**: Resolved "Relaunch and install failed" updater errors on macOS by switching the relaunch mechanism on non-Windows platforms to Tauri's official process plugin (`app.restart()`) instead of spawning the raw binary directly inside the sandboxed `.app` bundle context.
-- ✅ **Windows Update Launch Lock & Freeze Resolution**: Fixed the issue where updating the app on Windows caused it to hang on "Loading, please wait..." or a white screen. By adding a 1.2-second startup delay on Windows, the new process gives the exiting old process time to fully terminate and release its WebView2 user data directory and SQLite cache database file locks.
 - ✅ **SOLD/UNSOLD Choice Modal Escape Close**: Added a global keyboard event listener specifically for the SOLD/UNSOLD decision dialog. Pressing `Escape` now safely closes the modal, allowing users to return to edit form fields without losing their input.
 - ✅ **Dynamic Branch Rules Relevance Filtering**: Implemented company keyword mapping to filter rules and admin fines. Dynamic logic checks if a rule text contains key terms from other companies (e.g. `EUI`, `Second Best Price`) and automatically hides them unless the corresponding company is selected, avoiding cross-branch mistakes.
 - ✅ **Seeding Concurrency Lock & Database Pre-checks**: Added a module-level `seedingInProgress` flag and pre-flight database rule checks inside `seedRules` to prevent concurrent execution/double seeding in React 18/19 StrictMode and concurrent renders.
