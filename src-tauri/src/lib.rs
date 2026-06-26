@@ -15,31 +15,35 @@ fn save_file(file_name: String, content: Vec<u8>) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn custom_relaunch() -> Result<(), String> {
-  let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
-  
+fn custom_relaunch(app: tauri::AppHandle) -> Result<(), String> {
   #[cfg(target_os = "windows")]
   {
+    let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let exe_str = current_exe.to_string_lossy().into_owned();
     let cmd_str = format!("timeout /t 2 > NUL && start \"\" \"{}\"", exe_str);
     std::process::Command::new("cmd.exe")
       .args(&["/C", &cmd_str])
       .spawn()
       .map_err(|e| e.to_string())?;
+    std::process::exit(0);
   }
 
   #[cfg(not(target_os = "windows"))]
   {
-    std::process::Command::new(current_exe)
-      .spawn()
-      .map_err(|e| e.to_string())?;
+    app.restart();
   }
-
-  std::process::exit(0);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+  #[cfg(target_os = "windows")]
+  {
+    // Add a 1.2-second startup delay on Windows to ensure that any preceding instance
+    // (such as one being replaced/restarted by the auto-updater) has fully exited
+    // and released its WebView2 user data directory locks.
+    std::thread::sleep(std::time::Duration::from_millis(1200));
+  }
+
   tauri::Builder::default()
     .plugin(tauri_plugin_log::Builder::default().build())
     .plugin(tauri_plugin_process::init())
