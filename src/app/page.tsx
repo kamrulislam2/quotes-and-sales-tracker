@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useSaveFileHelper } from "@/hooks/useSaveFileHelper";
+import { useCopyHelper } from "@/hooks/useCopyHelper";
 import { Navbar } from "@/components/Navbar";
 const StatsGrid = lazy(() => import("@/components/StatsGrid").then(m => ({ default: m.StatsGrid })));
 const RecordsTable = lazy(() => import("@/components/RecordsTable").then(m => ({ default: m.RecordsTable })));
@@ -25,7 +27,7 @@ import {
   formatDate,
   exportToCSV,
 } from "@/utils/dashboardHelpers";
-import { FileType, RecordItem, Profile, SavedDocument } from "@/types";
+import { FileType, RecordItem, Profile } from "@/types";
 import {
   FileText,
   Loader2,
@@ -345,50 +347,6 @@ export default function Dashboard() {
     }
     return false;
   });
-  const [savedRecordIds, setSavedRecordIds] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedDate = localStorage.getItem("quotes_sales_saved_docs_date");
-      const todayDate = new Date().toDateString();
-      if (savedDate !== todayDate) {
-        // New day — clear yesterday's saved document tracking data
-        localStorage.removeItem("quotes_sales_saved_record_ids");
-        localStorage.removeItem("quotes_sales_saved_documents");
-        localStorage.setItem("quotes_sales_saved_docs_date", todayDate);
-        return [];
-      }
-      const saved = localStorage.getItem("quotes_sales_saved_record_ids");
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
-  const [savedDocuments, setSavedDocuments] = useState<SavedDocument[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedDate = localStorage.getItem("quotes_sales_saved_docs_date");
-      const todayDate = new Date().toDateString();
-      if (savedDate !== todayDate) {
-        return [];
-      }
-      const saved = localStorage.getItem("quotes_sales_saved_documents");
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
-  const [savedFilePath, setSavedFilePath] = useState<string | null>(null);
-  const [selectedRecordIdForSave, setSelectedRecordIdForSave] = useState<string | null>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const fileHandlesRef = useRef<Record<string, any>>({});
-  const baseDirectoryHandleRef = useRef<any>(null);
-  const [baseDirectory, setBaseDirectory] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      const savedDate = localStorage.getItem("quotes_sales_base_save_dir_date");
-      const todayDate = new Date().toDateString();
-      if (savedDate === todayDate) {
-        return localStorage.getItem("quotes_sales_base_save_dir") || null;
-      }
-    }
-    return null;
-  });
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("quotes_sales_show_report_helper", String(showReportHelper));
@@ -400,27 +358,6 @@ export default function Dashboard() {
       localStorage.setItem("quotes_sales_show_save_file_helper", String(showSaveFileHelper));
     }
   }, [showSaveFileHelper]);
-  const [spokeTo, setSpokeTo] = useState("Online");
-  const [soldDate, setSoldDate] = useState(() => {
-    const d = new Date();
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-  });
-  const [pcUsed, setPcUsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("quotes_sales_pc_used") || "IT-001";
-    }
-    return "IT-001";
-  });
-  const [reportNotes, setReportNotes] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("quotes_sales_report_notes");
-      return saved || "Direct line, Toyota, Swiftcover, Moja, Marshmellow\n1st Central (After sale – number, pass, email)";
-    }
-    return "Direct line, Toyota, Swiftcover, Moja, Marshmellow\n1st Central (After sale – number, pass, email)";
-  });
 
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [saleFormDetails, setSaleFormDetails] = useState<{
@@ -454,433 +391,48 @@ export default function Dashboard() {
     });
   }, [records, codenameInput, profile?.username]);
 
-  const todayUserSales = useMemo(() => {
-    return todayUserRecords.filter((r) => r.file_type === "Sale");
-  }, [todayUserRecords]);
+  // ── Save File Helper Hook ──────────────────────────────────────────
+  const {
+    savedRecordIds,
+    savedDocuments,
+    savedFilePath,
+    selectedRecordIdForSave,
+    setSelectedRecordIdForSave,
+    editorRef,
+    baseDirectory,
+    handleChooseDirectory,
+    handleSaveAsWord: handleSaveAsWordRaw,
+    handleUpdateWord,
+    handleEditDocument,
+    handleCancelEdit,
+    handleDeleteDocument,
+  } = useSaveFileHelper({ showToast });
 
-  const totalAttempt = todayUserSales.length;
+  // Wrap handleSaveAsWord to pass todayUserRecords (component expects no-arg version)
+  const handleSaveAsWord = () => handleSaveAsWordRaw(todayUserRecords);
 
-  const soldCount = useMemo(() => {
-    return todayUserSales.filter((r) => r.file_name.endsWith(" [SOLD]")).length;
-  }, [todayUserSales]);
-
-  const unsoldCount = useMemo(() => {
-    return todayUserSales.filter((r) => r.file_name.endsWith(" [UNSOLD]")).length;
-  }, [todayUserSales]);
-
-  const allSales = useMemo(() => {
-    return todayUserRecords.length > 0 && todayUserRecords.every((r) => r.file_type === "Sale");
-  }, [todayUserRecords]);
-
-  const hasSubmissions = todayUserRecords.length > 0;
-
-  // Save File Action Handlers
-  const wrapHtmlForDocx = (contentHtml: string) => {
-    return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  body {
-    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
-    font-size: 11pt;
-    line-height: 1.15;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 12px 0;
-  }
-  table, th, td {
-    border: 1px solid #a0aec0;
-  }
-  th, td {
-    padding: 8px;
-    text-align: left;
-  }
-</style>
-</head>
-<body>
-  ${contentHtml}
-</body>
-</html>`;
-  };
-    const fallbackDownload = (htmlContent: string, fileName: string) => {
-    const blob = new Blob([htmlContent], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleChooseDirectory = async () => {
-    try {
-      const isTauri = typeof window !== "undefined" && (window as any).__TAURI__ !== undefined;
-      const todayDate = new Date().toDateString();
-
-      if (isTauri) {
-        const { invoke } = (window as any).__TAURI__.core;
-        const selectedDir = await invoke("pick_directory") as string;
-        setBaseDirectory(selectedDir);
-        localStorage.setItem("quotes_sales_base_save_dir", selectedDir);
-        localStorage.setItem("quotes_sales_base_save_dir_date", todayDate);
-        showToast("success", `Save directory set to: ${selectedDir}`);
-        return selectedDir;
-      } else {
-        if (typeof window !== "undefined" && "showDirectoryPicker" in window) {
-          const handle = await (window as any).showDirectoryPicker();
-          baseDirectoryHandleRef.current = handle;
-          
-          const label = `Local_Directory/${handle.name}`;
-          setBaseDirectory(label);
-          localStorage.setItem("quotes_sales_base_save_dir", label);
-          localStorage.setItem("quotes_sales_base_save_dir_date", todayDate);
-          showToast("success", `Save directory set to: ${handle.name}`);
-          return label;
-        } else {
-          showToast("error", "Directory picking is not supported by this browser. Files will download normally.");
-          return null;
-        }
-      }
-    } catch (err) {
-      const errMsg = String(err);
-      if (!errMsg.includes("AbortError") && !errMsg.includes("cancelled")) {
-        showToast("error", `Failed to select directory: ${errMsg}`);
-      }
-      return null;
-    }
-  };
-
-  const handleSaveAsWord = async () => {
-    if (!selectedRecordIdForSave) {
-      showToast("error", "Please select a record (circle checkbox) to generate the file name.");
-      return;
-    }
-    const record = todayUserRecords.find(r => r.id === selectedRecordIdForSave);
-    if (!record) {
-      showToast("error", "Selected record not found.");
-      return;
-    }
-
-    const editorHtml = editorRef.current?.innerHTML || "";
-    if (!editorHtml || editorHtml.trim() === "" || editorHtml === "<br>") {
-      showToast("error", "Please paste some content into the input field first.");
-      return;
-    }
-
-    // 1. Get or choose base directory
-    let currentBaseDir = baseDirectory;
-    const isTauri = typeof window !== "undefined" && (window as any).__TAURI__ !== undefined;
-    
-    if (isTauri) {
-      if (!currentBaseDir) {
-        currentBaseDir = await handleChooseDirectory();
-        if (!currentBaseDir) return; // Cancelled
-      }
-    } else {
-      if (typeof window !== "undefined" && "showDirectoryPicker" in window) {
-        if (!baseDirectoryHandleRef.current) {
-          currentBaseDir = await handleChooseDirectory();
-          if (!currentBaseDir) return; // Cancelled
-        }
-      }
-    }
-
-    // 2. Determine subfolder (Sold/Unsold for Sales, None for others)
-    let subFolder: string | null = null;
-    if (record.file_type === "Sale") {
-      if (record.file_name.endsWith(" [SOLD]")) {
-        subFolder = "Sold";
-      } else if (record.file_name.endsWith(" [UNSOLD]")) {
-        subFolder = "Unsold";
-      } else {
-        subFolder = "Sold"; // Default
-      }
-    }
-
-    const cleanName = record.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, "");
-    const generatedFileName = `${cleanName} ${record.branch_name} ${record.file_type}.docx`;
-
-    try {
-      const wrappedHtml = wrapHtmlForDocx(editorHtml);
-      let savedPath = "";
-
-      if (isTauri) {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(wrappedHtml);
-        const { invoke } = (window as any).__TAURI__.core;
-
-        savedPath = await invoke("save_file_to_dir", {
-          baseDir: currentBaseDir,
-          subFolder,
-          fileName: generatedFileName,
-          content: Array.from(bytes),
-        }) as string;
-      } else {
-        // Web Fallback: Use directory handle to write file
-        if (baseDirectoryHandleRef.current) {
-          try {
-            let targetDirHandle = baseDirectoryHandleRef.current;
-            if (subFolder) {
-              targetDirHandle = await baseDirectoryHandleRef.current.getDirectoryHandle(subFolder, { create: true });
-            }
-            const fileHandle = await targetDirHandle.getFileHandle(generatedFileName, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(wrappedHtml);
-            await writable.close();
-            
-            savedPath = `Local_File/${baseDirectoryHandleRef.current.name}/${subFolder ? subFolder + "/" : ""}${generatedFileName}`;
-            fileHandlesRef.current[savedPath] = fileHandle;
-          } catch (writeErr) {
-            console.error("Failed to write to file handle:", writeErr);
-            fallbackDownload(wrappedHtml, generatedFileName);
-            savedPath = `Web_Downloads/${generatedFileName}`;
-          }
-        } else {
-          fallbackDownload(wrappedHtml, generatedFileName);
-          savedPath = `Web_Downloads/${generatedFileName}`;
-        }
-      }
-
-      showToast("success", `File saved successfully!`);
-
-      const newDocId = crypto.randomUUID();
-      const newDoc = {
-        id: newDocId,
-        filename: generatedFileName,
-        filePath: savedPath,
-        htmlContent: editorHtml,
-        recordId: record.id,
-        savedAt: new Date().toISOString(),
-      };
-
-      const updatedDocs = [newDoc, ...savedDocuments];
-      setSavedDocuments(updatedDocs);
-      localStorage.setItem("quotes_sales_saved_documents", JSON.stringify(updatedDocs));
-
-      const updatedRecordIds = [...savedRecordIds, record.id];
-      setSavedRecordIds(updatedRecordIds);
-      localStorage.setItem("quotes_sales_saved_record_ids", JSON.stringify(updatedRecordIds));
-
-      setSavedFilePath(savedPath);
-    } catch (err) {
-      const errMsg = String(err);
-      if (errMsg !== "Save cancelled") {
-        showToast("error", `Failed to save file: ${errMsg}`);
-      }
-    }
-  };
-
-  const handleUpdateWord = async () => {
-    if (!savedFilePath) {
-      showToast("error", "No active file path. Please click 'Save As' first.");
-      return;
-    }
-
-    const editorHtml = editorRef.current?.innerHTML || "";
-    if (!editorHtml || editorHtml.trim() === "" || editorHtml === "<br>") {
-      showToast("error", "Editor content is empty.");
-      return;
-    }
-
-    try {
-      const isTauri = typeof window !== "undefined" && (window as any).__TAURI__ !== undefined;
-      const wrappedHtml = wrapHtmlForDocx(editorHtml);
-
-      if (isTauri) {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(wrappedHtml);
-        const { invoke } = (window as any).__TAURI__.core;
-
-        await invoke("overwrite_file", {
-          filePath: savedFilePath,
-          content: Array.from(bytes),
-        });
-        showToast("success", `File updated successfully!`);
-      } else {
-        // Web Fallback: Check if file handle exists to overwrite
-        const cachedHandle = fileHandlesRef.current[savedFilePath];
-        if (cachedHandle) {
-          try {
-            const writable = await cachedHandle.createWritable();
-            await writable.write(wrappedHtml);
-            await writable.close();
-            showToast("success", `File updated successfully!`);
-          } catch (writeErr) {
-            console.error("Failed to write to file handle:", writeErr);
-            const handle = await (window as any).showSaveFilePicker({
-              suggestedName: savedFilePath.split("/").pop() || "document.docx",
-              types: [{
-                description: 'Word Document (.docx)',
-                accept: {
-                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
-                }
-              }]
-            });
-            const writable = await handle.createWritable();
-            await writable.write(wrappedHtml);
-            await writable.close();
-            
-            fileHandlesRef.current[savedFilePath] = handle;
-            showToast("success", `File updated successfully!`);
-          }
-        } else {
-          const filename = savedFilePath.split("/").pop() || "document.docx";
-          fallbackDownload(wrappedHtml, filename);
-          showToast("success", `Updated file downloaded as ${filename}`);
-        }
-      }
-
-      const updatedDocs = savedDocuments.map(doc => {
-        if (doc.filePath === savedFilePath) {
-          return { ...doc, htmlContent: editorHtml };
-        }
-        return doc;
-      });
-      setSavedDocuments(updatedDocs);
-      localStorage.setItem("quotes_sales_saved_documents", JSON.stringify(updatedDocs));
-    } catch (err) {
-      showToast("error", `Failed to update file: ${err}`);
-    }
-  };
-
-  const handleEditDocument = (doc: SavedDocument) => {
-    setSavedFilePath(doc.filePath);
-    setSelectedRecordIdForSave(doc.recordId);
-    if (editorRef.current) {
-      editorRef.current.innerHTML = doc.htmlContent;
-    }
-    showToast("success", `Loaded "${doc.filename}" for editing.`);
-  };
-
-  const handleCancelEdit = () => {
-    setSavedFilePath(null);
-    setSelectedRecordIdForSave(null);
-    if (editorRef.current) {
-      editorRef.current.innerHTML = "";
-    }
-  };
-
-  const handleDeleteDocument = (docId: string, recordId: string) => {
-    const updatedDocs = savedDocuments.filter(d => d.id !== docId);
-    setSavedDocuments(updatedDocs);
-    localStorage.setItem("quotes_sales_saved_documents", JSON.stringify(updatedDocs));
-
-    const updatedRecordIds = savedRecordIds.filter(id => id !== recordId);
-    setSavedRecordIds(updatedRecordIds);
-    localStorage.setItem("quotes_sales_saved_record_ids", JSON.stringify(updatedRecordIds));
-
-    if (selectedRecordIdForSave === recordId) {
-      setSavedFilePath(null);
-      setSelectedRecordIdForSave(null);
-      if (editorRef.current) editorRef.current.innerHTML = "";
-    }
-    showToast("success", "Document removed from tracker list.");
-  };
-
-  const copyBox1 = async () => {
-    const plainText = `Helped By: ${codenameInput || profile?.username || ""}\nSpoke to: ${spokeTo}\nSold Date: ${soldDate}\nPC Used: ${pcUsed}`;
-    const htmlText = `<b>Helped By:</b> ${codenameInput || profile?.username || ""}<br><b>Spoke to:</b> ${spokeTo}<br><b>Sold Date:</b> ${soldDate}<br><b>PC Used:</b> ${pcUsed}`;
-
-    try {
-      if (navigator.clipboard && window.ClipboardItem) {
-        const blobHtml = new Blob([htmlText], { type: "text/html" });
-        const blobText = new Blob([plainText], { type: "text/plain" });
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            "text/html": blobHtml,
-            "text/plain": blobText,
-          })
-        ]);
-        showToast("success", "Box 1 details copied!");
-      } else {
-        await navigator.clipboard.writeText(plainText);
-        showToast("success", "Box 1 details copied (Plain text)!");
-      }
-    } catch (err) {
-      console.error("Failed to copy rich text:", err);
-      try {
-        await navigator.clipboard.writeText(plainText);
-        showToast("success", "Box 1 details copied (Plain text)!");
-      } catch {
-        showToast("error", "Failed to copy details.");
-      }
-    }
-  };
-
-  const copyBox2 = async () => {
-    const text = `*Sales Report | Date: ${soldDate}*\n*Total Attempt:* ${totalAttempt} Sale\n*Sold:* ${soldCount} Sale\n*Unsold:* ${unsoldCount} Sale`;
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast("success", "Box 2 Sales Summary copied!");
-    } catch {
-      showToast("error", "Failed to copy.");
-    }
-  };
-
-  const copyBox4 = async () => {
-    const title = allSales && hasSubmissions
-      ? `*Sales Report | Date: ${soldDate}*`
-      : `*Files Report | Date: ${soldDate}*`;
-
-    const subtitle = allSales && hasSubmissions
-      ? `*Total Sale:* ${todayUserRecords.length} Sale`
-      : `*Total Files:* ${todayUserRecords.length} File`;
-
-    const separator = `-----------------------`;
-
-    const lines = todayUserRecords.map(r => {
-      const cleanName = r.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, '');
-      return `${cleanName} ${r.branch_name} ${r.file_type}`;
-    });
-
-    const text = `${title}\n${subtitle}\n${separator}\n${lines.join('\n')}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast("success", "Box 4 Detailed Report copied!");
-    } catch {
-      showToast("error", "Failed to copy.");
-    }
-  };
-
-  const copyText1 = async () => {
-    try {
-      await navigator.clipboard.writeText("Online selling process done & updated.");
-      showToast("success", 'Copied: "Online selling process done & updated."');
-    } catch {
-      showToast("error", "Failed to copy.");
-    }
-  };
-
-  const copyText2 = async () => {
-    try {
-      await navigator.clipboard.writeText("Saved & Updated.");
-      showToast("success", 'Copied: "Saved & Updated."');
-    } catch {
-      showToast("error", "Failed to copy.");
-    }
-  };
-
-  const copyNotes = async () => {
-    try {
-      await navigator.clipboard.writeText(reportNotes);
-      showToast("success", "Notes copied!");
-    } catch {
-      showToast("error", "Failed to copy.");
-    }
-  };
-
-  const handleNotesChange = (val: string) => {
-    setReportNotes(val);
-    localStorage.setItem("quotes_sales_report_notes", val);
-  };
-
-  const handlePcUsedChange = (val: string) => {
-    setPcUsed(val);
-    localStorage.setItem("quotes_sales_pc_used", val);
-  };
+  // ── Copy Helper Hook ───────────────────────────────────────────────
+  const {
+    spokeTo,
+    setSpokeTo,
+    soldDate,
+    setSoldDate,
+    pcUsed,
+    reportNotes,
+    totalAttempt,
+    soldCount,
+    unsoldCount,
+    allSales,
+    hasSubmissions,
+    handlePcUsedChange,
+    handleNotesChange,
+    copyBox1,
+    copyBox2,
+    copyBox4,
+    copyText1,
+    copyText2,
+    copyNotes,
+  } = useCopyHelper({ showToast, todayUserRecords, profile, codenameInput });
 
   // State for resetting user password is now handled inside EditProfileModal
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
