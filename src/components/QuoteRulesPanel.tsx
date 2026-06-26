@@ -183,7 +183,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
       };
       checkAndSeed();
     }
-  }, [rules, loading, canEdit, isOnline]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rules.length, loading, canEdit, isOnline]);
 
   const seedRules = async () => {
     setLoading(true);
@@ -576,12 +577,13 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
     if (!canEdit) return; // Only show menu if authorized
     e.preventDefault();
     
-    // Position menu near cursor relative to viewport
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      rule
-    });
+    // Clamp position to keep context menu within viewport bounds
+    const menuWidth = 144; // w-36 = 9rem = 144px
+    const menuHeight = 80; // approximate height of 2 menu items
+    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 8);
+    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 8);
+    
+    setContextMenu({ x, y, rule });
   };
 
   // Safe render formatting for timestamp
@@ -851,7 +853,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                   >
                     <div className="space-y-1">
                       {selectedCompanyRules?.branch_priority.map((rule, idx) => (
-                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} canEdit={canEdit} onEdit={handleOpenEditModal} onDelete={setRuleToDelete} onContextMenu={handleContextMenu} />
+                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                       ))}
                     </div>
                   </AccordionSection>
@@ -868,7 +870,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                   >
                     <div className="space-y-1">
                       {selectedCompanyRules?.common_rules.map((rule, idx) => (
-                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} canEdit={canEdit} onEdit={handleOpenEditModal} onDelete={setRuleToDelete} onContextMenu={handleContextMenu} />
+                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                       ))}
                     </div>
                   </AccordionSection>
@@ -880,7 +882,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                     <h4 className="text-xs font-bold text-amber-400 tracking-wider uppercase">DOC — Driving Other Cars</h4>
                     <div className="space-y-1">
                       {selectedCompanyRules?.doc_extensions.map((rule, idx) => (
-                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} canEdit={canEdit} onEdit={handleOpenEditModal} onDelete={setRuleToDelete} onContextMenu={handleContextMenu} />
+                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                       ))}
                     </div>
                   </div>
@@ -977,7 +979,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
               >
                 <div className="space-y-1">
                   {universalRules.employment.map((rule, idx) => (
-                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} canEdit={canEdit} onEdit={handleOpenEditModal} onDelete={setRuleToDelete} onContextMenu={handleContextMenu} />
+                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                   ))}
                 </div>
               </AccordionSection>
@@ -993,7 +995,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
               >
                 <div className="space-y-1">
                   {universalRules.driver_and_usage.map((rule, idx) => (
-                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} canEdit={canEdit} onEdit={handleOpenEditModal} onDelete={setRuleToDelete} onContextMenu={handleContextMenu} />
+                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                   ))}
                 </div>
               </AccordionSection>
@@ -1009,7 +1011,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
               >
                 <div className="space-y-1">
                   {universalRules.license_and_residency.map((rule, idx) => (
-                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} canEdit={canEdit} onEdit={handleOpenEditModal} onDelete={setRuleToDelete} onContextMenu={handleContextMenu} />
+                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                   ))}
                 </div>
               </AccordionSection>
@@ -1025,7 +1027,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
               >
                 <div className="space-y-1">
                   {universalRules.file_processing.map((rule, idx) => (
-                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} canEdit={canEdit} onEdit={handleOpenEditModal} onDelete={setRuleToDelete} onContextMenu={handleContextMenu} />
+                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                   ))}
                 </div>
               </AccordionSection>
@@ -1434,22 +1436,12 @@ interface RuleItemProps {
   index: number;
   onCopy: (text: string, id: string) => void;
   copiedId: string | null;
-  canEdit: boolean;
-  onEdit: (rule: ComplianceRule) => void;
-  onDelete: (rule: ComplianceRule) => void;
   onContextMenu: (e: React.MouseEvent, rule: ComplianceRule) => void;
 }
 
-const RuleItem: React.FC<RuleItemProps> = ({
-  rule,
-  index,
-  onCopy,
-  copiedId,
-  canEdit,
-  onEdit,
-  onDelete,
-  onContextMenu
-}) => {
+const RuleItem: React.FC<RuleItemProps> = React.memo((
+  { rule, index, onCopy, copiedId, onContextMenu }
+) => {
   return (
     <div 
       className="group relative flex items-start gap-2.5 py-2.5 px-3 rounded-xl hover:bg-slate-850/20 transition-all duration-200 border border-transparent hover:border-slate-850/50"
@@ -1466,7 +1458,7 @@ const RuleItem: React.FC<RuleItemProps> = ({
       </div>
     </div>
   );
-};
+});
 
 // ─── HELPER COPY BUTTON COMPONENT ───────────────────────────────────
 interface CopyButtonProps {
@@ -1476,7 +1468,7 @@ interface CopyButtonProps {
   onCopy: (text: string, id: string) => void;
 }
 
-const CopyButton: React.FC<CopyButtonProps> = ({ text, id, copiedId, onCopy }) => {
+const CopyButton: React.FC<CopyButtonProps> = React.memo(({ text, id, copiedId, onCopy }) => {
   const isCopied = copiedId === id;
   return (
     <button
@@ -1498,4 +1490,4 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text, id, copiedId, onCopy }) =
       )}
     </button>
   );
-};
+});

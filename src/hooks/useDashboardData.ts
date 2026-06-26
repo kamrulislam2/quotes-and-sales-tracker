@@ -263,8 +263,9 @@ export const useDashboardData = () => {
             const serverIdSet = new Set(serverIds.map(row => row.id));
             
             // Get cached records for the current user/admin matching selectedMonth & selectedYear
-            const localCached = await getCacheData<RecordItem>('records_cache');
-            const localMonthRecords = localCached.filter(r => {
+            // Reuse this read later for the main records load to avoid redundant IndexedDB reads
+            const localCachedForPrune = await getCacheData<RecordItem>('records_cache');
+            const localMonthRecords = localCachedForPrune.filter(r => {
               if (profile.role !== 'admin' && r.user_id !== sessionUser.id) return false;
               if (!r.submitted_at) return false;
               const date = new Date(r.submitted_at);
@@ -703,7 +704,6 @@ export const useDashboardData = () => {
       const cached = await getCacheData<RecordItem>('records_cache');
       const updatedCache = cached.filter(r => !ids.includes(r.id));
       await setCacheData('records_cache', updatedCache);
-      setRecords(updatedCache);
 
       await fetchRecords(true);
       await fetchAvailableDates();
@@ -1010,7 +1010,7 @@ export const useDashboardData = () => {
         const oldAllowed = [...(targetProfile.allowed_types || [])].sort();
         const newAllowed = [...allowedTypes].sort();
         const oldAllowedStr = oldAllowed.join(', ');
-        const newAllowedStr = newAllowed.sort().join(', ');
+        const newAllowedStr = newAllowed.join(', ');
 
         if (oldAllowedStr !== newAllowedStr) {
           const added = allowedTypes.filter(x => !(targetProfile.allowed_types || []).includes(x));

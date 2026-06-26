@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { Navbar } from "@/components/Navbar";
 import { StatsGrid } from "@/components/StatsGrid";
@@ -12,9 +12,9 @@ import { AddUserModal } from "@/components/modals/AddUserModal";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
 import { AdminViewToggle } from "@/components/AdminViewToggle";
-import { AnalyticsPanel } from "@/components/AnalyticsPanel";
-import { AuditLogsPanel } from "@/components/AuditLogsPanel";
-import { QuoteRulesPanel } from "@/components/QuoteRulesPanel";
+const AnalyticsPanel = lazy(() => import("@/components/AnalyticsPanel").then(m => ({ default: m.AnalyticsPanel })));
+const AuditLogsPanel = lazy(() => import("@/components/AuditLogsPanel").then(m => ({ default: m.AuditLogsPanel })));
+const QuoteRulesPanel = lazy(() => import("@/components/QuoteRulesPanel").then(m => ({ default: m.QuoteRulesPanel })));
 import { validator } from "@/utils/validator";
 import {
   calculateSummaryStats,
@@ -347,12 +347,13 @@ export default function Dashboard() {
   } | null>(null);
 
   const todayUserRecords = useMemo(() => {
+    const effectiveCodename = codenameInput || profile?.username || "";
     return records.filter((r) => {
       const isToday = new Date(r.submitted_at).toDateString() === new Date().toDateString();
-      const matchesUser = r.codename.toUpperCase() === (codenameInput || "").toUpperCase();
+      const matchesUser = r.codename.toUpperCase() === effectiveCodename.toUpperCase();
       return isToday && matchesUser;
     });
-  }, [records, codenameInput]);
+  }, [records, codenameInput, profile?.username]);
 
   const todayUserSales = useMemo(() => {
     return todayUserRecords.filter((r) => r.file_type === "Sale");
@@ -404,13 +405,17 @@ export default function Dashboard() {
     }
   };
 
-  const copyBox2 = () => {
+  const copyBox2 = async () => {
     const text = `*Sales Report | Date: ${soldDate}*\n*Total Attempt:* ${totalAttempt} Sale\n*Sold:* ${soldCount} Sale\n*Unsold:* ${unsoldCount} Sale`;
-    navigator.clipboard.writeText(text);
-    showToast("success", "Box 2 Sales Summary copied!");
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("success", "Box 2 Sales Summary copied!");
+    } catch {
+      showToast("error", "Failed to copy.");
+    }
   };
 
-  const copyBox4 = () => {
+  const copyBox4 = async () => {
     const title = allSales && hasSubmissions
       ? `*Sales Report | Date: ${soldDate}*`
       : `*Files Report | Date: ${soldDate}*`;
@@ -427,23 +432,39 @@ export default function Dashboard() {
     });
 
     const text = `${title}\n${subtitle}\n${separator}\n${lines.join('\n')}`;
-    navigator.clipboard.writeText(text);
-    showToast("success", "Box 4 Detailed Report copied!");
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("success", "Box 4 Detailed Report copied!");
+    } catch {
+      showToast("error", "Failed to copy.");
+    }
   };
 
-  const copyText1 = () => {
-    navigator.clipboard.writeText("Online selling process done & updated.");
-    showToast("success", 'Copied: "Online selling process done & updated."');
+  const copyText1 = async () => {
+    try {
+      await navigator.clipboard.writeText("Online selling process done & updated.");
+      showToast("success", 'Copied: "Online selling process done & updated."');
+    } catch {
+      showToast("error", "Failed to copy.");
+    }
   };
 
-  const copyText2 = () => {
-    navigator.clipboard.writeText("Saved & Updated.");
-    showToast("success", 'Copied: "Saved & Updated."');
+  const copyText2 = async () => {
+    try {
+      await navigator.clipboard.writeText("Saved & Updated.");
+      showToast("success", 'Copied: "Saved & Updated."');
+    } catch {
+      showToast("error", "Failed to copy.");
+    }
   };
 
-  const copyNotes = () => {
-    navigator.clipboard.writeText(reportNotes);
-    showToast("success", "Notes copied!");
+  const copyNotes = async () => {
+    try {
+      await navigator.clipboard.writeText(reportNotes);
+      showToast("success", "Notes copied!");
+    } catch {
+      showToast("error", "Failed to copy.");
+    }
   };
 
   const handleNotesChange = (val: string) => {
@@ -2120,30 +2141,36 @@ export default function Dashboard() {
 
           {/* TAB 4: PERFORMANCE ANALYTICS */}
           {activeTab === "analytics" && profile?.role === "admin" && (
-            <AnalyticsPanel
-              records={records}
-              profilesList={profilesList}
-              profile={profile}
-            />
+            <Suspense fallback={<div className="flex items-center justify-center py-20 gap-2 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /> Loading Analytics...</div>}>
+              <AnalyticsPanel
+                records={records}
+                profilesList={profilesList}
+                profile={profile}
+              />
+            </Suspense>
           )}
 
           {/* TAB 5: SYSTEM AUDIT LOGS */}
           {activeTab === "audit_logs" && profile?.role === "admin" && (
-            <AuditLogsPanel
-              logs={auditLogs}
-              isLoading={auditLogsLoading}
-              onRefresh={fetchAuditLogs}
-            />
+            <Suspense fallback={<div className="flex items-center justify-center py-20 gap-2 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /> Loading Audit Logs...</div>}>
+              <AuditLogsPanel
+                logs={auditLogs}
+                isLoading={auditLogsLoading}
+                onRefresh={fetchAuditLogs}
+              />
+            </Suspense>
           )}
 
           {/* TAB 6: QUOTE RULES */}
           {activeTab === "rules" && (
-            <QuoteRulesPanel
-              profile={profile}
-              sessionUser={sessionUser}
-              isOnline={isOnline}
-              showToast={showToast}
-            />
+            <Suspense fallback={<div className="flex items-center justify-center py-20 gap-2 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /> Loading Quote Rules...</div>}>
+              <QuoteRulesPanel
+                profile={profile}
+                sessionUser={sessionUser}
+                isOnline={isOnline}
+                showToast={showToast}
+              />
+            </Suspense>
           )}
         </section>
       </main>
@@ -2300,6 +2327,7 @@ export default function Dashboard() {
         onConfirm={() => {
           if (deletingUserAccount) {
             deleteUser(deletingUserAccount.id);
+            setDeletingUserAccount(null);
           }
         }}
         title="Delete User Account"
@@ -2324,6 +2352,7 @@ export default function Dashboard() {
         onConfirm={() => {
           if (deletingRecordId) {
             deleteRecord(deletingRecordId);
+            setDeletingRecordId(null);
           }
         }}
         title="Delete File Record"

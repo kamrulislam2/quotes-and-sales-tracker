@@ -166,9 +166,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Smooth theme transition for backgrounds, borders and text colors */
-body, header, main, section, table, tr, td, th, button, input, select, textarea, p, span, h1, h2, h3, h4, h5, h6, a {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, text-decoration-color 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
+/* Smooth theme transition for root-level layout containers only (not per-cell elements, for performance) */
+body, header, main, section, aside, nav {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 /* Make date and time picker calendar/clock icons inverted only in dark mode */
