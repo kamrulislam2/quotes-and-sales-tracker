@@ -339,7 +339,6 @@ export default function Dashboard() {
     return "Direct line, Toyota, Swiftcover, Moja, Marshmellow\n1st Central (After sale – number, pass, email)";
   });
 
-  // Sold/Unsold Choice Modal States
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [saleFormDetails, setSaleFormDetails] = useState<{
     fileName: string;
@@ -347,6 +346,21 @@ export default function Dashboard() {
     codename: string;
     fileType: FileType;
   } | null>(null);
+
+  // Close SOLD/UNSOLD choice modal on Escape key press
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showSaleModal) {
+        setShowSaleModal(false);
+      }
+    };
+    if (showSaleModal) {
+      document.addEventListener("keydown", handleEscape);
+    }
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showSaleModal]);
 
   const todayUserRecords = useMemo(() => {
     const effectiveCodename = codenameInput || profile?.username || "";
