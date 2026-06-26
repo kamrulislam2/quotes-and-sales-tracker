@@ -37,6 +37,8 @@ import {
   Shield,
   Edit,
   X,
+  XCircle,
+  CheckCircle,
   Plus,
   RefreshCw,
   Search,
@@ -2186,18 +2188,20 @@ export default function Dashboard() {
               </p>
             </div>
             
-            <div className="flex gap-4">
+            <div className="flex gap-3 justify-center max-w-[280px] mx-auto">
               <button
                 onClick={() => handleConfirmSaleStatus("UNSOLD")}
-                className="flex-1 py-3 px-4 bg-slate-950 border border-slate-800 hover:bg-slate-800/80 text-rose-450 hover:text-rose-350 font-bold rounded-xl text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                className="flex-1 py-2.5 px-3.5 bg-slate-950 border border-slate-800 hover:border-rose-950/40 hover:bg-rose-950/10 text-slate-300 hover:text-rose-400 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
-                Unsold
+                <XCircle className="h-3.5 w-3.5 stroke-[2] shrink-0" />
+                <span>Unsold</span>
               </button>
               <button
                 onClick={() => handleConfirmSaleStatus("SOLD")}
-                className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-950/20 cursor-pointer"
+                className="flex-1 py-2.5 px-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-950/20 cursor-pointer"
               >
-                Sold
+                <CheckCircle className="h-3.5 w-3.5 stroke-[2] shrink-0" />
+                <span>Sold</span>
               </button>
             </div>
           </div>

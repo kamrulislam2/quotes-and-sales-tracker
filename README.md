@@ -86,6 +86,18 @@ The application implements a robust, transactional local database schema using c
 - **Form Validation**: All custom entries are validated for required fields and checked against the target user's category permissions before submission.
 - **Real-Time Feedback**: Toast notifications confirm successful submissions or alert users to validation errors with helpful messages.
 
+### 📜 11. Quote Rules Configuration & Change Archiving (Admin Only)
+- **Branch-Wise Quote Rules**: Dedicated "Quote Rules" panel displays rules for specific company branches. Seeded automatically into the database.
+- **Admin Management Operations**: Admins can add new rules, modify existing rules, or delete rules. Regular staff users have read-only access.
+- **Context Menu Interaction**: Management actions (Edit, Delete) are cleanly mapped to a right-click context menu on rule cards, removing redundant button clutter.
+- **Rule Version History & Archiving**: Editing a rule automatically clones the current version to the rules history archive (`archive_rules_history`) before applying updates, ensuring full traceability of rule changes.
+- **Audit Logs Tracking**: All administrative adjustments to rules (adding, editing, and deleting rules) are logged in the system's Audit Logs panel.
+
+### 📋 12. MS Word & Outlook Bold Formatting Copy Helper
+- **Word/Outlook Bold Paste Support**: When copying items via the Copy Helper, file names that are star-marked (e.g., `*File Name`) are processed and written to the clipboard with an HTML payload, pasting natively as **bold** text in Outlook, Word, and rich-text mail/doc clients.
+- **Persistent Helper View State**: Persists Copy Helper navigation state across page reloads. If a user reloads the dashboard while using the copy helper, they remain exactly where they were instead of losing their page.
+- **Sleek Navigation**: Replaced the bulky "Back" button in the helper with a modern, responsive back icon.
+
 ---
 
 ## 📂 Project Structure
@@ -130,6 +142,27 @@ quotes-sales-tracker/
 ```
 
 ## 📝 Changelog
+
+### v2.0.0
+
+**Quote Rules Panel, MS Word/Outlook Bold Formatting Copy Helper, and Major System Audit & Optimizations**
+
+- ✅ **Quote Rules Management Panel**: Implemented a new Quote Rules configurations and panel. Allows branch-wise rules management (adding new company rules, modifying rules, deleting rules) with built-in database tables and initial seeding logic.
+- ✅ **Role-Based Rules Security**: Restricts Quote Rules management exclusively to `admin` roles, granting read-only access to staff/user roles.
+- ✅ **Context Menu Actions**: Cleaned up rule cards by shifting Edit and Delete icons into a right-click context menu handler on the cards.
+- ✅ **Rules Change Archiving & History**: Editing any rule automatically saves a clone of the old configuration into the database (`archive_rules_history`) for full historical compliance tracking.
+- ✅ **Audit Trail Integration**: All administrative actions on rules (creating, modifying, or deleting rules) are logged and searchable in the Audit Logs panel.
+- ✅ **Rich Text Word/Outlook Bold Copying**: Upgraded the Copy Helper script to use `ClipboardItem` with `text/html` payloads. Star-marked file names copy in a formatting wrapper so they paste directly as bold in Outlook, Word, and rich text apps.
+- ✅ **Copy Helper View State Persistence**: Replaced the "Back" button in the Copy Helper with a modern back icon. Persisted Copy Helper active state (active branch views) across page reloads in localStorage.
+- ✅ **Advanced Performance Tuning (Audit)**:
+  - **Dynamic Lazy Loading**: Lazy-loaded the Analytics, Audit Logs, and Quote Rules panels to reduce initial bundle loading size by ~131KB.
+  - **Scoped CSS Transitions**: Removed broad CSS transition rules applied to all elements (forcing compositor recalculations on huge tables) and scoped them strictly to root layouts.
+  - **Re-render Minimization**: Wrapped rule items and action buttons with `React.memo` to eliminate redundant re-rendering inside loop maps.
+- ✅ **Viewport & Stability Fixes**:
+  - Centered modals in the screen viewport, resolving a layout bug that forced modals to render below the fold.
+  - Fixed bulk delete `setRecords` cache updates that bypassed active month/year filters.
+  - Corrected ConfirmModal to prevent premature closing during asynchronous actions.
+  - Resolved `useEffect` warning for missing dependency in seeding hooks.
 
 ### v1.4.2
 

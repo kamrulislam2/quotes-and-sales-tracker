@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { X, Loader2, UserPlus, Clipboard, Plus } from 'lucide-react';
+import { X, Loader2, UserPlus, Clipboard, Plus, Check } from 'lucide-react';
 import { CategoryCheckboxList } from '../CategoryCheckboxList';
 
 interface AddUserModalProps {
@@ -125,18 +125,27 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
 
           {/* Quote Rules Permission Toggle */}
           <div className="border-t border-slate-800/80 pt-3">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={canManageRules}
-                onChange={(e) => setCanManageRules(e.target.checked)}
-                className="rounded border-slate-850 bg-slate-955 text-blue-500 focus:ring-0 focus:ring-offset-0 h-4 w-4 cursor-pointer"
-              />
+            <label className="flex items-center gap-2.5 cursor-pointer group select-none">
+              <div className="relative flex items-center">
+                <input
+                  type="checkbox"
+                  checked={canManageRules}
+                  onChange={(e) => setCanManageRules(e.target.checked)}
+                  className="sr-only"
+                />
+                <div className={`h-4 w-4 rounded-full flex items-center justify-center border transition-all shrink-0 ${
+                  canManageRules
+                    ? 'bg-blue-600 border-blue-500 text-white font-bold'
+                    : 'border-slate-700 bg-slate-900 text-transparent'
+                }`}>
+                  {canManageRules && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                </div>
+              </div>
               <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
                 Can Manage Quote Rules?
               </span>
             </label>
-            <p className="text-[10px] text-slate-455 mt-1 ml-6">
+            <p className="text-[10px] text-slate-455 mt-1 ml-6.5">
               Allows the user to add, edit, or delete compliance rules and view archive history.
             </p>
           </div>

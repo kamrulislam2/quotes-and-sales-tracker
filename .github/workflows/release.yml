@@ -56,6 +56,14 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v2.0.0:
+            * **Quote Rules Panel & Branch Rules Management**: Added a new Quote Rules panel to manage branch-specific rules for specific companies. Features role-based access control, database rules seeding, context-menu actions (edit/delete) for admins, rules change history tracking (`archive_rules_history`), and full audit logging of administrative actions.
+            * **MS Word & Outlook Bold Copy Formatting**: Star-marked file names copied via the Copy Helper are now copied using a rich clipboard payload, allowing them to paste directly as bold text in Microsoft Word and Outlook.
+            * **Persisted Copy Helper View & Navigation**: Replaced the "Back" button with a modern back icon, and implemented view state persistence so that reloading the browser keeps the user inside the Copy Helper view.
+            * **Modal Viewport Centering & UX Fixes**: Replaced redundant hover action icons on cards, added skeleton loader for Quote Rules, and fixed a viewport alignment bug where modals were opening at the bottom of the viewport requiring scrolling.
+            * **Core Performance Optimizations**: Lazy-loaded Analytics, Audit Logs, and Quote Rules panels to reduce initial bundle loading by ~131KB. Scoped CSS transitions from every DOM element to only root layout containers to optimize rendering, and wrapped cards with `React.memo` to prevent re-renders.
+            * **Critical Bug Fixes**: Fixed bulk delete cache updates bypassing active page filters, and resolved ConfirmModal premature closing during asynchronous actions.
+
             ### 🚀 What's New in v1.4.2:
             * **Specific User Audit Logs**: Enhanced the `UPDATE_USER` audit logging description. It now performs a smart diff comparison to output only the specific user properties changed (Full Name, Role, or specific file permission items newly Granted or Revoked) instead of listing all 12 allowed file types on every single edit.
             * **Post-Update Reload Freeze Fix**: Removed the legacy frontend self-healing reload workaround on component mount and update-flag setting. The 2-second backend delay relaunch already fully mitigates WebView2 locking, so removing the redundant reload prevents the app from interrupting session initialization and freezing on the loading spinner.

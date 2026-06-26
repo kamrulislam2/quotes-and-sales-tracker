@@ -110,6 +110,21 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   const [ruleToDelete, setRuleToDelete] = useState<ComplianceRule | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  // Close all open modals on Escape key press
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isAddModalOpen) setIsAddModalOpen(false);
+        if (isEditModalOpen) setIsEditModalOpen(false);
+        if (ruleToDelete) setRuleToDelete(null);
+        if (isHistoryModalOpen) setIsHistoryModalOpen(false);
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isAddModalOpen, isEditModalOpen, ruleToDelete, isHistoryModalOpen]);
+
   // Form States for Add/Edit
   const [formCategory, setFormCategory] = useState<'announcement' | 'fine' | 'universal' | 'company'>('company');
   const [formSubCategory, setFormSubCategory] = useState<any>('common_rules');
