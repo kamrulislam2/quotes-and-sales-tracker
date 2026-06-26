@@ -73,3 +73,12 @@ export interface RuleHistory {
     full_name: string | null;
   } | null;
 }
+
+export interface SavedDocument {
+  id: string;
+  filename: string;
+  filePath: string;
+  htmlContent: string;
+  recordId: string;
+  savedAt: string;
+}

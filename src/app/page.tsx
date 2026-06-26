@@ -25,7 +25,7 @@ import {
   formatDate,
   exportToCSV,
 } from "@/utils/dashboardHelpers";
-import { FileType, RecordItem, Profile } from "@/types";
+import { FileType, RecordItem, Profile, SavedDocument } from "@/types";
 import {
   FileText,
   Loader2,
@@ -350,7 +350,7 @@ export default function Dashboard() {
     }
     return [];
   });
-  const [savedDocuments, setSavedDocuments] = useState<any[]>(() => {
+  const [savedDocuments, setSavedDocuments] = useState<SavedDocument[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("quotes_sales_saved_documents");
       return saved ? JSON.parse(saved) : [];
@@ -730,7 +730,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleEditDocument = (doc: any) => {
+  const handleEditDocument = (doc: SavedDocument) => {
     setSavedFilePath(doc.filePath);
     setSelectedRecordIdForSave(doc.recordId);
     if (editorRef.current) {

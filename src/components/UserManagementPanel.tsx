@@ -17,7 +17,7 @@ interface UserManagementPanelProps {
   setDeletingUserAccount: (val: { id: string; username: string } | null) => void;
   setGeneratedPassword: (val: string | null) => void;
   setIsAddUserModalOpen: (val: boolean) => void;
-  sessionUser: any;
+  sessionUser: { id: string } | null;
 }
 
 export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({

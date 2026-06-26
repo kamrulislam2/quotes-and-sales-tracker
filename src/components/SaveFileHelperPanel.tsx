@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Save, ArrowLeft, Check, X, Edit3, Trash2 } from "lucide-react";
-import { RecordItem } from "@/types";
+import { RecordItem, SavedDocument } from "@/types";
 
 interface SaveFileHelperPanelProps {
   editorRef: React.RefObject<HTMLDivElement | null>;
@@ -16,8 +16,8 @@ interface SaveFileHelperPanelProps {
   handleUpdateWord: () => void;
   handleCancelEdit: () => void;
   handleSaveAsWord: () => void;
-  savedDocuments: any[];
-  handleEditDocument: (doc: any) => void;
+  savedDocuments: SavedDocument[];
+  handleEditDocument: (doc: SavedDocument) => void;
   handleDeleteDocument: (docId: string, recordId: string) => void;
   setShowSaveFileHelper: (val: boolean) => void;
 }
