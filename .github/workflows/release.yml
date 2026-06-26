@@ -56,6 +56,12 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v2.1.1:
+            * **Tauri Updater Relaunch Permission Fix**: Added the custom relaunch command to permitted configuration lists, resolving Tauri permission errors during automatic app relaunch on macOS/Windows updates.
+            * **Startup Session Timeout Resolution**: Removed the artificial 4-second session and profile retrieval timeout safety nets in the frontend. This prevents premature aborts and infinite page reload loops on slower network connections.
+            * **Active Tab Reload Flicker Prevention**: Locked layout transitions until the user profile load completes, eliminating mount-time visual jumping back to the default tab.
+            * **Native Dark Background Configuration**: Integrated native window background color options to eliminate white flashes on Windows startup and reload.
+
             ### 🚀 What's New in v2.1.0:
             * **Outlook Rich HTML Document Saving**: Integrated a "Save File" panel next to "Copy Helper" to paste rich HTML (tables, styles, highlights) from Outlook, select a record to auto-generate the filename, and save as `.docx` documents to today's daily directory (segregated into `Sold/` and `Unsold/` subdirectories for Sales, and directly under base directory for other types).
             * **Lazy Loading & Skeleton Loader Screens**: Extracted heavy panel markups (Copy Helper, Save File, User Management) into modular components, lazy-loaded them alongside main components via React `lazy` to shrink initial bundle sizes, and wrapped them in `Suspense` with bespoke, glassmorphism-themed `SkeletonLoader` presets for stats, tables, forms, logs, rules, and chart cards.

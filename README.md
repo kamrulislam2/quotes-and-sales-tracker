@@ -143,6 +143,15 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v2.1.1
+
+**Tauri Updater Relaunch Permission Fix, Startup Timeout Loop Resolution, & Tab Reload Flicker Prevention**
+
+- ✅ **Updater Relaunch Permission Fix**: Added the custom relaunch command to permitted configuration lists, resolving Tauri permission errors during automatic app relaunch on macOS/Windows updates.
+- ✅ **Startup Session Timeout Resolution**: Removed the artificial 4-second session and profile retrieval timeout safety nets in the frontend. This prevents premature aborts and infinite page reload loops on slower network connections.
+- ✅ **Active Tab Reload Flicker Prevention**: Locked layout transitions until the user profile load completes, eliminating mount-time visual jumping back to the default tab.
+- ✅ **Native Dark Background Configuration**: Integrated native window background color options to eliminate white flashes on Windows startup and reload.
+
 ### v2.1.0
 
 **Outlook Rich HTML Document Saving, Skeleton Loaders Performance Optimization, & Reload Persistence**
