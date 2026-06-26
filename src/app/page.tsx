@@ -107,7 +107,36 @@ export default function Dashboard() {
   // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics), 'audit_logs' (Audit Logs), 'rules' (Quote Rules)
   const [activeTab, setActiveTab] = useState<
     "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules"
-  >("entry");
+  >(() => {
+    if (typeof window !== "undefined") {
+      const savedTab = localStorage.getItem("quotes_sales_active_tab");
+      if (
+        savedTab &&
+        (savedTab === "entry" ||
+          savedTab === "monthly" ||
+          savedTab === "users" ||
+          savedTab === "analytics" ||
+          savedTab === "audit_logs" ||
+          savedTab === "rules")
+      ) {
+        // Safe check for role restriction using cached profile to prevent initial flash of admin tabs for regular users
+        const cachedProfileStr = localStorage.getItem("quotes_sales_profile");
+        if (cachedProfileStr) {
+          try {
+            const cachedProfile = JSON.parse(cachedProfileStr);
+            if (
+              (savedTab === "users" || savedTab === "analytics" || savedTab === "audit_logs") &&
+              cachedProfile?.role !== "admin"
+            ) {
+              return "entry";
+            }
+          } catch {}
+        }
+        return savedTab as "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules";
+      }
+    }
+    return "entry";
+  });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Load active tab preference in localStorage on mount or when profile loads

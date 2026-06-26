@@ -149,6 +149,7 @@ quotes-sales-tracker/
 
 - ✅ **macOS App Relaunch Error Fix**: Resolved "Relaunch and install failed" updater errors on macOS by switching the relaunch mechanism on non-Windows platforms to Tauri's official process plugin (`app.restart()`) instead of spawning the raw binary directly inside the sandboxed `.app` bundle context.
 - ✅ **Windows Update Launch Lock & Freeze Resolution**: Fixed the issue where updating the app on Windows caused it to hang on "Loading, please wait..." or a white screen. By adding a 1.2-second startup delay on Windows, the new process gives the exiting old process time to fully terminate and release its WebView2 user data directory and SQLite cache database file locks.
+- ✅ **Active Tab Reload Flicker Fix**: Refactored tab selection layout state to load from `localStorage` synchronously during state construction rather than a post-mount effect hook, eliminating visual flickering when reloading the page on non-default tabs.
 
 ### v2.0.2
 
