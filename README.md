@@ -143,6 +143,16 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v2.0.1
+
+**Circular Checkbox Redesign, escape Close Modals, Admin Permission Auto-checked & Codebase Audit Refinement**
+
+- ✅ **Circular Checkboxes & UI Redesign**: Redesigned all permitted category checkboxes and permission checkboxes (e.g. "Can Manage Quote Rules?", "Change Password?") to render as modern, circular, custom-styled check indicators using Check icons, matching dashboard count cards styling.
+- ✅ **Escape Key Support**: Added keyboard action listeners so that pressing the `Escape` key closes all active sub-dialogs/modals (Add, Edit, Delete, History) in the Quote Rules and other panels.
+- ✅ **Instant Admin Permission Sync**: Resolved layout shift and permission tick mark flicker when opening the user profile modal for admins by deriving checks instantly via direct role checks, and disabled rules checkbox toggling for Admins.
+- ✅ **Modern Status Selection Buttons**: Redesigned UNSOLD/SOLD selection buttons in the main record submit form with elegant linear gradients, CheckCircle/XCircle visual icons, and responsive scaling.
+- ✅ **Full Codebase Audit & Warning Cleanups**: Resolved all TypeScript and ESLint warnings. Moved static `monthsList` outside the component scope in `AnalyticsPanel.tsx` to eliminate re-creation and resolve missing dependency warnings, cleaned up unused imports and unused references in `QuoteRulesPanel.tsx`, and removed unused variables in `page.tsx`.
+
 ### v2.0.0
 
 **Quote Rules Panel, MS Word/Outlook Bold Formatting Copy Helper, and Major System Audit & Optimizations**

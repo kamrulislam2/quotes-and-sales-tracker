@@ -56,6 +56,13 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v2.0.1:
+            * **Circular Checkboxes & UI Redesign**: Redesigned all permitted category checkboxes and permission checkboxes (e.g. "Can Manage Quote Rules?", "Change Password?") to render as modern, circular, custom-styled check indicators using Check icons, matching dashboard count cards styling.
+            * **Escape Key Support**: Added keyboard action listeners so that pressing the `Escape` key closes all active sub-dialogs/modals (Add, Edit, Delete, History) in the Quote Rules and other panels.
+            * **Instant Admin Permission Sync**: Resolved layout shift and permission tick mark flicker when opening the user profile modal for admins by deriving checks instantly via direct role checks, and disabled rules checkbox toggling for Admins.
+            * **Modern Status Selection Buttons**: Redesigned UNSOLD/SOLD selection buttons in the main record submit form with elegant linear gradients, CheckCircle/XCircle visual icons, and responsive scaling.
+            * **Full Codebase Audit & Warning Cleanups**: Resolved all TypeScript and ESLint warnings. Moved static `monthsList` outside the component scope in `AnalyticsPanel.tsx` to eliminate re-creation and resolve missing dependency warnings, cleaned up unused imports and unused references in `QuoteRulesPanel.tsx`, and removed unused variables in `page.tsx`.
+
             ### 🚀 What's New in v2.0.0:
             * **Quote Rules Panel & Branch Rules Management**: Added a new Quote Rules panel to manage branch-specific rules for specific companies. Features role-based access control, database rules seeding, context-menu actions (edit/delete) for admins, rules change history tracking (`archive_rules_history`), and full audit logging of administrative actions.
             * **MS Word & Outlook Bold Copy Formatting**: Star-marked file names copied via the Copy Helper are now copied using a rich clipboard payload, allowing them to paste directly as bold text in Microsoft Word and Outlook.
