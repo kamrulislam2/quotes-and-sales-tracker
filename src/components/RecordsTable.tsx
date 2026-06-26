@@ -340,7 +340,9 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                       <span className="text-xs text-slate-400">{formatTimeToAMPM(r.submitted_at)}</span>
                     )}
                   </td>
-                  <td className="px-5 py-3 font-semibold text-white">{r.file_name}</td>
+                  <td className="px-5 py-3 font-semibold text-white">
+                    {r.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, '')}
+                  </td>
                   <td className="px-5 py-3 text-slate-355 text-center">{r.branch_name}</td>
                   <td className="px-5 py-3 text-slate-355 font-semibold text-center">{r.codename}</td>
                   <td className="px-5 py-3 min-w-32 text-center">

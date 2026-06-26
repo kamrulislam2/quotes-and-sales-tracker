@@ -44,6 +44,8 @@ import {
   FileSpreadsheet,
   TrendingUp,
   ScrollText,
+  Copy,
+  ArrowLeft,
 } from "lucide-react";
 
 const ALL_12_FILE_TYPES = [
@@ -286,10 +288,169 @@ export default function Dashboard() {
   const [editBranchName, setEditBranchName] = useState("");
   const [editCodename, setEditCodename] = useState("");
   const [editFileType, setEditFileType] = useState<FileType>("Quote");
+  const [editSaleStatus, setEditSaleStatus] = useState<"SOLD" | "UNSOLD">("SOLD");
   const [editSubmittedDate, setEditSubmittedDate] = useState("");
   const [editSubmittedTime, setEditSubmittedTime] = useState("");
   const [editCanChangeSubmittedAt, setEditCanChangeSubmittedAt] =
     useState(false);
+
+  // Copy Helper States
+  const [showReportHelper, setShowReportHelper] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("quotes_sales_show_report_helper");
+      if (saved === "true") {
+        setShowReportHelper(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("quotes_sales_show_report_helper", String(showReportHelper));
+    }
+  }, [showReportHelper]);
+  const [spokeTo, setSpokeTo] = useState("Online");
+  const [soldDate, setSoldDate] = useState(() => {
+    const d = new Date();
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  });
+  const [pcUsed, setPcUsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("quotes_sales_pc_used") || "IT-001";
+    }
+    return "IT-001";
+  });
+  const [reportNotes, setReportNotes] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("quotes_sales_report_notes");
+      return saved || "Direct line, Toyota, Swiftcover, Moja, Marshmellow\n1st Central (After sale – number, pass, email)";
+    }
+    return "Direct line, Toyota, Swiftcover, Moja, Marshmellow\n1st Central (After sale – number, pass, email)";
+  });
+
+  // Sold/Unsold Choice Modal States
+  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [saleFormDetails, setSaleFormDetails] = useState<{
+    fileName: string;
+    branchName: string;
+    codename: string;
+    fileType: FileType;
+  } | null>(null);
+
+  const todayUserRecords = useMemo(() => {
+    return records.filter((r) => {
+      const isToday = new Date(r.submitted_at).toDateString() === new Date().toDateString();
+      const matchesUser = r.codename.toUpperCase() === (codenameInput || "").toUpperCase();
+      return isToday && matchesUser;
+    });
+  }, [records, codenameInput]);
+
+  const todayUserSales = useMemo(() => {
+    return todayUserRecords.filter((r) => r.file_type === "Sale");
+  }, [todayUserRecords]);
+
+  const totalAttempt = todayUserSales.length;
+
+  const soldCount = useMemo(() => {
+    return todayUserSales.filter((r) => r.file_name.endsWith(" [SOLD]")).length;
+  }, [todayUserSales]);
+
+  const unsoldCount = useMemo(() => {
+    return todayUserSales.filter((r) => r.file_name.endsWith(" [UNSOLD]")).length;
+  }, [todayUserSales]);
+
+  const allSales = useMemo(() => {
+    return todayUserRecords.length > 0 && todayUserRecords.every((r) => r.file_type === "Sale");
+  }, [todayUserRecords]);
+
+  const hasSubmissions = todayUserRecords.length > 0;
+
+  const copyBox1 = async () => {
+    const plainText = `Helped By: ${codenameInput || profile?.username || ""}\nSpoke to: ${spokeTo}\nSold Date: ${soldDate}\nPC Used: ${pcUsed}`;
+    const htmlText = `<b>Helped By:</b> ${codenameInput || profile?.username || ""}<br><b>Spoke to:</b> ${spokeTo}<br><b>Sold Date:</b> ${soldDate}<br><b>PC Used:</b> ${pcUsed}`;
+
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        const blobHtml = new Blob([htmlText], { type: "text/html" });
+        const blobText = new Blob([plainText], { type: "text/plain" });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": blobHtml,
+            "text/plain": blobText,
+          })
+        ]);
+        showToast("success", "Box 1 details copied!");
+      } else {
+        await navigator.clipboard.writeText(plainText);
+        showToast("success", "Box 1 details copied (Plain text)!");
+      }
+    } catch (err) {
+      console.error("Failed to copy rich text:", err);
+      try {
+        await navigator.clipboard.writeText(plainText);
+        showToast("success", "Box 1 details copied (Plain text)!");
+      } catch (fallbackErr) {
+        showToast("error", "Failed to copy details.");
+      }
+    }
+  };
+
+  const copyBox2 = () => {
+    const text = `*Sales Report | Date: ${soldDate}*\n*Total Attempt:* ${totalAttempt} Sale\n*Sold:* ${soldCount} Sale\n*Unsold:* ${unsoldCount} Sale`;
+    navigator.clipboard.writeText(text);
+    showToast("success", "Box 2 Sales Summary copied!");
+  };
+
+  const copyBox4 = () => {
+    const title = allSales && hasSubmissions
+      ? `*Sales Report | Date: ${soldDate}*`
+      : `*Files Report | Date: ${soldDate}*`;
+
+    const subtitle = allSales && hasSubmissions
+      ? `*Total Sale:* ${todayUserRecords.length} Sale`
+      : `*Total Files:* ${todayUserRecords.length} File`;
+
+    const separator = `-----------------------`;
+
+    const lines = todayUserRecords.map(r => {
+      const cleanName = r.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, '');
+      return `${cleanName} ${r.branch_name} ${r.file_type}`;
+    });
+
+    const text = `${title}\n${subtitle}\n${separator}\n${lines.join('\n')}`;
+    navigator.clipboard.writeText(text);
+    showToast("success", "Box 4 Detailed Report copied!");
+  };
+
+  const copyText1 = () => {
+    navigator.clipboard.writeText("Online selling process done & updated.");
+    showToast("success", 'Copied: "Online selling process done & updated."');
+  };
+
+  const copyText2 = () => {
+    navigator.clipboard.writeText("Saved & Updated.");
+    showToast("success", 'Copied: "Saved & Updated."');
+  };
+
+  const copyNotes = () => {
+    navigator.clipboard.writeText(reportNotes);
+    showToast("success", "Notes copied!");
+  };
+
+  const handleNotesChange = (val: string) => {
+    setReportNotes(val);
+    localStorage.setItem("quotes_sales_report_notes", val);
+  };
+
+  const handlePcUsedChange = (val: string) => {
+    setPcUsed(val);
+    localStorage.setItem("quotes_sales_pc_used", val);
+  };
 
   // State for resetting user password is now handled inside EditProfileModal
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -642,6 +803,38 @@ export default function Dashboard() {
     setTodaySearchQuery("");
   };
 
+  const submitNewEntry = async (
+    fName: string,
+    bName: string,
+    cName: string,
+    fType: FileType,
+  ) => {
+    const success = await addRecord(fName, bName, cName, fType);
+    if (success) {
+      setFileName("");
+      setBranchName("");
+      // Keep codename, but reset type to default first allowed type
+      if (profile?.allowed_types && profile.allowed_types.length > 0) {
+        setFileType(profile.allowed_types[0] as FileType);
+      } else {
+        setFileType("Quote");
+      }
+    }
+  };
+
+  const handleConfirmSaleStatus = async (status: "SOLD" | "UNSOLD") => {
+    if (!saleFormDetails) return;
+    const finalFileName = `${saleFormDetails.fileName} [${status}]`;
+    setShowSaleModal(false);
+    await submitNewEntry(
+      finalFileName,
+      saleFormDetails.branchName,
+      saleFormDetails.codename,
+      saleFormDetails.fileType,
+    );
+    setSaleFormDetails(null);
+  };
+
   // Submit Daily Entry
   const handleAddEntry = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -658,21 +851,16 @@ export default function Dashboard() {
       return;
     }
 
-    const success = await addRecord(
-      fileName,
-      branchName,
-      codenameInput,
-      fileType,
-    );
-    if (success) {
-      setFileName("");
-      setBranchName("");
-      // Keep codename, but reset type to default first allowed type
-      if (profile?.allowed_types && profile.allowed_types.length > 0) {
-        setFileType(profile.allowed_types[0] as FileType);
-      } else {
-        setFileType("Quote");
-      }
+    if (fileType === "Sale") {
+      setSaleFormDetails({
+        fileName,
+        branchName,
+        codename: codenameInput,
+        fileType,
+      });
+      setShowSaleModal(true);
+    } else {
+      await submitNewEntry(fileName, branchName, codenameInput, fileType);
     }
   };
 
@@ -737,9 +925,10 @@ export default function Dashboard() {
       editedSubmittedAt = parsedDate.toISOString();
     }
 
+    const finalFileName = editFileType === "Sale" ? `${editFileName} [${editSaleStatus}]` : editFileName;
     const success = await updateRecord(
       editingRecord.id,
-      editFileName,
+      finalFileName,
       editBranchName,
       editCodename,
       editFileType,
@@ -758,11 +947,18 @@ export default function Dashboard() {
     const submittedAt = new Date(record.submitted_at);
 
     setEditingRecord(record);
-    setEditFileName(record.file_name);
+    const cleanName = record.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, '');
+    setEditFileName(cleanName);
     setEditBranchName(record.branch_name);
     setEditCodename(record.codename);
     setEditFileType(record.file_type);
     setEditCanChangeSubmittedAt(canChangeSubmittedAt);
+
+    if (record.file_name.endsWith(" [UNSOLD]")) {
+      setEditSaleStatus("UNSOLD");
+    } else {
+      setEditSaleStatus("SOLD");
+    }
 
     if (!isNaN(submittedAt.getTime())) {
       setEditSubmittedDate(
@@ -1272,6 +1468,19 @@ export default function Dashboard() {
                   {/* Filter Controls */}
                   <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0">
                     <button
+                      onClick={() => setShowReportHelper(!showReportHelper)}
+                      className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-all cursor-pointer shadow-md text-xs font-semibold ${
+                        showReportHelper
+                          ? "border-blue-500/35 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300"
+                          : "border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white"
+                      }`}
+                      title="Copy Helper Dashboard"
+                    >
+                      <ScrollText className="h-3.5 w-3.5" />
+                      <span>Copy Helper</span>
+                    </button>
+
+                    <button
                       onClick={handleExportTodayExcel}
                       className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer shadow-md"
                       title="Export to Excel"
@@ -1289,45 +1498,230 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Search Filters for Today's Table - BEFORE Stats */}
-                <div className="space-y-2">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search name, codename, branch..."
-                      value={todaySearchQuery}
-                      onChange={(e) => setTodaySearchQuery(e.target.value)}
-                      className="block w-full pl-8 pr-8 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs h-8"
-                    />
-                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-555" />
-                    {todaySearchQuery && (
+                {showReportHelper ? (
+                  <div className="bg-slate-955/20 border border-slate-850 rounded-2xl p-5 space-y-6 animate-fade-in">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="text-md font-bold text-white flex items-center gap-2">
+                          <ScrollText className="h-4.5 w-4.5 text-blue-500" />
+                          Sales & Files Copy Helper Dashboard
+                        </h4>
+                        <p className="text-[11px] text-slate-450 mt-0.5">
+                          Copy pre-formatted logs for Slack, WhatsApp, or reports.
+                        </p>
+                      </div>
                       <button
-                        type="button"
-                        onClick={handleClearTodayFilters}
-                        className="absolute right-2.5 top-1.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
-                        title="Clear search"
+                        onClick={() => setShowReportHelper(false)}
+                        className="flex items-center justify-center p-2 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white transition-all cursor-pointer"
+                        title="Back to Table"
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <ArrowLeft className="h-4 w-4" />
                       </button>
-                    )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Box 1: Info */}
+                      <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4.5 relative group">
+                        <button
+                          onClick={copyBox1}
+                          className="absolute right-3 top-3 p-1.5 bg-slate-955 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer shadow-md"
+                          title="Copy to Clipboard"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                        <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Box 1: Session Info</h5>
+                        <div className="space-y-2.5 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">Helped By:</span>
+                            <span className="text-white font-bold">{codenameInput || profile?.username || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">Spoke to:</span>
+                            <input
+                              type="text"
+                              value={spokeTo}
+                              onChange={(e) => setSpokeTo(e.target.value)}
+                              className="w-32 px-2.5 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white text-right placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">Sold Date:</span>
+                            <input
+                              type="text"
+                              value={soldDate}
+                              onChange={(e) => setSoldDate(e.target.value)}
+                              className="w-32 px-2.5 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white text-right placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">PC Used:</span>
+                            <input
+                              type="text"
+                              value={pcUsed}
+                              onChange={(e) => handlePcUsedChange(e.target.value)}
+                              className="w-32 px-2.5 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white text-right placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Box 3: Quick Static Texts */}
+                      <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4.5 flex flex-col justify-between">
+                        <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Box 3: Quick Copy Actions</h5>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-2 bg-slate-955 border border-slate-850 rounded-lg group">
+                            <span className="text-xs text-slate-200">Online selling process done & updated.</span>
+                            <button
+                              onClick={copyText1}
+                              className="p-1 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-md transition-all cursor-pointer"
+                              title="Copy text"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-between p-2 bg-slate-955 border border-slate-850 rounded-lg group">
+                            <span className="text-xs text-slate-200">Saved & Updated.</span>
+                            <button
+                              onClick={copyText2}
+                              className="p-1 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-md transition-all cursor-pointer"
+                              title="Copy text"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Box 2: Sales Attempt stats */}
+                      <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4.5 relative group">
+                        <button
+                          onClick={copyBox2}
+                          className="absolute right-3 top-3 p-1.5 bg-slate-955 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer shadow-md"
+                          title="Copy to Clipboard"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                        <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Box 2: Sales Summary</h5>
+                        <div className="space-y-2.5 text-xs">
+                          <div className="flex items-center justify-between border-b border-slate-850 pb-2">
+                            <span className="text-slate-200 font-bold">Sales Report | Date: {soldDate}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-medium">Total Attempt:</span>
+                            <span className="text-white font-semibold">{totalAttempt} Sale</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-emerald-400 font-medium">Sold:</span>
+                            <span className="text-emerald-300 font-semibold">{soldCount} Sale</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-rose-450 font-medium">Unsold:</span>
+                            <span className="text-rose-350 font-semibold">{unsoldCount} Sale</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Box 4: Detail list of today's files */}
+                      <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4.5 relative group">
+                        <button
+                          onClick={copyBox4}
+                          className="absolute right-3 top-3 p-1.5 bg-slate-955 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer shadow-md"
+                          title="Copy to Clipboard"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                        <h5 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3">Box 4: Detailed Report</h5>
+                        <div className="space-y-2.5 text-xs max-h-48 overflow-y-auto pr-1">
+                          <div className="flex flex-col border-b border-slate-850 pb-2">
+                            <span className="text-slate-200 font-bold">
+                              {allSales && hasSubmissions ? 'Sales Report' : 'Files Report'} | Date: {soldDate}
+                            </span>
+                            <span className="text-slate-450 text-[10px] mt-0.5 font-semibold">
+                              {allSales && hasSubmissions 
+                                ? `Total Sale: ${todayUserRecords.length} Sale` 
+                                : `Total Files: ${todayUserRecords.length} File`}
+                            </span>
+                          </div>
+                          <div className="border-t border-slate-800/40 my-1 pt-1.5 space-y-1">
+                            {todayUserRecords.length > 0 ? (
+                              todayUserRecords.map((r, i) => {
+                                const cleanName = r.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, '');
+                                return (
+                                  <div key={r.id || i} className="text-slate-300 font-mono text-[11px] py-0.5">
+                                    {cleanName} {r.branch_name} {r.file_type}
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <div className="text-slate-500 italic text-[11px]">No entries today</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Comment/Important Notes Box */}
+                    <div className="bg-slate-900/40 border border-slate-850 rounded-xl p-4 space-y-2.5">
+                      <div className="flex justify-between items-center">
+                        <h5 className="text-xs font-bold text-rose-500 uppercase tracking-wider">Important Notes</h5>
+                        <button
+                          onClick={copyNotes}
+                          className="p-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-md transition-all cursor-pointer"
+                          title="Copy Notes"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <textarea
+                        value={reportNotes}
+                        onChange={(e) => handleNotesChange(e.target.value)}
+                        className="w-full h-20 bg-slate-955 border border-slate-800 rounded-lg text-rose-400 placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-rose-500/30 text-xs p-3 font-semibold resize-none"
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Search Filters for Today's Table - BEFORE Stats */}
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search name, codename, branch..."
+                          value={todaySearchQuery}
+                          onChange={(e) => setTodaySearchQuery(e.target.value)}
+                          className="block w-full pl-8 pr-8 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs h-8"
+                        />
+                        <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-555" />
+                        {todaySearchQuery && (
+                          <button
+                            type="button"
+                            onClick={handleClearTodayFilters}
+                            className="absolute right-2.5 top-1.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+                            title="Clear search"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
 
-                {/* Stat pills summary Component */}
-                <StatsGrid stats={todayStats} isLoading={recordsLoading} />
+                    {/* Stat pills summary Component */}
+                    <StatsGrid stats={todayStats} isLoading={recordsLoading} />
 
-                {/* Today's Records Table Component */}
-                <RecordsTable
-                  records={todayFilteredRecords}
-                  emptyMessage="No file entries for today matching the filters."
-                  showDate={false}
-                  onEdit={(record) => handleOpenEditRecord(record, false)}
-                  onDelete={setDeletingRecordId}
-                  isLoading={recordsLoading}
-                  currentUserId={sessionUser?.id}
-                  isAdmin={profile?.role === "admin"}
-                  onBulkDelete={setBulkDeletingRecordIds}
-                />
+                    {/* Today's Records Table Component */}
+                    <RecordsTable
+                      records={todayFilteredRecords}
+                      emptyMessage="No file entries for today matching the filters."
+                      showDate={false}
+                      onEdit={(record) => handleOpenEditRecord(record, false)}
+                      onDelete={setDeletingRecordId}
+                      isLoading={recordsLoading}
+                      currentUserId={sessionUser?.id}
+                      isAdmin={profile?.role === "admin"}
+                      onBulkDelete={setBulkDeletingRecordIds}
+                    />
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -1700,6 +2094,35 @@ export default function Dashboard() {
         </section>
       </main>
 
+      {/* MODAL 0: SOLD/UNSOLD CHOICE */}
+      {showSaleModal && saleFormDetails && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center px-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl relative text-center space-y-6">
+            <div>
+              <h3 className="text-lg font-bold text-white mb-2">Sale Status</h3>
+              <p className="text-xs text-slate-400">
+                Is this sale for <span className="font-semibold text-white">"{saleFormDetails.fileName}"</span> Sold or Unsold?
+              </p>
+            </div>
+            
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleConfirmSaleStatus("UNSOLD")}
+                className="flex-1 py-3 px-4 bg-slate-950 border border-slate-800 hover:bg-slate-800/80 text-rose-450 hover:text-rose-350 font-bold rounded-xl text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                Unsold
+              </button>
+              <button
+                onClick={() => handleConfirmSaleStatus("SOLD")}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-emerald-950/20 cursor-pointer"
+              >
+                Sold
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL 1: EDIT RECORD */}
       {editingRecord && (
         <EditRecordModal
@@ -1719,6 +2142,8 @@ export default function Dashboard() {
           allowedCategories={allowedCategories}
           onClose={() => setEditingRecord(null)}
           onSave={handleSaveEdit}
+          editSaleStatus={editSaleStatus}
+          setEditSaleStatus={setEditSaleStatus}
         />
       )}
 

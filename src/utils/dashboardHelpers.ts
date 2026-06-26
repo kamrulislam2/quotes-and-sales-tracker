@@ -98,7 +98,7 @@ export const exportToCSV = (records: RecordItem[], fileName: string) => {
     return [
       date,
       time,
-      r.file_name,
+      r.file_name.replace(/ \[(SOLD|UNSOLD)\]$/, ''),
       r.branch_name,
       r.codename,
       r.file_type

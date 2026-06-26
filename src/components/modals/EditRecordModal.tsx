@@ -20,6 +20,8 @@ interface EditRecordModalProps {
   allowedCategories: string[];
   onClose: () => void;
   onSave: () => void;
+  editSaleStatus?: 'SOLD' | 'UNSOLD';
+  setEditSaleStatus?: (val: 'SOLD' | 'UNSOLD') => void;
 }
 
 export const EditRecordModal: React.FC<EditRecordModalProps> = ({
@@ -38,7 +40,9 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
   setEditSubmittedTime,
   allowedCategories,
   onClose,
-  onSave
+  onSave,
+  editSaleStatus,
+  setEditSaleStatus
 }) => {
   // Close on Escape key press
   const handleEscape = useCallback((e: KeyboardEvent) => {
@@ -120,6 +124,20 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
               ))}
             </select>
           </div>
+
+          {editFileType === 'Sale' && editSaleStatus && setEditSaleStatus && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-355 mb-1.5">Sale Status</label>
+              <select
+                value={editSaleStatus}
+                onChange={(e) => setEditSaleStatus(e.target.value as 'SOLD' | 'UNSOLD')}
+                className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="SOLD">Sold</option>
+                <option value="UNSOLD">Unsold</option>
+              </select>
+            </div>
+          )}
 
           {canEditSubmittedAt && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
