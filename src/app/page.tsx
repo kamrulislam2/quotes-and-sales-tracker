@@ -401,7 +401,7 @@ export default function Dashboard() {
       try {
         await navigator.clipboard.writeText(plainText);
         showToast("success", "Box 1 details copied (Plain text)!");
-      } catch (fallbackErr) {
+      } catch {
         showToast("error", "Failed to copy details.");
       }
     }

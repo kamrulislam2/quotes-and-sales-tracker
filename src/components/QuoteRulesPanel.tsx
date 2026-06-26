@@ -9,13 +9,11 @@ import {
   Search, 
   X, 
   ChevronDown, 
-  ChevronUp, 
   Copy, 
   PlusCircle, 
   Trash2, 
   Edit, 
   ShieldAlert, 
-  Clock, 
   BookOpen, 
   AlertCircle, 
   ArrowLeft, 
@@ -138,7 +136,6 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   const [historyList, setHistoryList] = useState<RuleHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const heroSearchRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
@@ -181,25 +178,6 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
-
-  // Seeding check: If rules table is empty, seed with INSURANCE_DATABASE rules
-  useEffect(() => {
-    if (!loading && rules.length === 0 && canEdit && isOnline) {
-      // Prompt seeding
-      const checkAndSeed = async () => {
-        const { count, error } = await supabase
-          .from('compliance_rules')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_deleted', false);
-        
-        if (!error && count === 0) {
-          seedRules();
-        }
-      };
-      checkAndSeed();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rules.length, loading, canEdit, isOnline]);
 
   const seedRules = async () => {
     setLoading(true);
@@ -312,6 +290,25 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
     }
   };
 
+  // Seeding check: If rules table is empty, seed with INSURANCE_DATABASE rules
+  useEffect(() => {
+    if (!loading && rules.length === 0 && canEdit && isOnline) {
+      // Prompt seeding
+      const checkAndSeed = async () => {
+        const { count, error } = await supabase
+          .from('compliance_rules')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_deleted', false);
+        
+        if (!error && count === 0) {
+          seedRules();
+        }
+      };
+      checkAndSeed();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rules.length, loading, canEdit, isOnline]);
+
   // Group rules into structured variables
   const globalAnnouncements = useMemo(() => {
     return {
@@ -381,7 +378,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
       setCopiedId(id);
       showToast('success', 'Copied to clipboard!');
       setTimeout(() => setCopiedId(null), 2000);
-    } catch (err) {
+    } catch {
       showToast('error', 'Failed to copy.');
     }
   };
@@ -867,8 +864,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                     defaultOpen={true}
                   >
                     <div className="space-y-1">
-                      {selectedCompanyRules?.branch_priority.map((rule, idx) => (
-                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
+                      {selectedCompanyRules?.branch_priority.map((rule) => (
+                        <RuleItem key={rule.id} rule={rule} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                       ))}
                     </div>
                   </AccordionSection>
@@ -884,8 +881,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                     defaultOpen={true}
                   >
                     <div className="space-y-1">
-                      {selectedCompanyRules?.common_rules.map((rule, idx) => (
-                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
+                      {selectedCompanyRules?.common_rules.map((rule) => (
+                        <RuleItem key={rule.id} rule={rule} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                       ))}
                     </div>
                   </AccordionSection>
@@ -896,8 +893,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                   <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.02] p-4.5 space-y-3">
                     <h4 className="text-xs font-bold text-amber-400 tracking-wider uppercase">DOC — Driving Other Cars</h4>
                     <div className="space-y-1">
-                      {selectedCompanyRules?.doc_extensions.map((rule, idx) => (
-                        <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
+                      {selectedCompanyRules?.doc_extensions.map((rule) => (
+                        <RuleItem key={rule.id} rule={rule} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                       ))}
                     </div>
                   </div>
@@ -993,8 +990,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                 count={universalRules.employment.length}
               >
                 <div className="space-y-1">
-                  {universalRules.employment.map((rule, idx) => (
-                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
+                  {universalRules.employment.map((rule) => (
+                    <RuleItem key={rule.id} rule={rule} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                   ))}
                 </div>
               </AccordionSection>
@@ -1009,8 +1006,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                 count={universalRules.driver_and_usage.length}
               >
                 <div className="space-y-1">
-                  {universalRules.driver_and_usage.map((rule, idx) => (
-                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
+                  {universalRules.driver_and_usage.map((rule) => (
+                    <RuleItem key={rule.id} rule={rule} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                   ))}
                 </div>
               </AccordionSection>
@@ -1025,8 +1022,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                 count={universalRules.license_and_residency.length}
               >
                 <div className="space-y-1">
-                  {universalRules.license_and_residency.map((rule, idx) => (
-                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
+                  {universalRules.license_and_residency.map((rule) => (
+                    <RuleItem key={rule.id} rule={rule} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                   ))}
                 </div>
               </AccordionSection>
@@ -1041,8 +1038,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                 count={universalRules.file_processing.length}
               >
                 <div className="space-y-1">
-                  {universalRules.file_processing.map((rule, idx) => (
-                    <RuleItem key={rule.id} rule={rule} index={idx} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
+                  {universalRules.file_processing.map((rule) => (
+                    <RuleItem key={rule.id} rule={rule} onCopy={handleCopy} copiedId={copiedId} onContextMenu={handleContextMenu} />
                   ))}
                 </div>
               </AccordionSection>
@@ -1448,14 +1445,13 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
 // ─── HELPER RULE ITEM COMPONENT ────────────────────────────────────
 interface RuleItemProps {
   rule: ComplianceRule;
-  index: number;
   onCopy: (text: string, id: string) => void;
   copiedId: string | null;
   onContextMenu: (e: React.MouseEvent, rule: ComplianceRule) => void;
 }
 
 const RuleItem: React.FC<RuleItemProps> = React.memo((
-  { rule, index, onCopy, copiedId, onContextMenu }
+  { rule, onCopy, copiedId, onContextMenu }
 ) => {
   return (
     <div 
@@ -1474,6 +1470,7 @@ const RuleItem: React.FC<RuleItemProps> = React.memo((
     </div>
   );
 });
+RuleItem.displayName = 'RuleItem';
 
 // ─── HELPER COPY BUTTON COMPONENT ───────────────────────────────────
 interface CopyButtonProps {
@@ -1506,3 +1503,4 @@ const CopyButton: React.FC<CopyButtonProps> = React.memo(({ text, id, copiedId, 
     </button>
   );
 });
+CopyButton.displayName = 'CopyButton';

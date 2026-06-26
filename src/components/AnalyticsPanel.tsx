@@ -47,10 +47,24 @@ const GrowthBadge: React.FC<{ trend: 'up' | 'down' | 'neutral'; label: string }>
   );
 };
 
+const monthsList = [
+  { value: '01', name: 'January' },
+  { value: '02', name: 'February' },
+  { value: '03', name: 'March' },
+  { value: '04', name: 'April' },
+  { value: '05', name: 'May' },
+  { value: '06', name: 'June' },
+  { value: '07', name: 'July' },
+  { value: '08', name: 'August' },
+  { value: '09', name: 'September' },
+  { value: '10', name: 'October' },
+  { value: '11', name: 'November' },
+  { value: '12', name: 'December' },
+];
+
 export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   records,
   profilesList,
-  profile,
   recordsLoading = false,
 }) => {
   // Load all records from IndexedDB cache asynchronously to get complete annual stats
@@ -109,22 +123,6 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   // Selected Month for staff line chart and monthly filters
   const currentMonthStr = String(new Date().getMonth() + 1).padStart(2, '0');
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
-
-  // Available months list for selector
-  const monthsList = [
-    { value: '01', name: 'January' },
-    { value: '02', name: 'February' },
-    { value: '03', name: 'March' },
-    { value: '04', name: 'April' },
-    { value: '05', name: 'May' },
-    { value: '06', name: 'June' },
-    { value: '07', name: 'July' },
-    { value: '08', name: 'August' },
-    { value: '09', name: 'September' },
-    { value: '10', name: 'October' },
-    { value: '11', name: 'November' },
-    { value: '12', name: 'December' },
-  ];
 
   // Tooltip state for monthly bar chart
   const [hoveredBar, setHoveredBar] = useState<{
