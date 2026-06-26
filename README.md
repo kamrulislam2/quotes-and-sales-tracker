@@ -143,6 +143,13 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v2.1.2
+
+**Daily Tracking Data Auto-Cleanup & Code Architecture Refactoring**
+
+- ✅ **Daily Tracking Data Auto-Cleanup**: Automatically wipes stored document tracking keys/hashes from Local Storage at the beginning of each day to prevent storage usage from bloating indefinitely.
+- ✅ **Code Architecture Refactoring**: Separated and modularized frontend record management, sync states, and complex UI event handlers into separate hooks, improving maintainability and reducing direct dashboard codebase complexity.
+
 ### v2.1.1
 
 **Tauri Updater Relaunch Permission Fix, Startup Timeout Loop Resolution, & Tab Reload Flicker Prevention**
