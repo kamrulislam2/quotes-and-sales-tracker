@@ -143,6 +143,15 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v2.1.0
+
+**Outlook Rich HTML Document Saving, Skeleton Loaders Performance Optimization, & Reload Persistence**
+
+- ✅ **Outlook Rich HTML Document Saving**: Integrated a "Save File" panel next to "Copy Helper" to paste rich HTML (tables, styles, highlights) from Outlook, select a record to auto-generate the filename, and save as `.docx` documents to today's daily directory (segregated into `Sold/` and `Unsold/` subdirectories for Sales, and directly under base directory for other types).
+- ✅ **Lazy Loading & Skeleton Loader Screens**: Extracted heavy panel markups (Copy Helper, Save File, User Management) into modular components, lazy-loaded them alongside main components via React `lazy` to shrink initial bundle sizes, and wrapped them in `Suspense` with bespoke, glassmorphism-themed `SkeletonLoader` presets for stats, tables, forms, logs, rules, and chart cards.
+- ✅ **Save File Panel Reload Persistence**: Converted toggle states to React lazy state initializers to prevent mount-time race conditions, ensuring page reloads preserve the active "Save File" helper panel.
+- ✅ **Save As Validation & Button Renaming**: Renamed button to "Save As" and added custom states/mutation observers to disable it dynamically when the rich-text editor is empty or no filename record is checked.
+
 ### v2.0.4
 
 **macOS App Relaunch Error Fix & Windows Update Relaunch Lock Resolution**
