@@ -56,6 +56,13 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v2.0.2:
+            * **Choice Modal Escape Close**: Added keyboard event listeners to close the SOLD/UNSOLD decision popup on pressing the `Escape` key, letting users edit the form without losing input data.
+            * **Dynamic Branch Rules & Fines Relevance Filtering**: Added intelligent relevance matching to filter universal rules/penalties, automatically hiding rules with matching keywords from other companies (e.g. `EUI` or `Second Best Price`) unless their specific company is selected.
+            * **Strict Mode Concurrency Lock & Pre-checks**: Implemented module-level seeding lock (`seedingInProgress`) and database verification checks to prevent concurrent duplicate seeding execution in React StrictMode.
+            * **Rules State Deduplication & Database Cleanup**: Wrote composite-key client-side deduplication for the rule lists and implemented auto-cleanup script matching for admin user accounts.
+            * **React Compiler Compatibility Hook Refactoring**: Rewrote dependency lists of callback hooks to reference root objects directly for proper compiler optimization.
+
             ### 🚀 What's New in v2.0.1:
             * **Circular Checkboxes & UI Redesign**: Redesigned all permitted category checkboxes and permission checkboxes (e.g. "Can Manage Quote Rules?", "Change Password?") to render as modern, circular, custom-styled check indicators using Check icons, matching dashboard count cards styling.
             * **Escape Key Support**: Added keyboard action listeners so that pressing the `Escape` key closes all active sub-dialogs/modals (Add, Edit, Delete, History) in the Quote Rules and other panels.

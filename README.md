@@ -143,6 +143,16 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v2.0.2
+
+**Escape Key for Choice Modal, Dynamic Branch Filtering, Seeding Lock & State Deduplication**
+
+- ✅ **SOLD/UNSOLD Choice Modal Escape Close**: Added a global keyboard event listener specifically for the SOLD/UNSOLD decision dialog. Pressing `Escape` now safely closes the modal, allowing users to return to edit form fields without losing their input.
+- ✅ **Dynamic Branch Rules Relevance Filtering**: Implemented company keyword mapping to filter rules and admin fines. Dynamic logic checks if a rule text contains key terms from other companies (e.g. `EUI`, `Second Best Price`) and automatically hides them unless the corresponding company is selected, avoiding cross-branch mistakes.
+- ✅ **Seeding Concurrency Lock & Database Pre-checks**: Added a module-level `seedingInProgress` flag and pre-flight database rule checks inside `seedRules` to prevent concurrent execution/double seeding in React 18/19 StrictMode and concurrent renders.
+- ✅ **Rules Deduplication & Background Database Cleanup**: Cleaned up duplicated rules from the Supabase backend database for admins, and added client-side deduplication using composite keys on rules data fetching.
+- ✅ **React Compiler Hook Dependency Alignment**: Updated `useCallback` hook dependencies to comply with strict memoization rules, listing root object dependencies (e.g. `profile`) directly.
+
 ### v2.0.1
 
 **Circular Checkbox Redesign, escape Close Modals, Admin Permission Auto-checked & Codebase Audit Refinement**
