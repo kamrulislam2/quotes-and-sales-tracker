@@ -14,6 +14,7 @@ import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
 import { AdminViewToggle } from "@/components/AdminViewToggle";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { AuditLogsPanel } from "@/components/AuditLogsPanel";
+import { QuoteRulesPanel } from "@/components/QuoteRulesPanel";
 import { validator } from "@/utils/validator";
 import {
   calculateSummaryStats,
@@ -46,6 +47,7 @@ import {
   ScrollText,
   Copy,
   ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 
 const ALL_12_FILE_TYPES = [
@@ -100,9 +102,9 @@ export default function Dashboard() {
     logActivity,
   } = dashboardData;
 
-  // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics), 'audit_logs' (Audit Logs)
+  // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics), 'audit_logs' (Audit Logs), 'rules' (Quote Rules)
   const [activeTab, setActiveTab] = useState<
-    "entry" | "monthly" | "users" | "analytics" | "audit_logs"
+    "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules"
   >("entry");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -115,7 +117,8 @@ export default function Dashboard() {
         savedTab === "monthly" ||
         savedTab === "users" ||
         savedTab === "analytics" ||
-        savedTab === "audit_logs")
+        savedTab === "audit_logs" ||
+        savedTab === "rules")
     ) {
       if (
         (savedTab === "users" || savedTab === "analytics" || savedTab === "audit_logs") &&
@@ -124,14 +127,14 @@ export default function Dashboard() {
         setActiveTab("entry");
       } else {
         setActiveTab(
-          savedTab as "entry" | "monthly" | "users" | "analytics" | "audit_logs",
+          savedTab as "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules",
         );
       }
     }
   }, [profile]);
 
   const handleTabChange = (
-    tab: "entry" | "monthly" | "users" | "analytics" | "audit_logs",
+    tab: "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules",
   ) => {
     if (
       (tab === "users" || tab === "analytics" || tab === "audit_logs") &&
@@ -278,6 +281,7 @@ export default function Dashboard() {
   const [newPassword, setNewPassword] = useState("1234");
   const [allowedTypesSelect, setAllowedTypesSelect] =
     useState<string[]>(ALL_12_FILE_TYPES);
+  const [newCanManageRules, setNewCanManageRules] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(
     null,
   );
@@ -462,6 +466,7 @@ export default function Dashboard() {
   const [editUserAllowedTypes, setEditUserAllowedTypes] = useState<string[]>(
     [],
   );
+  const [editUserCanManageRules, setEditUserCanManageRules] = useState(false);
 
   // User deletion state for confirmation modal
   const [deletingUserAccount, setDeletingUserAccount] = useState<{
@@ -1008,6 +1013,7 @@ export default function Dashboard() {
       newRole,
       newFullName,
       allowedTypesSelect,
+      newCanManageRules,
       newPassword,
     );
     if (pw) {
@@ -1017,6 +1023,7 @@ export default function Dashboard() {
       setNewRole("user");
       setNewPassword("1234");
       setAllowedTypesSelect(ALL_12_FILE_TYPES);
+      setNewCanManageRules(false);
       setIsAddUserModalOpen(false);
     }
   };
@@ -1336,6 +1343,30 @@ export default function Dashboard() {
                 }`}
               >
                 Monthly Entry List
+              </span>
+            </button>
+            <button
+              onClick={() => handleTabChange("rules")}
+              title={isSidebarCollapsed ? "Quote Rules" : undefined}
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                isSidebarCollapsed
+                  ? "justify-center gap-3 md:gap-0 px-3 py-3"
+                  : "gap-3 px-4 py-3"
+              } ${
+                activeTab === "rules"
+                  ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
+                  : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
+              }`}
+            >
+              <BookOpen className="h-5 w-5 shrink-0" />
+              <span
+                className={`whitespace-nowrap transition-all duration-200 ${
+                  isSidebarCollapsed
+                    ? "md:w-0 md:opacity-0 md:overflow-hidden"
+                    : "opacity-100"
+                }`}
+              >
+                Quote Rules
               </span>
             </button>
             {profile?.role === "admin" && (
@@ -1964,6 +1995,7 @@ export default function Dashboard() {
                       <th className="px-4 py-3">Name</th>
                       <th className="px-4 py-3">Role</th>
                       <th className="px-4 py-3">Categories</th>
+                      <th className="px-4 py-3">Rules Perm</th>
                       <th className="px-4 py-3 text-right">Manage</th>
                     </tr>
                   </thead>
@@ -1994,7 +2026,7 @@ export default function Dashboard() {
                     ) : filteredProfiles.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="px-4 py-8 text-center text-slate-550"
                         >
                           No registered users found.
@@ -2033,6 +2065,17 @@ export default function Dashboard() {
                               ))}
                             </div>
                           </td>
+                          <td className="px-4 py-2.5">
+                            {u.role === "admin" ? (
+                              <span className="text-[10px] text-slate-500 italic">Always (Admin)</span>
+                            ) : u.can_manage_rules ? (
+                              <span className="text-[10px] font-bold text-emerald-450 px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-900/60">
+                                Allowed
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-500">Not Allowed</span>
+                            )}
+                          </td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="flex justify-end gap-2.5 items-center">
                               <button
@@ -2043,6 +2086,7 @@ export default function Dashboard() {
                                   setEditUserAllowedTypes(
                                     u.allowed_types || [],
                                   );
+                                  setEditUserCanManageRules(!!u.can_manage_rules);
                                 }}
                                 className="p-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all duration-200 hover:scale-125 cursor-pointer"
                                 title="Edit Profile"
@@ -2089,6 +2133,16 @@ export default function Dashboard() {
               logs={auditLogs}
               isLoading={auditLogsLoading}
               onRefresh={fetchAuditLogs}
+            />
+          )}
+
+          {/* TAB 6: QUOTE RULES */}
+          {activeTab === "rules" && (
+            <QuoteRulesPanel
+              profile={profile}
+              sessionUser={sessionUser}
+              isOnline={isOnline}
+              showToast={showToast}
             />
           )}
         </section>
@@ -2157,6 +2211,8 @@ export default function Dashboard() {
           setRole={setEditUserRole}
           allowedTypes={editUserAllowedTypes}
           setAllowedTypes={setEditUserAllowedTypes}
+          canManageRules={editUserCanManageRules}
+          setCanManageRules={setEditUserCanManageRules}
           submitting={submitting}
           onClose={() => setEditingProfile(null)}
           onSave={async (newPasswordToSet) => {
@@ -2171,8 +2227,9 @@ export default function Dashboard() {
             const isAllowedTypesSame =
               oldAllowedTypes.length === editUserAllowedTypes.length &&
               oldAllowedTypes.every((t) => editUserAllowedTypes.includes(t));
+            const isCanManageRulesSame = !!editingProfile.can_manage_rules === editUserCanManageRules;
 
-            const hasProfileChanges = !isFullNameSame || !isRoleSame || !isAllowedTypesSame;
+            const hasProfileChanges = !isFullNameSame || !isRoleSame || !isAllowedTypesSame || !isCanManageRulesSame;
 
             let profileUpdateSuccess = true;
             if (hasProfileChanges) {
@@ -2181,6 +2238,7 @@ export default function Dashboard() {
                 editUserFullName,
                 editUserRole,
                 editUserAllowedTypes,
+                editUserCanManageRules,
               );
             }
 
@@ -2216,12 +2274,15 @@ export default function Dashboard() {
           setNewRole={setNewRole}
           allowedTypes={allowedTypesSelect}
           setAllowedTypes={setAllowedTypesSelect}
+          canManageRules={newCanManageRules}
+          setCanManageRules={setNewCanManageRules}
           submitting={submitting}
           onSubmit={handleCreateUser}
           generatedPassword={generatedPassword}
           onClose={() => {
             setIsAddUserModalOpen(false);
             setGeneratedPassword(null);
+            setNewCanManageRules(false);
           }}
           onCopyPassword={() => {
             if (generatedPassword) {

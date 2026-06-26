@@ -10,6 +10,8 @@ interface EditProfileModalProps {
   setRole: (val: 'admin' | 'user') => void;
   allowedTypes: string[];
   setAllowedTypes: React.Dispatch<React.SetStateAction<string[]>>;
+  canManageRules: boolean;
+  setCanManageRules: (val: boolean) => void;
   submitting: boolean;
   onClose: () => void;
   onSave: (newPassword?: string) => Promise<void>;
@@ -23,6 +25,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   setRole,
   allowedTypes,
   setAllowedTypes,
+  canManageRules,
+  setCanManageRules,
   submitting,
   onClose,
   onSave
@@ -103,6 +107,24 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             allowedTypes={allowedTypes}
             onChange={setAllowedTypes}
           />
+
+          {/* Quote Rules Permission Toggle */}
+          <div className="border-t border-slate-800/80 pt-3">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={canManageRules}
+                onChange={(e) => setCanManageRules(e.target.checked)}
+                className="rounded border-slate-850 bg-slate-955 text-blue-500 focus:ring-0 focus:ring-offset-0 h-4 w-4 cursor-pointer"
+              />
+              <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
+                Can Manage Quote Rules?
+              </span>
+            </label>
+            <p className="text-[10px] text-slate-455 mt-1 ml-6">
+              Allows the user to add, edit, or delete compliance rules and view archive history.
+            </p>
+          </div>
 
           {/* Reset User Password Section */}
           <div className="border-t border-slate-800/80 pt-3 space-y-3">

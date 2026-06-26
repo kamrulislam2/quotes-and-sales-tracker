@@ -823,7 +823,7 @@ export const useDashboardData = () => {
       return false;
     }
   };
-  const createUser = async (username: string, role: 'admin' | 'user', fullName: string, allowedTypes: string[], password?: string) => {
+  const createUser = async (username: string, role: 'admin' | 'user', fullName: string, allowedTypes: string[], canManageRules: boolean, password?: string) => {
     if (!navigator.onLine) {
       showToast('error', 'This action requires an active internet connection.');
       return null;
@@ -851,11 +851,25 @@ export const useDashboardData = () => {
         return null;
       }
 
+      // Update the newly created user profile with can_manage_rules
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username.toUpperCase().trim())
+        .single();
+      
+      if (newProfile && canManageRules) {
+        await supabase
+          .from('profiles')
+          .update({ can_manage_rules: true })
+          .eq('id', newProfile.id);
+      }
+
       // Audit Log
       await logActivity(
         'CREATE_USER',
         null,
-        `Created new user account '${username.toUpperCase().trim()}' (${fullName}) with role '${role}'`
+        `Created new user account '${username.toUpperCase().trim()}' (${fullName}) with role '${role}'${canManageRules ? ' [Quote Rules Permission Granted]' : ''}`
       );
 
       // Refresh the profiles list
@@ -955,7 +969,7 @@ export const useDashboardData = () => {
   };
 
   // Admin: Update user profile details
-  const adminUpdateUserProfile = async (userId: string, fullName: string, role: 'admin' | 'user', allowedTypes: string[]) => {
+  const adminUpdateUserProfile = async (userId: string, fullName: string, role: 'admin' | 'user', allowedTypes: string[], canManageRules: boolean) => {
     if (!navigator.onLine) {
       showToast('error', 'This action requires an active internet connection.');
       return false;
@@ -968,7 +982,8 @@ export const useDashboardData = () => {
         .update({
           full_name: fullName.trim() || null,
           role,
-          allowed_types: allowedTypes
+          allowed_types: allowedTypes,
+          can_manage_rules: canManageRules
         })
         .eq('id', userId);
 
@@ -1010,8 +1025,14 @@ export const useDashboardData = () => {
           }
           changes.push(`Permissions: ${permChanges.join(' & ')}`);
         }
+
+        const oldCanManage = !!targetProfile.can_manage_rules;
+        const newCanManage = canManageRules;
+        if (oldCanManage !== newCanManage) {
+          changes.push(`Quote Rules Permission: '${oldCanManage}' → '${newCanManage}'`);
+        }
       } else {
-        changes.push(`Name: '${fullName.trim()}', Role: '${role}', Allowed Types: [${allowedTypes.join(', ')}]`);
+        changes.push(`Name: '${fullName.trim()}', Role: '${role}', Allowed Types: [${allowedTypes.join(', ')}], Quote Rules Permission: ${canManageRules}`);
       }
 
       const logDetails = changes.length > 0 

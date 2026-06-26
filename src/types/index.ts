@@ -5,6 +5,7 @@ export interface Profile {
   full_name?: string | null;
   allowed_types: string[];
   has_changed_password: boolean;
+  can_manage_rules?: boolean;
   created_at: string;
 }
 
@@ -33,4 +34,42 @@ export interface AuditLogItem {
   target_id: string | null;
   details: string;
   created_at: string;
+}
+
+export interface ComplianceRule {
+  id: string;
+  category: 'announcement' | 'fine' | 'universal' | 'company';
+  sub_category: 'nby_rule' | 'general_pricing' | 'employment' | 'driver_and_usage' | 'license_and_residency' | 'file_processing' | 'branch_priority' | 'doc_extensions' | 'common_rules';
+  company_name: string | null;
+  company_tags: string[] | null;
+  title: string | null;
+  content: string;
+  extra_info: string | null;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+  updated_by: string | null;
+  profiles?: {
+    username: string;
+    full_name: string | null;
+  } | null;
+}
+
+export interface RuleHistory {
+  id: string;
+  rule_id: string;
+  category: string;
+  sub_category: string;
+  company_name: string | null;
+  company_tags: string[] | null;
+  title: string | null;
+  content: string;
+  extra_info: string | null;
+  action_type: 'INSERT' | 'UPDATE' | 'DELETE';
+  archived_at: string;
+  archived_by: string | null;
+  profiles?: {
+    username: string;
+    full_name: string | null;
+  } | null;
 }
