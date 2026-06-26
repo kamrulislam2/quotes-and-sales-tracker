@@ -51,6 +51,13 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [handleEscape]);
 
+  // Auto check Quote Rules management for Admin role
+  useEffect(() => {
+    if (newRole === 'admin' && !canManageRules) {
+      setCanManageRules(true);
+    }
+  }, [newRole, canManageRules, setCanManageRules]);
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4 animate-fade-in">
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -109,7 +116,13 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
             <label className="block text-[11px] font-semibold text-slate-355 mb-1">Account Role</label>
             <select
               value={newRole}
-              onChange={(e) => setNewRole(e.target.value as 'user' | 'admin')}
+              onChange={(e) => {
+                const val = e.target.value as 'user' | 'admin';
+                setNewRole(val);
+                if (val === 'admin') {
+                  setCanManageRules(true);
+                }
+              }}
               className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
             >
               <option value="user">User (Staff)</option>
@@ -125,24 +138,25 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
 
           {/* Quote Rules Permission Toggle */}
           <div className="border-t border-slate-800/80 pt-3">
-            <label className="flex items-center gap-2.5 cursor-pointer group select-none">
+            <label className={`flex items-center gap-2.5 cursor-pointer group select-none ${newRole === 'admin' ? 'opacity-70 pointer-events-none' : ''}`}>
               <div className="relative flex items-center">
                 <input
                   type="checkbox"
                   checked={canManageRules}
+                  disabled={newRole === 'admin'}
                   onChange={(e) => setCanManageRules(e.target.checked)}
                   className="sr-only"
                 />
                 <div className={`h-4 w-4 rounded-full flex items-center justify-center border transition-all shrink-0 ${
-                  canManageRules
+                  (canManageRules || newRole === 'admin')
                     ? 'bg-blue-600 border-blue-500 text-white font-bold'
                     : 'border-slate-700 bg-slate-900 text-transparent'
                 }`}>
-                  {canManageRules && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                  {(canManageRules || newRole === 'admin') && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                 </div>
               </div>
               <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
-                Can Manage Quote Rules?
+                Can Manage Quote Rules? {newRole === 'admin' && <span className="text-[10px] text-slate-500 font-normal italic ml-1">(Always Allowed for Admin)</span>}
               </span>
             </label>
             <p className="text-[10px] text-slate-455 mt-1 ml-6.5">

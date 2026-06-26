@@ -47,6 +47,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [handleEscape]);
 
+  // Auto check Quote Rules management for Admin role
+  useEffect(() => {
+    if (role === 'admin' && !canManageRules) {
+      setCanManageRules(true);
+    }
+  }, [role, canManageRules, setCanManageRules]);
+
   const isPasswordValid = !changePassword || (newPassword.length >= 6 && newPassword.length <= 12 && newPassword === confirmPassword);
 
   const handleUpdate = () => {
@@ -94,7 +101,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <label className="block text-xs font-semibold text-slate-355 mb-1">Account Role</label>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value as 'admin' | 'user')}
+              onChange={(e) => {
+                const val = e.target.value as 'admin' | 'user';
+                setRole(val);
+                if (val === 'admin') {
+                  setCanManageRules(true);
+                }
+              }}
               className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
             >
               <option value="user">User (Staff)</option>
@@ -110,24 +123,25 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
           {/* Quote Rules Permission Toggle */}
           <div className="border-t border-slate-800/80 pt-3">
-            <label className="flex items-center gap-2.5 cursor-pointer group select-none">
+            <label className={`flex items-center gap-2.5 cursor-pointer group select-none ${role === 'admin' ? 'opacity-70 pointer-events-none' : ''}`}>
               <div className="relative flex items-center">
                 <input
                   type="checkbox"
                   checked={canManageRules}
+                  disabled={role === 'admin'}
                   onChange={(e) => setCanManageRules(e.target.checked)}
                   className="sr-only"
                 />
                 <div className={`h-4 w-4 rounded-full flex items-center justify-center border transition-all shrink-0 ${
-                  canManageRules
+                  (canManageRules || role === 'admin')
                     ? 'bg-blue-600 border-blue-500 text-white font-bold'
                     : 'border-slate-700 bg-slate-900 text-transparent'
                 }`}>
-                  {canManageRules && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                  {(canManageRules || role === 'admin') && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                 </div>
               </div>
               <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors">
-                Can Manage Quote Rules?
+                Can Manage Quote Rules? {role === 'admin' && <span className="text-[10px] text-slate-500 font-normal italic ml-1">(Always Allowed for Admin)</span>}
               </span>
             </label>
             <p className="text-[10px] text-slate-455 mt-1 ml-6.5">

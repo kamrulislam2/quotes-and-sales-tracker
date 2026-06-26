@@ -2109,7 +2109,7 @@ export default function Dashboard() {
                                   setEditUserAllowedTypes(
                                     u.allowed_types || [],
                                   );
-                                  setEditUserCanManageRules(!!u.can_manage_rules);
+                                  setEditUserCanManageRules(u.role === 'admin' ? true : !!u.can_manage_rules);
                                 }}
                                 className="p-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-white rounded-lg transition-all duration-200 hover:scale-125 cursor-pointer"
                                 title="Edit Profile"
