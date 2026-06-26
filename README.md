@@ -143,7 +143,7 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
-### v2.0.3
+### v2.0.4
 
 **macOS App Relaunch Error Fix & Windows Update Relaunch Lock Resolution**
 

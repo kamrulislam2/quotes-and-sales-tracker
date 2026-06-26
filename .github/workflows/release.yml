@@ -56,7 +56,7 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
-            ### 🚀 What's New in v2.0.3:
+            ### 🚀 What's New in v2.0.4:
             * **macOS App Relaunch Error Fix**: Resolved "Relaunch and install failed" updater errors on macOS by routing non-Windows OS relaunches through Tauri's official process plugin (`app.restart()`) instead of spawning raw executables directly inside the sandboxed bundle.
             * **Windows Update Launch Lock & Freeze Resolution**: Fixed Windows auto-updates getting stuck on "Loading, please wait..." or blank white screens due to WebView2 user data folder/SQLite database lock contention by introducing a 1.2-second startup sleep delay.
 
