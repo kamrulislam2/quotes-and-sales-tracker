@@ -75,6 +75,57 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
   );
 };
 
+let seedingInProgress = false;
+
+const COMPANY_KEYWORDS_MAP: Record<string, string[]> = {
+  'acorn': ['acorn', 'motorcade', 'protect', 'iresure', 'middlesure'],
+  'marshmallow': ['marshmallow', 'move', 'go box'],
+  'esure': ['esure', 'flex', 'sheilas', 'wheels'],
+  'eui': ['eui', 'admiral', 'elephant', 'diamond', 'ford', 'bellbox'],
+  'tesco': ['tesco'],
+  'hastings': ['hastings', 'youdrive'],
+  '1st central': ['1st central', 'first central'],
+  'go girl': ['go girl', 'insure2drive', 'gogirl'],
+  'quote me happy': ['quote me happy', 'quotemehappy', 'aviva', 'general accident'],
+  'axa': ['axa', 'swiftcover', 'moja'],
+  'sainsbury': ['sainsbury', 'sainsburys'],
+  'sheffield': ['sheffield', 'swan drive', 'swandrive']
+};
+
+const getMentionedCompanies = (text: string): string[] => {
+  const lowercaseText = text.toLowerCase();
+  const mentioned: string[] = [];
+  Object.entries(COMPANY_KEYWORDS_MAP).forEach(([companyKey, keywords]) => {
+    const hasKeyword = keywords.some(keyword => lowercaseText.includes(keyword));
+    if (hasKeyword) {
+      mentioned.push(companyKey);
+    }
+  });
+  return mentioned;
+};
+
+const getCompanyKey = (name: string): string | null => {
+  const lowercaseName = name.toLowerCase();
+  for (const [companyKey, keywords] of Object.entries(COMPANY_KEYWORDS_MAP)) {
+    if (keywords.some(keyword => lowercaseName.includes(keyword))) {
+      return companyKey;
+    }
+  }
+  return null;
+};
+
+const isRuleRelevant = (ruleContent: string, selectedName: string | null): boolean => {
+  if (!selectedName) return true; // Show all if no company selected
+  
+  const mentioned = getMentionedCompanies(ruleContent);
+  if (mentioned.length === 0) return true; // General rule
+  
+  const selectedKey = getCompanyKey(selectedName);
+  if (!selectedKey) return true; // Fallback if selected company not mapped
+  
+  return mentioned.includes(selectedKey);
+};
+
 export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   profile,
   sessionUser,
@@ -150,14 +201,42 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setRules(data || []);
+      
+      const uniqueRulesMap = new Map();
+      const duplicateIdsToDelete: string[] = [];
+      
+      (data || []).forEach((r: any) => {
+        const key = `${r.category}_${r.sub_category}_${r.company_name || ''}_${r.title || ''}_${r.content}`;
+        if (!uniqueRulesMap.has(key)) {
+          uniqueRulesMap.set(key, r);
+        } else {
+          duplicateIdsToDelete.push(r.id);
+        }
+      });
+      
+      setRules(Array.from(uniqueRulesMap.values()));
+
+      // Background cleanup of duplicate rules for admins
+      if (duplicateIdsToDelete.length > 0 && profile?.role === 'admin' && isOnline) {
+        supabase
+          .from('compliance_rules')
+          .delete()
+          .in('id', duplicateIdsToDelete)
+          .then(({ error: deleteError }) => {
+            if (!deleteError) {
+              console.log(`Deduplication: Cleaned up ${duplicateIdsToDelete.length} duplicate rules from database.`);
+            } else {
+              console.error('Deduplication: Failed to delete duplicate database rules:', deleteError);
+            }
+          });
+      }
     } catch (err) {
       console.error('Error fetching compliance rules:', err);
       showToast('error', 'Failed to load rules.');
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, profile, isOnline]);
 
   // Trigger rules query on mount
   useEffect(() => {
@@ -180,8 +259,20 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   }, []);
 
   const seedRules = async () => {
+    if (seedingInProgress) return;
+    seedingInProgress = true;
     setLoading(true);
     try {
+      // Double check if rules exist in database before insertion
+      const { count } = await supabase
+        .from('compliance_rules')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_deleted', false);
+      if (count && count > 0) {
+        seedingInProgress = false;
+        return;
+      }
+
       const rowsToInsert: any[] = [];
 
       // 1. Global Announcements
@@ -286,6 +377,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
       console.error('Failed to seed rules database:', err);
       showToast('error', 'Seeding failed: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
+      seedingInProgress = false;
       setLoading(false);
     }
   };
@@ -318,17 +410,24 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   }, [rules]);
 
   const adminFines = useMemo(() => {
-    return rules.filter(r => r.category === 'fine');
-  }, [rules]);
+    const fines = rules.filter(r => r.category === 'fine');
+    if (!selectedCompanyName) return fines;
+    return fines.filter(r => isRuleRelevant(r.content || '', selectedCompanyName) || isRuleRelevant(r.title || '', selectedCompanyName));
+  }, [rules, selectedCompanyName]);
 
   const universalRules = useMemo(() => {
-    return {
-      employment: rules.filter(r => r.category === 'universal' && r.sub_category === 'employment'),
-      driver_and_usage: rules.filter(r => r.category === 'universal' && r.sub_category === 'driver_and_usage'),
-      license_and_residency: rules.filter(r => r.category === 'universal' && r.sub_category === 'license_and_residency'),
-      file_processing: rules.filter(r => r.category === 'universal' && r.sub_category === 'file_processing')
+    const filterFn = (r: ComplianceRule) => {
+      if (!selectedCompanyName) return true;
+      return isRuleRelevant(r.content || '', selectedCompanyName) || isRuleRelevant(r.title || '', selectedCompanyName);
     };
-  }, [rules]);
+
+    return {
+      employment: rules.filter(r => r.category === 'universal' && r.sub_category === 'employment').filter(filterFn),
+      driver_and_usage: rules.filter(r => r.category === 'universal' && r.sub_category === 'driver_and_usage').filter(filterFn),
+      license_and_residency: rules.filter(r => r.category === 'universal' && r.sub_category === 'license_and_residency').filter(filterFn),
+      file_processing: rules.filter(r => r.category === 'universal' && r.sub_category === 'file_processing').filter(filterFn)
+    };
+  }, [rules, selectedCompanyName]);
 
   // Unique list of companies derived from the database rules
   const uniqueCompanies = useMemo(() => {
