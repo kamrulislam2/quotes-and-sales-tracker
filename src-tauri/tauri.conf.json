@@ -19,7 +19,8 @@
         "resizable": true,
         "fullscreen": false,
         "maximized": true,
-        "url": "index.html"
+        "url": "index.html",
+        "backgroundColor": "#020617"
       }
     ],
     "security": {

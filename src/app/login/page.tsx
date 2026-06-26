@@ -42,18 +42,10 @@ export default function LoginPage() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        // Create a 4-second timeout promise to prevent hanging on initial boot database locks
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session check timed out')), 4000)
-        );
-
-        const result = await Promise.race([
-          supabase.auth.getSession(),
-          timeoutPromise
-        ]) as { data: { session: unknown } | null; error: unknown };
-
-        const session = result?.data?.session;
-        const sessionError = result?.error;
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
 
         if (session) {
@@ -61,17 +53,6 @@ export default function LoginPage() {
         }
       } catch (err) {
         console.error("Error during checkUser session check:", err);
-
-        // Self-healing reload on timeout/error
-        if (typeof window !== "undefined") {
-          const reloadCount = sessionStorage.getItem("quotes_sales_login_reload_count") || "0";
-          if (parseInt(reloadCount, 10) < 1) {
-            sessionStorage.setItem("quotes_sales_login_reload_count", "1");
-            console.warn("Session check failed or timed out. Attempting self-healing reload...");
-            window.location.reload();
-            return;
-          }
-        }
       }
     };
     

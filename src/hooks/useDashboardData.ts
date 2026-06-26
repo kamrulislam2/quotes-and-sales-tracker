@@ -1210,21 +1210,11 @@ export const useDashboardData = () => {
   useEffect(() => {
     const getSession = async () => {
       try {
-        // Create a 4-second timeout promise to prevent hanging on initial boot database locks
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database session retrieval timed out')), 4000)
-        );
-
-        const sessionResult = await Promise.race([
-          supabase.auth.getSession(),
-          timeoutPromise
-        ]) as { data: { session: { user: SupabaseUser } | null } | null; error: unknown };
-
-        const session = sessionResult?.data?.session;
-        const sessionError = sessionResult?.error;
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
 
         if (!session) {
+          setLoading(false);
           router.push('/login');
           return;
         }
@@ -1242,6 +1232,7 @@ export const useDashboardData = () => {
               localStorage.removeItem('quotes_sales_last_activity');
               await supabase.auth.signOut();
               showToast('error', 'Logged out due to 21 days of inactivity.');
+              setLoading(false);
               router.push('/login');
               return;
             }
@@ -1252,29 +1243,21 @@ export const useDashboardData = () => {
         const userId = session.user.id;
         setSessionUser(session.user);
 
-        // Fetch user profile with its own independent timeout safety net
+        // Fetch user profile
         let userProfile: Profile | null = null;
         let fetchSuccess = false;
 
         try {
-          const profileTimeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Profile fetch timed out')), 4000)
-          );
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
 
-          const profileResult = await Promise.race([
-            supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', userId)
-              .maybeSingle(),
-            profileTimeoutPromise
-          ]) as { data: Profile | null; error: unknown };
-
-          const profileError = profileResult?.error;
           if (profileError) throw profileError;
 
-          if (profileResult?.data) {
-            userProfile = profileResult.data;
+          if (profileData) {
+            userProfile = profileData;
             fetchSuccess = true;
             // Cache profile in localStorage
             if (typeof window !== 'undefined') {
@@ -1306,6 +1289,7 @@ export const useDashboardData = () => {
             if (typeof window !== 'undefined') {
               localStorage.removeItem('quotes_sales_profile');
             }
+            setLoading(false);
             router.push('/login');
             return;
           } else {
@@ -1328,17 +1312,6 @@ export const useDashboardData = () => {
               setLoading(false);
               return;
             } catch {}
-          }
-        }
-
-        // Self-healing: if the startup check timed out or failed, try reloading once to resolve locks/initialization bugs
-        if (typeof window !== 'undefined') {
-          const reloadCount = sessionStorage.getItem('quotes_sales_startup_reload_count') || '0';
-          if (parseInt(reloadCount, 10) < 1) {
-            sessionStorage.setItem('quotes_sales_startup_reload_count', '1');
-            console.warn('Startup check failed or timed out. Attempting self-healing reload...');
-            window.location.reload();
-            return;
           }
         }
 
