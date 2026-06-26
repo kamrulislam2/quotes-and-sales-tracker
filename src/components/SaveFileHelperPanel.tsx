@@ -39,6 +39,34 @@ export const SaveFileHelperPanel: React.FC<SaveFileHelperPanelProps> = ({
   handleDeleteDocument,
   setShowSaveFileHelper,
 }) => {
+  const [isEditorEmpty, setIsEditorEmpty] = React.useState(true);
+
+  React.useEffect(() => {
+    const handleInput = () => {
+      if (editorRef.current) {
+        const text = editorRef.current.innerText || "";
+        const html = editorRef.current.innerHTML || "";
+        const cleanHtml = html.replace(/<br\s*\/?>/gi, "").trim();
+        setIsEditorEmpty(text.trim() === "" && cleanHtml === "");
+      }
+    };
+
+    const editorEl = editorRef.current;
+    if (editorEl) {
+      editorEl.addEventListener("input", handleInput);
+      
+      const observer = new MutationObserver(handleInput);
+      observer.observe(editorEl, { childList: true, characterData: true, subtree: true });
+
+      handleInput();
+
+      return () => {
+        editorEl.removeEventListener("input", handleInput);
+        observer.disconnect();
+      };
+    }
+  }, [editorRef]);
+
   return (
     <div className="bg-slate-955/20 border border-slate-850 rounded-2xl p-5 space-y-6 animate-fade-in text-slate-100">
       <div className="flex justify-between items-center border-b border-slate-850/80 pb-4">
@@ -164,8 +192,13 @@ export const SaveFileHelperPanel: React.FC<SaveFileHelperPanelProps> = ({
             {savedFilePath ? (
               <>
                 <button
+                  disabled={isEditorEmpty}
                   onClick={handleUpdateWord}
-                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md transition-all cursor-pointer"
+                  className={`flex items-center gap-1.5 font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md transition-all ${
+                    isEditorEmpty
+                      ? "bg-slate-800 text-slate-500 border border-slate-755 cursor-not-allowed"
+                      : "bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white cursor-pointer"
+                  }`}
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Save / Update File</span>
@@ -180,11 +213,16 @@ export const SaveFileHelperPanel: React.FC<SaveFileHelperPanelProps> = ({
               </>
             ) : (
               <button
+                disabled={isEditorEmpty || !selectedRecordIdForSave}
                 onClick={handleSaveAsWord}
-                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md transition-all cursor-pointer"
+                className={`flex items-center gap-1.5 font-semibold text-xs py-2.5 px-4 rounded-xl shadow-md transition-all ${
+                  isEditorEmpty || !selectedRecordIdForSave
+                    ? "bg-slate-800 text-slate-500 border border-slate-755 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white cursor-pointer"
+                }`}
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>Save As Word Document</span>
+                <span>Save As</span>
               </button>
             )}
           </div>
