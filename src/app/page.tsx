@@ -347,6 +347,15 @@ export default function Dashboard() {
   });
   const [savedRecordIds, setSavedRecordIds] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
+      const savedDate = localStorage.getItem("quotes_sales_saved_docs_date");
+      const todayDate = new Date().toDateString();
+      if (savedDate !== todayDate) {
+        // New day — clear yesterday's saved document tracking data
+        localStorage.removeItem("quotes_sales_saved_record_ids");
+        localStorage.removeItem("quotes_sales_saved_documents");
+        localStorage.setItem("quotes_sales_saved_docs_date", todayDate);
+        return [];
+      }
       const saved = localStorage.getItem("quotes_sales_saved_record_ids");
       return saved ? JSON.parse(saved) : [];
     }
@@ -354,6 +363,11 @@ export default function Dashboard() {
   });
   const [savedDocuments, setSavedDocuments] = useState<SavedDocument[]>(() => {
     if (typeof window !== "undefined") {
+      const savedDate = localStorage.getItem("quotes_sales_saved_docs_date");
+      const todayDate = new Date().toDateString();
+      if (savedDate !== todayDate) {
+        return [];
+      }
       const saved = localStorage.getItem("quotes_sales_saved_documents");
       return saved ? JSON.parse(saved) : [];
     }
