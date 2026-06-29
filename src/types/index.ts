@@ -82,3 +82,10 @@ export interface SavedDocument {
   recordId: string;
   savedAt: string;
 }
+
+export interface LoginCode {
+  login_id: string;
+  code: string;
+  name?: string | null;
+  updated_at?: string;
+}

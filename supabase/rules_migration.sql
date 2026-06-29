@@ -81,8 +81,15 @@ CREATE TRIGGER trg_archive_rule_changes
 
 -- 6. Setup RLS policies
 -- Policies for compliance_rules
+DROP POLICY IF EXISTS "Allow authenticated to read compliance rules" ON public.compliance_rules;
 CREATE POLICY "Allow authenticated to read compliance rules" ON public.compliance_rules
-  FOR SELECT TO authenticated USING (NOT is_deleted);
+  FOR SELECT TO authenticated USING (
+    NOT is_deleted 
+    OR EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND (role = 'admin' OR can_manage_rules = TRUE)
+    )
+  );
 
 CREATE POLICY "Allow admins or authorized editors to insert rules" ON public.compliance_rules
   FOR INSERT TO authenticated WITH CHECK (

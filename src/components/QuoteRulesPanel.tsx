@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom';
 import { supabase } from '@/utils/supabase';
 import { Profile, ComplianceRule, RuleHistory } from '@/types';
+import { LoginCodesModal } from './LoginCodesModal';
 import { INSURANCE_DATABASE } from '@/utils/initialRulesData';
 import { 
   Search, 
@@ -20,7 +21,8 @@ import {
   History, 
   Sparkles,
   Loader2,
-  Check
+  Check,
+  Key
 } from 'lucide-react';
 
 interface QuoteRulesPanelProps {
@@ -158,6 +160,10 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   const [ruleToEdit, setRuleToEdit] = useState<ComplianceRule | null>(null);
   const [ruleToDelete, setRuleToDelete] = useState<ComplianceRule | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Login Code States
+  const [isLoginCodesModalOpen, setIsLoginCodesModalOpen] = useState(false);
 
   // Close all open modals on Escape key press
   useEffect(() => {
@@ -167,12 +173,13 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
         if (isEditModalOpen) setIsEditModalOpen(false);
         if (ruleToDelete) setRuleToDelete(null);
         if (isHistoryModalOpen) setIsHistoryModalOpen(false);
+        if (isLoginCodesModalOpen) setIsLoginCodesModalOpen(false);
       }
     };
     
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isAddModalOpen, isEditModalOpen, ruleToDelete, isHistoryModalOpen]);
+  }, [isAddModalOpen, isEditModalOpen, ruleToDelete, isHistoryModalOpen, isLoginCodesModalOpen]);
 
   // Form States for Add/Edit
   const [formCategory, setFormCategory] = useState<'announcement' | 'fine' | 'universal' | 'company'>('company');
@@ -191,8 +198,8 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   // Fetch rules from Supabase
-  const fetchRules = useCallback(async () => {
-    setLoading(true);
+  const fetchRules = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const { data, error } = await supabase
         .from('compliance_rules')
@@ -495,6 +502,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
     }
 
     try {
+      setSubmitting(true);
       const payload: any = {
         category: formCategory,
         sub_category: formSubCategory,
@@ -539,10 +547,12 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
       showToast('success', 'Rule added successfully!');
       setIsAddModalOpen(false);
       resetForm();
-      fetchRules();
+      await fetchRules(true);
     } catch (err) {
       console.error('Failed to add rule:', err);
       showToast('error', 'Error adding rule.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -556,6 +566,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
     }
 
     try {
+      setSubmitting(true);
       const payload: any = {
         content: formContent.trim(),
         updated_by: sessionUser?.id
@@ -589,10 +600,12 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
       setIsEditModalOpen(false);
       setRuleToEdit(null);
       resetForm();
-      fetchRules();
+      await fetchRules(true);
     } catch (err) {
       console.error('Failed to edit rule:', err);
       showToast('error', 'Error updating rule.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -600,6 +613,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   const handleDeleteRule = async () => {
     if (!ruleToDelete || !isOnline) return;
     try {
+      setSubmitting(true);
       const { error } = await supabase
         .from('compliance_rules')
         .update({ is_deleted: true, updated_by: sessionUser?.id })
@@ -618,10 +632,12 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
 
       showToast('success', 'Rule deleted successfully!');
       setRuleToDelete(null);
-      fetchRules();
-    } catch (err) {
-      console.error('Failed to delete rule:', err);
+      await fetchRules(true);
+    } catch (err: any) {
+      console.error('Failed to delete rule:', err?.message || err, err?.details, err?.hint);
       showToast('error', 'Error deleting rule.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -722,23 +738,33 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
         {/* Global Action Panel */}
         <div className="flex items-center gap-3 self-start md:self-auto">
           {canEdit && (
-            <>
-              <button
-                onClick={viewHistory}
-                className="flex items-center gap-1.5 py-2 px-3.5 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200"
-                title="View Rules Edit Archives"
-              >
-                <History className="h-3.5 w-3.5" />
-                History Archive
-              </button>
-              <button
-                onClick={() => handleOpenAddModal('company')}
-                className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-950/20 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"
-              >
-                <PlusCircle className="h-3.5 w-3.5" />
-                Add Rule
-              </button>
-            </>
+            <button
+              onClick={viewHistory}
+              className="flex items-center gap-1.5 py-2 px-3.5 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200"
+              title="View Rules Edit Archives"
+            >
+              <History className="h-3.5 w-3.5" />
+              History Archive
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsLoginCodesModalOpen(true)}
+            className="flex items-center gap-1.5 py-2 px-3.5 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200"
+            title="View User Login Codes"
+          >
+            <Key className="h-3.5 w-3.5 text-blue-500" />
+            Login Code
+          </button>
+
+          {canEdit && (
+            <button
+              onClick={() => handleOpenAddModal('company')}
+              className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-semibold text-white bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-950/20 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Add Rule
+            </button>
           )}
         </div>
       </div>
@@ -1303,13 +1329,13 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 py-2 bg-slate-955 border border-slate-800 hover:bg-slate-800/80 text-slate-300 hover:text-white rounded-lg font-semibold transition-all duration-200"
+                  className="flex-1 py-2 bg-slate-955 border border-slate-800 hover:bg-slate-800/80 text-slate-300 hover:text-white rounded-lg font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-lg font-semibold transition-all duration-200"
+                  className="flex-1 py-2 bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-lg font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Save Rule
                 </button>
@@ -1405,16 +1431,25 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"
+                  disabled={submitting}
                   onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 py-2 bg-slate-955 border border-slate-800 hover:bg-slate-800/80 text-slate-300 hover:text-white rounded-lg font-semibold transition-all duration-200"
+                  className="flex-1 py-2 bg-slate-955 border border-slate-800 hover:bg-slate-800/80 text-slate-300 hover:text-white rounded-lg font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-lg font-semibold transition-all duration-200"
+                  disabled={submitting}
+                  className="flex-1 py-2 bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white rounded-lg font-semibold transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-1.5"
                 >
-                  Save Changes
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
                 </button>
               </div>
             </form>
@@ -1437,16 +1472,25 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
             </p>
             <div className="flex gap-3">
               <button
+                disabled={submitting}
                 onClick={() => setRuleToDelete(null)}
-                className="flex-1 py-2 bg-slate-955 border border-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200"
+                className="flex-1 py-2 bg-slate-955 border border-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
+                disabled={submitting}
                 onClick={handleDeleteRule}
-                className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200"
+                className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
-                Delete
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
               </button>
             </div>
           </div>
@@ -1535,6 +1579,16 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
           </div>
         </div>,
         document.body
+      )}
+
+      {mounted && (
+        <LoginCodesModal 
+          isOpen={isLoginCodesModalOpen} 
+          onClose={() => setIsLoginCodesModalOpen(false)} 
+          canEdit={canEdit} 
+          isOnline={isOnline} 
+          showToast={showToast} 
+        />
       )}
 
     </div>
