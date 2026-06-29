@@ -143,6 +143,18 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v3.0.0
+
+**Quotes Portal, IP Geolocation Checker, Login Codes Manager, Rules Archive History & Clear History**
+
+- ✅ **Quotes Portal Rebrand**: Renamed the sidebar navigation tab from "Quote Rules" to "Quotes Portal" for a clearer, unified identity.
+- ✅ **IP Geolocation Checker**: Integrated a built-in IP address lookup tool accessible from the Quotes Portal. Detects the user's public IP automatically and provides geolocation details (city, region, country, ISP, timezone) with a sleek auto-hiding scrollbar UI.
+- ✅ **Login Codes Manager**: Added a secure login codes management modal for storing, viewing, copying, and managing company login credentials directly within the Quotes Portal, with role-based edit permissions.
+- ✅ **Rules Archive History & Audit Trail**: Built a comprehensive archive/history modal showing all rule modifications (additions, edits, deletions) with timestamps, admin codenames, and categorized action badges. Duplicate entries are consolidated, and each admin's changes display their unique codename.
+- ✅ **Admin Clear History with Custom Modal**: Replaced the native browser `confirm()` dialog with a premium, animated confirmation modal featuring a pulsing warning icon, danger-styled messaging, fade-in animation, and explicit "Delete All" action for admins to permanently clear rules history.
+- ✅ **Auto-Hiding Custom Scrollbars**: Applied sleek, 5px auto-hiding scrollbar styling across all modal windows (History, Login Codes, IP Checker) — scrollbar appears only on hover for a clean, distraction-free UI.
+- ✅ **Supabase RLS Policy for History Deletion**: Added a dedicated Row-Level Security policy allowing only admin-role users to delete rules history records from the database.
+
 ### v2.1.2
 
 **Daily Tracking Data Auto-Cleanup & Code Architecture Refactoring**

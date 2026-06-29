@@ -15,7 +15,8 @@ import {
   PlusCircle, 
   Trash2, 
   Edit, 
-  ShieldAlert, 
+  ShieldAlert,
+  AlertTriangle, 
   BookOpen, 
   AlertCircle, 
   ArrowLeft, 
@@ -162,6 +163,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   const [ruleToEdit, setRuleToEdit] = useState<ComplianceRule | null>(null);
   const [ruleToDelete, setRuleToDelete] = useState<ComplianceRule | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Login Code & IP Checker States
@@ -663,6 +665,42 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
     } catch (err) {
       console.error('Error fetching rules history:', err);
       showToast('error', 'Failed to load archive history.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (profile?.role !== 'admin') {
+      showToast('error', 'Only administrators can clear rules history.');
+      return;
+    }
+    setShowClearConfirm(true);
+  };
+
+  const executeClearHistory = async () => {
+    setShowClearConfirm(false);
+    setHistoryLoading(true);
+    try {
+      const { error } = await supabase
+        .from('rules_history')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (error) throw error;
+
+      await supabase.from('audit_logs').insert({
+        actor_id: sessionUser?.id,
+        actor_codename: profile?.username || 'SYSTEM',
+        action_type: 'CLEAR_RULES_HISTORY',
+        details: 'Admin permanently cleared the rules edit history archive'
+      });
+
+      setHistoryList([]);
+      showToast('success', 'Rules history cleared successfully.');
+    } catch (err: any) {
+      console.error('Error clearing rules history:', err);
+      showToast('error', err?.message || 'Failed to clear history.');
     } finally {
       setHistoryLoading(false);
     }
@@ -1537,51 +1575,85 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                   No rule edits have been archived yet.
                 </div>
               ) : (
-                historyList.map((item) => (
-                  <div key={item.id} className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-xl space-y-2">
-                    <div className="flex justify-between items-center flex-wrap gap-2 text-[10px]">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-1.5 py-0.5 rounded font-bold ${
-                          item.action_type === 'UPDATE' 
-                            ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20' 
-                            : 'bg-red-600/10 text-red-400 border border-red-500/20'
-                        }`}>
-                          {item.action_type}
-                        </span>
-                        <span className="text-slate-400 font-semibold uppercase tracking-wider">
-                          {item.category} / {item.sub_category}
+                (() => {
+                  const seen = new Set();
+                  const uniqueList = historyList.filter(item => {
+                    const key = `${item.rule_id}_${item.action_type}_${item.title || ''}_${item.content || ''}_${item.extra_info || ''}_${item.archived_by || ''}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                  });
+
+                  if (uniqueList.length === 0) {
+                    return (
+                      <div className="text-center py-12 italic text-slate-550">
+                        No unique rule changes archived yet.
+                      </div>
+                    );
+                  }
+
+                  return uniqueList.map((item) => (
+                    <div key={item.id} className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-xl space-y-2">
+                      <div className="flex justify-between items-center flex-wrap gap-2 text-[10px]">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-1.5 py-0.5 rounded font-bold ${
+                            item.action_type === 'UPDATE' 
+                              ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20' 
+                              : 'bg-red-600/10 text-red-400 border border-red-500/20'
+                          }`}>
+                            {item.action_type}
+                          </span>
+                          <span className="text-slate-400 font-semibold uppercase tracking-wider">
+                            {item.category} / {item.sub_category}
+                          </span>
+                        </div>
+                        <span className="text-slate-500 font-mono">
+                          {formatArchiveTime(item.archived_at)}
                         </span>
                       </div>
-                      <span className="text-slate-500 font-mono">
-                        {formatArchiveTime(item.archived_at)}
-                      </span>
-                    </div>
 
-                    {item.company_name && (
-                      <p className="font-bold text-slate-200 text-xs">
-                        Company: {item.company_name}
-                      </p>
-                    )}
-                    
-                    {item.title && (
-                      <p className="font-bold text-slate-200 text-xs">
-                        Title: {item.title} {item.extra_info && <span className="text-slate-400">({item.extra_info})</span>}
-                      </p>
-                    )}
+                      {item.company_name && (
+                        <p className="font-bold text-slate-200 text-xs">
+                          Company: {item.company_name}
+                        </p>
+                      )}
+                      
+                      {item.title && (
+                        <p className="font-bold text-slate-200 text-xs">
+                          Title: {item.title} {item.extra_info && <span className="text-slate-400">({item.extra_info})</span>}
+                        </p>
+                      )}
 
-                    <div className="bg-slate-955 border border-slate-900 rounded-lg p-2.5 font-mono text-[11px] leading-relaxed text-slate-350 whitespace-pre-wrap">
-                      {item.content}
-                    </div>
+                      <div className="bg-slate-955 border border-slate-900 rounded-lg p-2.5 font-mono text-[11px] leading-relaxed text-slate-350 whitespace-pre-wrap">
+                        {item.content}
+                      </div>
 
-                    <div className="text-[10px] text-slate-500 text-right">
-                      Archived by: <strong className="text-slate-300 font-semibold">{item.profiles?.full_name || item.profiles?.username || 'SYSTEM'}</strong>
+                      <div className="text-[10px] text-slate-500 text-right">
+                        Archived by: <strong className="text-slate-300 font-semibold">
+                          {item.profiles 
+                            ? `${item.profiles.full_name || ''} (${item.profiles.username || ''})` 
+                            : 'SYSTEM'}
+                        </strong>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ));
+                })()
               )}
             </div>
 
-            <div className="pt-4 border-t border-slate-850 text-right">
+            <div className="pt-4 border-t border-slate-850 flex justify-between items-center">
+              <div>
+                {profile?.role === 'admin' && (
+                  <button
+                    onClick={handleClearHistory}
+                    disabled={historyLoading}
+                    className="py-1.5 px-3 bg-red-955/20 border border-red-900/30 hover:bg-red-900/20 hover:border-red-800 text-red-400 hover:text-red-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Clear History
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => setIsHistoryModalOpen(false)}
                 className="py-1.5 px-4 bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer"
@@ -1611,6 +1683,73 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
           showToast={showToast}
         />
       )}
+
+      {/* ─── CLEAR HISTORY CONFIRM MODAL ─── */}
+      {mounted && showClearConfirm && createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center px-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl relative text-center">
+            <button onClick={() => setShowClearConfirm(false)} className="absolute right-4 top-4 text-slate-455 hover:text-white cursor-pointer">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mb-4 animate-pulse">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-bold text-white mb-1.5">Clear All History?</h3>
+            <p className="text-xs text-slate-400 mb-2 leading-relaxed">
+              This will <strong className="text-red-400">permanently delete</strong> all archived rule edit history records.
+            </p>
+            <div className="bg-red-950/20 border border-red-900/30 rounded-lg p-2.5 mb-5">
+              <p className="text-[10px] text-red-400/90 leading-relaxed">
+                ⚠️ <strong>Warning:</strong> This action cannot be undone. Once cleared, all audit trails of past rule modifications will be lost forever.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 py-2 bg-slate-955 border border-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeClearHistory}
+                className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 9999px;
+          transition: background 0.2s ease;
+        }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+          background: rgba(148, 163, 184, 0.2);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(148, 163, 184, 0.35);
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}} />
 
     </div>
   );

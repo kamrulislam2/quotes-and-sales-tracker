@@ -56,6 +56,15 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v3.0.0 (Major Release):
+            * **Quotes Portal Rebrand**: Renamed the sidebar navigation tab from "Quote Rules" to "Quotes Portal" for a clearer, unified identity.
+            * **IP Geolocation Checker**: Integrated a built-in IP address lookup tool accessible from the Quotes Portal. Detects the user's public IP automatically and provides geolocation details (city, region, country, ISP, timezone) with a sleek auto-hiding scrollbar UI.
+            * **Login Codes Manager**: Added a secure login codes management modal for storing, viewing, copying, and managing company login credentials directly within the Quotes Portal, with role-based edit permissions.
+            * **Rules Archive History & Audit Trail**: Built a comprehensive archive/history modal showing all rule modifications (additions, edits, deletions) with timestamps, admin codenames, and categorized action badges.
+            * **Admin Clear History with Custom Modal**: Premium animated confirmation modal with pulsing warning icon, danger-styled messaging, and explicit "Delete All" action for admins to permanently clear rules history.
+            * **Auto-Hiding Custom Scrollbars**: Applied sleek, 5px auto-hiding scrollbar styling across all modal windows — scrollbar appears only on hover for a clean, distraction-free UI.
+            * **Supabase RLS Policy for History Deletion**: Added a dedicated Row-Level Security policy allowing only admin-role users to delete rules history records from the database.
+
             ### 🚀 What's New in v2.1.2:
             * **Daily Tracking Data Clean up**: Automatically clears saved document tracking hash data from local storage at the start of a new day, preventing local storage bloating over time.
             * **Record Management & UI Refactoring**: Extracted record handling, state hooks, and UI component actions into modular hooks to drastically reduce the complexity of the main dashboard views.

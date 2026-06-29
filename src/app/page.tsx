@@ -1326,7 +1326,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => handleTabChange("rules")}
-              title={isSidebarCollapsed ? "Quote Rules" : undefined}
+              title={isSidebarCollapsed ? "Quotes Portal" : undefined}
               className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isSidebarCollapsed
                   ? "justify-center gap-3 md:gap-0 px-3 py-3"
@@ -1345,7 +1345,7 @@ export default function Dashboard() {
                     : "opacity-100"
                 }`}
               >
-                Quote Rules
+                Quotes Portal
               </span>
             </button>
             {profile?.role === "admin" && (

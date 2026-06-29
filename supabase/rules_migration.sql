@@ -50,8 +50,16 @@ CREATE OR REPLACE FUNCTION public.archive_rule_changes()
 RETURNS TRIGGER AS $$
 BEGIN
   IF TG_OP = 'UPDATE' THEN
+    -- Archive if it's a soft delete (is_deleted goes from false to true)
+    IF (OLD.is_deleted = false AND NEW.is_deleted = true) THEN
+      INSERT INTO public.rules_history (
+        rule_id, category, sub_category, company_name, company_tags, title, content, extra_info, action_type, archived_by
+      )
+      VALUES (
+        OLD.id, OLD.category, OLD.sub_category, OLD.company_name, OLD.company_tags, OLD.title, OLD.content, OLD.extra_info, 'DELETE', auth.uid()
+      );
     -- Only archive if the content, title, extra_info, or company info actually changed
-    IF (OLD.content <> NEW.content OR OLD.title IS DISTINCT FROM NEW.title OR OLD.extra_info IS DISTINCT FROM NEW.extra_info OR OLD.company_name IS DISTINCT FROM NEW.company_name) THEN
+    ELSIF (OLD.content <> NEW.content OR OLD.title IS DISTINCT FROM NEW.title OR OLD.extra_info IS DISTINCT FROM NEW.extra_info OR OLD.company_name IS DISTINCT FROM NEW.company_name) THEN
       INSERT INTO public.rules_history (
         rule_id, category, sub_category, company_name, company_tags, title, content, extra_info, action_type, archived_by
       )
@@ -126,6 +134,14 @@ CREATE POLICY "Allow authenticated to read rules history" ON public.rules_histor
 
 CREATE POLICY "Allow system trigger to write history" ON public.rules_history
   FOR INSERT TO authenticated WITH CHECK (TRUE);
+
+CREATE POLICY "Allow admins to delete rules history" ON public.rules_history
+  FOR DELETE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- 7. Add compliance_rules to the Realtime publication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.compliance_rules;
