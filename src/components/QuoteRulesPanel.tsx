@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '@/utils/supabase';
 import { Profile, ComplianceRule, RuleHistory } from '@/types';
 import { LoginCodesModal } from './LoginCodesModal';
+import { IPCheckerModal } from './IPCheckerModal';
 import { INSURANCE_DATABASE } from '@/utils/initialRulesData';
 import { 
   Search, 
@@ -22,7 +23,8 @@ import {
   Sparkles,
   Loader2,
   Check,
-  Key
+  Key,
+  Globe
 } from 'lucide-react';
 
 interface QuoteRulesPanelProps {
@@ -162,8 +164,9 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Login Code States
+  // Login Code & IP Checker States
   const [isLoginCodesModalOpen, setIsLoginCodesModalOpen] = useState(false);
+  const [isIPCheckerModalOpen, setIsIPCheckerModalOpen] = useState(false);
 
   // Close all open modals on Escape key press
   useEffect(() => {
@@ -174,12 +177,13 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
         if (ruleToDelete) setRuleToDelete(null);
         if (isHistoryModalOpen) setIsHistoryModalOpen(false);
         if (isLoginCodesModalOpen) setIsLoginCodesModalOpen(false);
+        if (isIPCheckerModalOpen) setIsIPCheckerModalOpen(false);
       }
     };
     
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isAddModalOpen, isEditModalOpen, ruleToDelete, isHistoryModalOpen, isLoginCodesModalOpen]);
+  }, [isAddModalOpen, isEditModalOpen, ruleToDelete, isHistoryModalOpen, isLoginCodesModalOpen, isIPCheckerModalOpen]);
 
   // Form States for Add/Edit
   const [formCategory, setFormCategory] = useState<'announcement' | 'fine' | 'universal' | 'company'>('company');
@@ -755,6 +759,15 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
           >
             <Key className="h-3.5 w-3.5 text-blue-500" />
             Login Code
+          </button>
+
+          <button
+            onClick={() => setIsIPCheckerModalOpen(true)}
+            className="flex items-center gap-1.5 py-2 px-3.5 bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200"
+            title="Scan IP Safety & Geolocation"
+          >
+            <Globe className="h-3.5 w-3.5 text-blue-500" />
+            IP Checker
           </button>
 
           {canEdit && (
@@ -1588,6 +1601,14 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
           canEdit={canEdit} 
           isOnline={isOnline} 
           showToast={showToast} 
+        />
+      )}
+
+      {mounted && (
+        <IPCheckerModal
+          isOpen={isIPCheckerModalOpen}
+          onClose={() => setIsIPCheckerModalOpen(false)}
+          showToast={showToast}
         />
       )}
 

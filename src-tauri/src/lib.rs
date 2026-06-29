@@ -65,6 +65,33 @@ fn overwrite_file(file_path: String, content: Vec<u8>) -> Result<(), String> {
   std::fs::write(&file_path, content).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn fetch_ip_data(url: String, headers: Option<std::collections::HashMap<String, String>>) -> Result<String, String> {
+  let client = reqwest::Client::new();
+  let mut req = client.get(&url);
+  
+  if let Some(h) = headers {
+    for (k, v) in h {
+      req = req.header(k, v);
+    }
+  }
+  
+  let res = req.send()
+    .await
+    .map_err(|e| e.to_string())?;
+    
+  let status = res.status();
+  let body = res.text()
+    .await
+    .map_err(|e| e.to_string())?;
+    
+  if !status.is_success() {
+    return Err(format!("HTTP error {}", status.as_u16()));
+  }
+  
+  Ok(body)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   #[cfg(target_os = "windows")]
@@ -78,7 +105,7 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_log::Builder::default().build())
     .plugin(tauri_plugin_process::init())
-    .invoke_handler(tauri::generate_handler![save_file, custom_relaunch, overwrite_file, pick_directory, save_file_to_dir])
+    .invoke_handler(tauri::generate_handler![save_file, custom_relaunch, overwrite_file, pick_directory, save_file_to_dir, fetch_ip_data])
     .setup(|app| {
       #[cfg(desktop)]
       app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
