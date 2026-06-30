@@ -15,6 +15,7 @@ import { EditProfileModal } from "@/components/modals/EditProfileModal";
 import { AddUserModal } from "@/components/modals/AddUserModal";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { CustomEntryModal } from "@/components/modals/CustomEntryModal";
+import { SaleStatusModal } from "@/components/modals/SaleStatusModal";
 import { AdminViewToggle } from "@/components/AdminViewToggle";
 import { SkeletonLoader } from "@/components/SkeletonLoader";
 const AnalyticsPanel = lazy(() => import("@/components/AnalyticsPanel").then(m => ({ default: m.AnalyticsPanel })));
@@ -411,20 +412,7 @@ export default function Dashboard() {
     fileType: FileType;
   } | null>(null);
 
-  // Close SOLD/UNSOLD choice modal on Escape key press
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && showSaleModal) {
-        setShowSaleModal(false);
-      }
-    };
-    if (showSaleModal) {
-      document.addEventListener("keydown", handleEscape);
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [showSaleModal]);
+
 
   const todayUserRecords = useMemo(() => {
     const effectiveCodename = codenameInput || profile?.username || "";
@@ -2037,35 +2025,12 @@ export default function Dashboard() {
       </main>
 
       {/* MODAL 0: SOLD/UNSOLD CHOICE */}
-      {showSaleModal && saleFormDetails && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center px-4 animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl relative text-center space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-white mb-2">Sale Status</h3>
-              <p className="text-xs text-slate-400">
-                Is this sale for <span className="font-semibold text-white">"{saleFormDetails.fileName}"</span> Sold or Unsold?
-              </p>
-            </div>
-            
-            <div className="flex gap-3 justify-center max-w-[280px] mx-auto">
-              <button
-                onClick={() => handleConfirmSaleStatus("UNSOLD")}
-                className="flex-1 py-2.5 px-3.5 bg-slate-950 border border-slate-800 hover:border-rose-950/40 hover:bg-rose-950/10 text-slate-300 hover:text-rose-400 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-              >
-                <XCircle className="h-3.5 w-3.5 stroke-2 shrink-0" />
-                <span>Unsold</span>
-              </button>
-              <button
-                onClick={() => handleConfirmSaleStatus("SOLD")}
-                className="flex-1 py-2.5 px-3.5 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-950/20 cursor-pointer"
-              >
-                <CheckCircle className="h-3.5 w-3.5 stroke-2 shrink-0" />
-                <span>Sold</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SaleStatusModal
+        isOpen={showSaleModal}
+        fileName={saleFormDetails?.fileName || ""}
+        onConfirm={handleConfirmSaleStatus}
+        onClose={() => setShowSaleModal(false)}
+      />
 
       {/* MODAL 1: EDIT RECORD */}
       {editingRecord && (
