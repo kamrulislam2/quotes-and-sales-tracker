@@ -440,9 +440,17 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
 
         setResults(parsed);
         setLoading(false);
+      } catch (err: any) {
+        console.warn('Tauri batch fetch failed:', err);
+        const errorMsg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+        const parsed: Record<string, SourceResult> = {};
+        const sourceNames = ['IPLocation.net', 'IPWho.is', 'IP-API.com', 'IP2Location.io', 'CriminalIP.io', 'IPInfo.io'];
+        sourceNames.forEach(name => {
+          parsed[name] = { success: false, error: `Tauri error: ${errorMsg}` };
+        });
+        setResults(parsed);
+        setLoading(false);
         return;
-      } catch (err) {
-        console.warn('Tauri batch fetch failed, falling back to browser mode:', err);
       }
     }
 
