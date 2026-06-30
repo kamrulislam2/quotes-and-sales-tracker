@@ -13,12 +13,16 @@ import {
 import { Profile } from '@/types';
 import { downloadLatestRelease, DownloadPlatform } from '@/utils/downloadHelper';
 
+import { VerifiedBadge } from './VerifiedBadge';
+import { BadgeInfo } from '@/utils/leaderboardHelper';
+
 interface NavbarProps {
   profile: Profile | null;
   isOnline: boolean;
   theme: 'dark' | 'light';
   onThemeToggle: () => void;
   onLogout: () => void;
+  badges?: Record<string, BadgeInfo>;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -27,6 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   theme,
   onThemeToggle,
   onLogout,
+  badges,
 }) => {
   const [isTauri, setIsTauri] = React.useState(true);
   const [downloadLoading, setDownloadLoading] = React.useState(false);
@@ -64,7 +69,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              Welcome, {profile?.full_name || 'User'} ({profile?.username ? profile.username.toUpperCase() : ''})
+              <span className="flex items-center gap-1.5">
+                Welcome, {profile?.full_name || 'User'} ({profile?.username ? profile.username.toUpperCase() : ''})
+                {profile && badges && badges[profile.id] && (
+                  <VerifiedBadge badge={badges[profile.id]} />
+                )}
+              </span>
               <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
                 profile?.role === 'admin'
                   ? 'bg-purple-950/60 border-purple-800 text-purple-300' 

@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RecordItem, Profile } from '@/types';
+import { VerifiedBadge } from './VerifiedBadge';
+import { calculateTopPerformerBadges } from '@/utils/leaderboardHelper';
 import {
   FileText,
   TrendingUp,
@@ -8,7 +10,8 @@ import {
   Calendar,
   Award,
   MapPin,
-  Clock
+  Clock,
+  Eye
 } from 'lucide-react';
 import { getCacheData } from '@/utils/offlineSync';
 
@@ -160,28 +163,33 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
     }
   }, [systemYearRecords, metricsTimeScope, selectedMonth]);
 
-  // General Metrics (Quotes, Requotes, Sales, Conversion rate)
+  // General Metrics (Quotes, Requotes, Reviews, Sales, Conversion rate)
   const stats = useMemo(() => {
     let quotes = 0;
     let requotes = 0;
+    let reviews = 0;
     let sales = 0;
 
     systemMetricsFilteredRecords.forEach(r => {
-      const type = r.file_type;
+      const type = r.file_type || '';
       if (type === 'Quote') {
         quotes++;
       } else if (type === 'Requote') {
         requotes++;
+      } else if (type.toLowerCase().includes('review')) {
+        reviews++;
       } else if (type === 'Sale') {
         sales++;
       }
     });
 
-    const conversionRate = quotes > 0 ? ((sales / quotes) * 100).toFixed(2) : '0.00';
+    const totalFiles = systemMetricsFilteredRecords.length;
+    const conversionRate = totalFiles > 0 ? ((sales / totalFiles) * 100).toFixed(2) : '0.00';
 
     return {
       quotes,
       requotes,
+      reviews,
       sales,
       conversionRate: parseFloat(conversionRate)
     };
@@ -223,24 +231,29 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   const previousStats = useMemo(() => {
     let quotes = 0;
     let requotes = 0;
+    let reviews = 0;
     let sales = 0;
 
     previousSystemPeriodFilteredRecords.forEach(r => {
-      const type = r.file_type;
+      const type = r.file_type || '';
       if (type === 'Quote') {
         quotes++;
       } else if (type === 'Requote') {
         requotes++;
+      } else if (type.toLowerCase().includes('review')) {
+        reviews++;
       } else if (type === 'Sale') {
         sales++;
       }
     });
 
-    const conversionRate = quotes > 0 ? ((sales / quotes) * 100).toFixed(2) : '0.00';
+    const prevTotalFiles = previousSystemPeriodFilteredRecords.length;
+    const conversionRate = prevTotalFiles > 0 ? ((sales / prevTotalFiles) * 100).toFixed(2) : '0.00';
 
     return {
       quotes,
       requotes,
+      reviews,
       sales,
       conversionRate: parseFloat(conversionRate)
     };
@@ -416,11 +429,12 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
 
   // Leaderboard data (Show top 5 only)
   const leaderboardData = useMemo(() => {
-    const usersCount: Record<string, { name: string; codename: string; count: number }> = {};
+    const usersCount: Record<string, { userId: string; name: string; codename: string; count: number }> = {};
 
     // Initialize profiles list
     profilesList.forEach(p => {
       usersCount[p.id] = {
+        userId: p.id,
         name: p.full_name || p.username,
         codename: p.username.toUpperCase(),
         count: 0
@@ -440,6 +454,11 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
 
     return sortedLeaderboard.slice(0, 5);
   }, [systemMetricsFilteredRecords, profilesList]);
+
+  // Compute top performer badges from records cache
+  const topPerformerBadges = useMemo(() => {
+    return calculateTopPerformerBadges(allRecords, profilesList);
+  }, [allRecords, profilesList]);
 
 
 
@@ -672,7 +691,30 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
           </p>
         </div>
 
-        {/* Card 3: Total Sales */}
+        {/* Card 3: Total Reviews */}
+        <div className="relative overflow-hidden bg-slate-950/30 border border-slate-800/40 hover:border-pink-500/30 p-5 rounded-2xl shadow-xl transition-all duration-300 group hover:shadow-pink-950/10">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-pink-600/5 rounded-full blur-2xl group-hover:bg-pink-600/10 transition-all duration-300"></div>
+          <div className="flex justify-between items-start gap-2">
+            <div className="space-y-1.5 min-w-0">
+              <p className="text-xs font-semibold text-slate-400">Total Reviews</p>
+              <div className="space-y-1 mt-1.5">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight break-all">{stats.reviews}</h3>
+                <div>
+                  <GrowthBadge {...getGrowthStats(stats.reviews, previousStats.reviews)} />
+                </div>
+              </div>
+            </div>
+            <div className="p-2.5 bg-pink-600/15 border border-pink-500/20 text-pink-400 rounded-xl shrink-0">
+              <Eye className="h-5 w-5" />
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-4 font-medium flex justify-between items-center">
+            <span>Reviews in {metricsTimeScope === 'yearly' ? selectedYear : `${monthsList.find(m => m.value === selectedMonth)?.name} ${selectedYear}`}</span>
+            <span className="text-[9px] text-slate-450 opacity-80">vs. prev {metricsTimeScope === 'yearly' ? 'year' : 'month'}</span>
+          </p>
+        </div>
+
+        {/* Card 4: Total Sales */}
         <div className="relative overflow-hidden bg-slate-950/30 border border-slate-800/40 hover:border-emerald-500/30 p-5 rounded-2xl shadow-xl transition-all duration-300 group hover:shadow-emerald-950/10">
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 rounded-full blur-2xl group-hover:bg-emerald-600/10 transition-all duration-300"></div>
           <div className="flex justify-between items-start gap-2">
@@ -695,7 +737,8 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
           </p>
         </div>
 
-        {/* Card 4: Conversion Rate */}
+        {/* Card 5: Conversion Rate (Commented out) */}
+        {/*
         <div className="relative overflow-hidden bg-slate-950/30 border border-slate-800/40 hover:border-amber-500/30 p-5 rounded-2xl shadow-xl transition-all duration-300 group hover:shadow-amber-950/10">
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-600/5 rounded-full blur-2xl group-hover:bg-amber-600/10 transition-all duration-300"></div>
           <div className="flex justify-between items-start gap-2">
@@ -717,6 +760,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
             <span className="text-[9px] text-slate-450 opacity-80">vs. prev {metricsTimeScope === 'yearly' ? 'year' : 'month'}</span>
           </p>
         </div>
+        */}
       </div>
 
       {/* Grid: Charts Section */}
@@ -1041,9 +1085,28 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
                     </span>
 
                     <div className="mt-3.5 space-y-1">
-                      <h5 className="text-xs font-extrabold text-white truncate max-w-full group-hover:text-blue-400 transition-colors">{user.name}</h5>
+                      <h5 className="text-xs font-extrabold text-white truncate max-w-full group-hover:text-blue-400 transition-colors flex items-center justify-center gap-0.5">
+                        <span>{user.name}</span>
+                        {topPerformerBadges[user.userId] && (
+                          <VerifiedBadge badge={topPerformerBadges[user.userId]} />
+                        )}
+                      </h5>
                       <p className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">{user.codename}</p>
                     </div>
+
+                    {/* Streak & Wins Tracking Block */}
+                    {topPerformerBadges[user.userId] && (
+                      <div className="mt-2 text-[9px] text-slate-400 bg-slate-950/50 border border-slate-850/60 px-2 py-1 rounded-lg w-full space-y-0.5 select-none">
+                        <div className="flex justify-between font-semibold">
+                          <span>Streak:</span>
+                          <span className="text-blue-400 font-bold">{topPerformerBadges[user.userId].consecutiveMonths} mo</span>
+                        </div>
+                        <div className="flex justify-between font-semibold">
+                          <span>Yearly Wins:</span>
+                          <span className="text-amber-400 font-bold">{topPerformerBadges[user.userId].yearlyTopPerformances}x</span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-4 pt-3.5 border-t border-slate-900/30 w-full">
                       <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Submissions</span>

@@ -5,6 +5,8 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { useSaveFileHelper } from "@/hooks/useSaveFileHelper";
 import { useCopyHelper } from "@/hooks/useCopyHelper";
 import { Navbar } from "@/components/Navbar";
+import { getCacheData } from "@/utils/offlineSync";
+import { calculateTopPerformerBadges } from "@/utils/leaderboardHelper";
 const StatsGrid = lazy(() => import("@/components/StatsGrid").then(m => ({ default: m.StatsGrid })));
 const RecordsTable = lazy(() => import("@/components/RecordsTable").then(m => ({ default: m.RecordsTable })));
 const DailyEntryForm = lazy(() => import("@/components/DailyEntryForm").then(m => ({ default: m.DailyEntryForm })));
@@ -249,6 +251,25 @@ export default function Dashboard() {
     setAdminViewMode(mode);
     localStorage.setItem("quotes_sales_admin_view_mode", mode);
   };
+
+  // Load all system records asynchronously for calculating top performer badges
+  const [allRecords, setAllRecords] = useState<RecordItem[]>([]);
+  useEffect(() => {
+    const loadAllCachedRecords = async () => {
+      try {
+        const cached = await getCacheData<RecordItem>("records_cache");
+        setAllRecords(cached);
+      } catch (err) {
+        console.error("Failed to load cached records for badges:", err);
+      }
+    };
+    loadAllCachedRecords();
+  }, [records]);
+
+  // Compute top performer badges from records cache
+  const topPerformerBadges = useMemo(() => {
+    return calculateTopPerformerBadges(allRecords, profilesList || []);
+  }, [allRecords, profilesList]);
 
   // Monthly Table Search Query
   const [searchQuery, setSearchQuery] = useState("");
@@ -1338,6 +1359,7 @@ export default function Dashboard() {
         theme={theme}
         onThemeToggle={toggleTheme}
         onLogout={handleLogout}
+        badges={topPerformerBadges}
       />
       {/* Main Body Layout */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row gap-6 items-start">
@@ -1979,6 +2001,7 @@ export default function Dashboard() {
                 setGeneratedPassword={setGeneratedPassword}
                 setIsAddUserModalOpen={setIsAddUserModalOpen}
                 sessionUser={sessionUser}
+                badges={topPerformerBadges}
               />
             </Suspense>
           )}

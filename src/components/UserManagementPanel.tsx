@@ -3,6 +3,8 @@
 import React from "react";
 import { UserPlus, Search, X, Shield, Edit, Trash2 } from "lucide-react";
 import { Profile } from "@/types";
+import { VerifiedBadge } from "./VerifiedBadge";
+import { BadgeInfo } from "@/utils/leaderboardHelper";
 
 interface UserManagementPanelProps {
   filteredProfiles: Profile[];
@@ -18,6 +20,7 @@ interface UserManagementPanelProps {
   setGeneratedPassword: (val: string | null) => void;
   setIsAddUserModalOpen: (val: boolean) => void;
   sessionUser: { id: string } | null;
+  badges?: Record<string, BadgeInfo>;
 }
 
 export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
@@ -34,6 +37,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
   setGeneratedPassword,
   setIsAddUserModalOpen,
   sessionUser,
+  badges,
 }) => {
   return (
     <div className="space-y-6">
@@ -58,7 +62,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       </div>
 
       {/* Search Bar for Users */}
-      <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-850 flex flex-col md:flex-row gap-3 items-center">
+      <div className="bg-slate-955/45 p-4 rounded-2xl border border-slate-850 flex flex-col md:flex-row gap-3 items-center">
         <div className="relative flex-1 w-full">
           <input
             type="text"
@@ -140,7 +144,14 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   <td className="px-4 py-2.5 font-bold text-white">
                     {u.username.toUpperCase()}
                   </td>
-                  <td className="px-4 py-2.5">{u.full_name || "-"}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="flex items-center gap-1">
+                      <span>{u.full_name || "-"}</span>
+                      {badges && badges[u.id] && (
+                        <VerifiedBadge badge={badges[u.id]} />
+                      )}
+                    </span>
+                  </td>
                   <td className="px-4 py-2.5">
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
