@@ -1256,7 +1256,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
       {mounted && isAddModalOpen && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4 animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsAddModalOpen(false)} className="absolute right-4 top-4 text-slate-450 hover:text-white"><X className="h-5 w-5" /></button>
+            <button onClick={() => setIsAddModalOpen(false)} className="absolute right-4 top-4 text-slate-450 hover:text-white cursor-pointer"><X className="h-5 w-5" /></button>
             <h3 className="text-md font-bold text-white mb-4 flex items-center gap-1.5"><PlusCircle className="h-4.5 w-4.5 text-blue-500" /> Add New Rule</h3>
             <form onSubmit={handleAddRuleSubmit} className="space-y-4 text-xs">
               
@@ -1277,7 +1277,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                         setFormSubCategory('common_rules');
                       }
                     }}
-                    className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white"
+                    className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white cursor-pointer"
                   >
                     <option value="company">Company Specific</option>
                     <option value="universal">Universal Rule</option>
@@ -1289,20 +1289,20 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-355 mb-1">Sub Category</label>
                   {formCategory === 'company' ? (
-                    <select value={formSubCategory} onChange={(e) => setFormSubCategory(e.target.value as any)} className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white">
+                    <select value={formSubCategory} onChange={(e) => setFormSubCategory(e.target.value as any)} className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white cursor-pointer">
                       <option value="common_rules">Common Rule</option>
                       <option value="branch_priority">Branch Priority</option>
                       <option value="doc_extensions">DOC Driving Other Cars</option>
                     </select>
                   ) : formCategory === 'universal' ? (
-                    <select value={formSubCategory} onChange={(e) => setFormSubCategory(e.target.value as any)} className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white">
+                    <select value={formSubCategory} onChange={(e) => setFormSubCategory(e.target.value as any)} className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white cursor-pointer">
                       <option value="employment">Employment</option>
                       <option value="driver_and_usage">Driver & Car Usage</option>
                       <option value="license_and_residency">License & Residency</option>
                       <option value="file_processing">File Processing & Policies</option>
                     </select>
                   ) : formCategory === 'announcement' ? (
-                    <select value={formSubCategory} onChange={(e) => setFormSubCategory(e.target.value as any)} className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white">
+                    <select value={formSubCategory} onChange={(e) => setFormSubCategory(e.target.value as any)} className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white cursor-pointer">
                       <option value="nby_rule">NBY Rule</option>
                       <option value="general_pricing">General Pricing</option>
                     </select>
@@ -1401,7 +1401,7 @@ export const QuoteRulesPanel: React.FC<QuoteRulesPanelProps> = ({
       {mounted && isEditModalOpen && ruleToEdit && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4 animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-lg shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsEditModalOpen(false)} className="absolute right-4 top-4 text-slate-455 hover:text-white"><X className="h-5 w-5" /></button>
+            <button onClick={() => setIsEditModalOpen(false)} className="absolute right-4 top-4 text-slate-455 hover:text-white cursor-pointer"><X className="h-5 w-5" /></button>
             <h3 className="text-md font-bold text-white mb-4 flex items-center gap-1.5"><Edit className="h-4.5 w-4.5 text-blue-500" /> Edit Rule</h3>
             <form onSubmit={handleEditRuleSubmit} className="space-y-4 text-xs">
               

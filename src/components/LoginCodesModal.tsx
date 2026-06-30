@@ -125,11 +125,15 @@ export const LoginCodesModal: React.FC<LoginCodesModalProps> = ({
   // Fetch from database or fallback to localStorage / DEFAULT_LOGIN_CODES
   const fetchLoginCodes = useCallback(async () => {
     setLoading(true);
+    const delayPromise = new Promise((resolve) => setTimeout(resolve, 450));
     try {
-      const { data, error } = await supabase
+      const dbPromise = supabase
         .from('login_codes')
         .select('*')
         .order('login_id', { ascending: true });
+
+      const [dbResult] = await Promise.all([dbPromise, delayPromise]);
+      const { data, error } = dbResult;
 
       if (error) throw error;
       if (data && data.length > 0) {
@@ -376,10 +380,23 @@ export const LoginCodesModal: React.FC<LoginCodesModalProps> = ({
 
         {/* List Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
-          {loading && loginCodes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              <span className="text-xs">Loading directory...</span>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {[...Array(8)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/10 border border-slate-900/40 animate-pulse"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-slate-800/40" />
+                    <div className="flex flex-col gap-1.5">
+                      <div className="w-16 h-3.5 bg-slate-800/50 rounded-md" />
+                      <div className="w-24 h-2 bg-slate-800/25 rounded" />
+                    </div>
+                  </div>
+                  <div className="w-16 h-7 bg-slate-850/40 rounded-xl" />
+                </div>
+              ))}
             </div>
           ) : filteredCodes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2 text-slate-500">

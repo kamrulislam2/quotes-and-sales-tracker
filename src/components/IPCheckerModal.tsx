@@ -325,7 +325,11 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
           { url: `https://ipinfo.io/${ip}/json?token=${keys.ipinfo}`, headers: null },
         ];
 
-        const rawResults: string[] = await invoke('fetch_ip_batch', { requests: batchRequests });
+        const delayPromise = new Promise((resolve) => setTimeout(resolve, 550));
+        const [rawResults] = await Promise.all([
+          invoke('fetch_ip_batch', { requests: batchRequests }) as Promise<string[]>,
+          delayPromise,
+        ]);
 
         // Parse each result using inline parsers
         const parsers: Array<{ name: string; parse: (data: any) => SourceResult }> = [
@@ -431,14 +435,20 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
     }
 
     // ─── BROWSER FALLBACK: Promise.all with secureFetch ───
-    const [iploc, whois, ipapi, ip2loc, criminal, ipinfo] = await Promise.all([
-      fetchIPLocationNet(),
-      fetchIPWhoIs(),
-      fetchIPApi(),
-      fetchIP2LocationIo(),
-      fetchCriminalIP(),
-      fetchIPInfoIo()
+    const delayPromise = new Promise((resolve) => setTimeout(resolve, 550));
+    const [fetchedResults] = await Promise.all([
+      Promise.all([
+        fetchIPLocationNet(),
+        fetchIPWhoIs(),
+        fetchIPApi(),
+        fetchIP2LocationIo(),
+        fetchCriminalIP(),
+        fetchIPInfoIo()
+      ]),
+      delayPromise
     ]);
+
+    const [iploc, whois, ipapi, ip2loc, criminal, ipinfo] = fetchedResults;
 
     setResults({
       'IPLocation.net': iploc,
@@ -609,6 +619,38 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
                   Security: {isSecuritySafe ? 'No Proxy/VPN' : 'Proxy/VPN Flagged'}
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Skeleton Loader during search checks */}
+          {loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="p-4 rounded-xl border border-slate-800 bg-slate-950/10 animate-pulse flex flex-col justify-between h-[120px]">
+                  <div>
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-3.5">
+                      <div className="w-24 h-3.5 bg-slate-800/50 rounded-md" />
+                      <div className="w-12 h-4 bg-slate-800/35 rounded-md" />
+                    </div>
+                    {/* Details */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <div className="w-12 h-2 bg-slate-800/25 rounded" />
+                        <div className="w-20 h-2 bg-slate-800/40 rounded" />
+                      </div>
+                      <div className="flex justify-between">
+                        <div className="w-14 h-2 bg-slate-800/25 rounded" />
+                        <div className="w-28 h-2 bg-slate-800/40 rounded" />
+                      </div>
+                      <div className="flex justify-between">
+                        <div className="w-16 h-2 bg-slate-800/25 rounded" />
+                        <div className="w-24 h-2 bg-slate-800/40 rounded" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
