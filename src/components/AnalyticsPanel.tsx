@@ -138,7 +138,7 @@ export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({
   } | null>(null);
 
   // Toggle States for Filters
-  const [metricsTimeScope, setMetricsTimeScope] = useState<'yearly' | 'monthly'>('yearly');
+  const [metricsTimeScope, setMetricsTimeScope] = useState<'yearly' | 'monthly'>('monthly');
 
   // Filter all system records by selected year
   const systemYearRecords = useMemo(() => {

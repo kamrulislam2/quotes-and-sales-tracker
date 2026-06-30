@@ -88,14 +88,15 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
   const handleCellClick = (
     record: RecordItem,
     field: "file_name" | "branch_name",
+    e: React.MouseEvent
   ) => {
     // Only allow editing if the user has permission to edit this record
     if (!isAdmin && record.user_id !== currentUserId) return;
     if (submitting || bulkSaving || savingRows[record.id]) return;
 
-    const now = Date.now();
+    const clickTime = e.timeStamp;
     if (lastClick && lastClick.id === record.id && lastClick.field === field) {
-      const delay = now - lastClick.time;
+      const delay = clickTime - lastClick.time;
       if (delay >= 300 && delay <= 1500) {
         // Slow click twice (Premiere Pro style)
         setEditingCell({ id: record.id, field });
@@ -103,7 +104,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
         return;
       }
     }
-    setLastClick({ id: record.id, field, time: now });
+    setLastClick({ id: record.id, field, time: clickTime });
   };
 
   const handleCellDoubleClick = (
@@ -706,7 +707,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                       />
                     ) : (
                       <div
-                        onClick={() => handleCellClick(r, "file_name")}
+                        onClick={(e) => handleCellClick(r, "file_name", e)}
                         className={`px-2 py-1 rounded border border-transparent transition-all truncate max-w-xs ${
                           isAdmin || r.user_id === currentUserId
                             ? "cursor-text"
@@ -786,7 +787,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                       </select>
                     ) : (
                       <div
-                        onClick={() => handleCellClick(r, "branch_name")}
+                        onClick={(e) => handleCellClick(r, "branch_name", e)}
                         className={`px-2 py-1 rounded border border-transparent transition-all mx-auto w-fit ${
                           isAdmin || r.user_id === currentUserId
                             ? "cursor-pointer"
@@ -877,10 +878,10 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                           }
                         }}
                         autoFocus
-                        className="bg-slate-950 border border-slate-700 rounded px-1 py-1 text-white text-xs w-full focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                        className="bg-slate-955 border border-slate-700 rounded px-1 py-1 text-white text-xs w-full focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                       >
-                        {(
-                          allowedCategories || [
+                        {(() => {
+                          const baseCategories = allowedCategories || [
                             "Quote",
                             "Requote",
                             "Requote Van",
@@ -893,8 +894,17 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                             "Van",
                             "Bike",
                             "Sale",
-                          ]
-                        ).map((type) => (
+                          ];
+                          // Filter out "Review Van" and "Review Bike"
+                          const filtered = baseCategories.filter(
+                            (type) => type !== "Review Van" && type !== "Review Bike"
+                          );
+                          // Preserve current type if it's already Review Van/Bike
+                          if (r.file_type && !filtered.includes(r.file_type)) {
+                            filtered.push(r.file_type);
+                          }
+                          return filtered;
+                        })().map((type) => (
                           <option key={type} value={type}>
                             {type}
                           </option>

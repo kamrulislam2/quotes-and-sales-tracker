@@ -14,17 +14,14 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   allowedCategories
 }) => {
   const isRequoteActive = selectedType === 'Requote' || selectedType === 'Requote Van' || selectedType === 'Requote Bike';
-  const isReviewActive = selectedType === 'Review' || selectedType === 'Review Van' || selectedType === 'Review Bike';
+  const isReviewActive = selectedType === 'Review';
 
   const isRequoteAllowed =
     allowedCategories.includes('Requote') ||
     allowedCategories.includes('Requote Van') ||
     allowedCategories.includes('Requote Bike');
 
-  const isReviewAllowed =
-    allowedCategories.includes('Review') ||
-    allowedCategories.includes('Review Van') ||
-    allowedCategories.includes('Review Bike');
+  const isReviewAllowed = allowedCategories.includes('Review');
 
   const handleRequoteClick = () => {
     if (allowedCategories.includes('Requote')) {
@@ -39,10 +36,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   const handleReviewClick = () => {
     if (allowedCategories.includes('Review')) {
       setSelectedType('Review');
-    } else if (allowedCategories.includes('Review Van')) {
-      setSelectedType('Review Van');
-    } else if (allowedCategories.includes('Review Bike')) {
-      setSelectedType('Review Bike');
     }
   };
 
@@ -74,7 +67,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
             <div className="flex items-center justify-between w-full gap-1">
               <span className="whitespace-nowrap overflow-hidden text-ellipsis">
                 {cat.id === 'Requote' && selectedType.startsWith('Requote ') ? selectedType :
-                 cat.id === 'Review' && selectedType.startsWith('Review ') ? selectedType :
                  cat.label}
               </span>
               <span className={`h-4.5 w-4.5 rounded-full flex items-center justify-center border transition-all shrink-0 ${
@@ -122,51 +114,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                     className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] cursor-pointer border ${
                       selectedType === 'Requote Bike'
                         ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-950/10'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    + Bike
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Suboptions for Review (Van / Bike) inside the card */}
-            {cat.id === 'Review' && cat.active && (
-              <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-blue-950/40" onClick={(e) => e.stopPropagation()}>
-                {allowedCategories.includes('Review') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedType('Review')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] cursor-pointer border ${
-                      selectedType === 'Review'
-                        ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-950/10'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    Only Review
-                  </button>
-                )}
-                {allowedCategories.includes('Review Van') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedType('Review Van')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] cursor-pointer border ${
-                      selectedType === 'Review Van'
-                        ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-950/10'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    + Van
-                  </button>
-                )}
-                {allowedCategories.includes('Review Bike') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedType('Review Bike')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all duration-200 hover:scale-[1.05] active:scale-[0.95] cursor-pointer border ${
-                      selectedType === 'Review Bike'
-                        ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/10'
                         : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
                     }`}
                   >
