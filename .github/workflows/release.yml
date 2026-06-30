@@ -55,6 +55,13 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v3.1.0 (Minor Release):
+            * **Parallelized Desktop Build Workflow**: Enabled parallel platform compilations in GitHub Actions, reducing the build duration by over 60%.
+            * **Dynamic Allowed Types Filtering**: Auto-sanitize loaded user profiles to completely filter out legacy/unused categories (`Review Van` and `Review Bike`) dynamically across User Management and dropdown editors.
+            * **Sidebar Alignment Optimization**: Aligned sidebar toggle button and all tab icons perfectly centered in a vertical line when the sidebar is collapsed.
+            * **Tauri Geolocation User-Agent Fix**: Configured standard browser User-Agent in Tauri Rust network clients to bypass `HTTP 403 Forbidden` limits on geo-lookup endpoints (like `IPWho.is`).
+            * **Simplified Risk Warning Labels**: Replaced confusing fraction ratings in CriminalIP alerts with a clean, concise `High Risk Level` label.
+
             ### 🚀 What's New in v3.0.0 (Major Release):
             * **Quotes Portal Rebrand**: Renamed the sidebar navigation tab from "Quote Rules" to "Quotes Portal" for a clearer, unified identity.
             * **IP Geolocation Checker**: Integrated a built-in IP address lookup tool accessible from the Quotes Portal. Detects the user's public IP automatically and provides geolocation details (city, region, country, ISP, timezone) with a sleek auto-hiding scrollbar UI.

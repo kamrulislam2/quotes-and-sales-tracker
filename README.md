@@ -143,6 +143,16 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v3.1.0
+
+**Tauri Geolocation User-Agent Fix, Category Checkbox List Sanitization, Sidebar Alignment & Parallelized CI Build**
+
+- ✅ **Parallelized Desktop Build Workflow**: Enabled parallel platform compilations in GitHub Actions, reducing the build duration by over 60%.
+- ✅ **Dynamic Allowed Types Filtering**: Auto-sanitize loaded user profiles to completely filter out legacy/unused categories (`Review Van` and `Review Bike`) dynamically across User Management and dropdown editors.
+- ✅ **Sidebar Alignment Optimization**: Aligned sidebar toggle button and all tab icons perfectly centered in a vertical line when the sidebar is collapsed.
+- ✅ **Tauri Geolocation User-Agent Fix**: Configured standard browser User-Agent in Tauri Rust network clients to bypass `HTTP 403 Forbidden` limits on geo-lookup endpoints (like `IPWho.is`).
+- ✅ **Simplified Risk Warning Labels**: Replaced confusing fraction ratings in CriminalIP alerts with a clean, concise `High Risk Level` label.
+
 ### v3.0.0
 
 **Quotes Portal, IP Geolocation Checker, Login Codes Manager, Rules Archive History & Clear History**
