@@ -462,6 +462,13 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
     setLoading(false);
   };
 
+  const handleClose = () => {
+    setIpInput('');
+    setCheckRan(false);
+    setResults({});
+    onClose();
+  };
+
   // Compute final safety validation
   const totalSources = Object.keys(results).length;
   const successfulSources = Object.values(results).filter(r => r.success);
@@ -513,7 +520,7 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
             IP Address Safety Directory
           </h3>
           <button 
-            onClick={onClose} 
+            onClick={handleClose} 
             disabled={loading}
             className="text-slate-400 hover:text-white hover:bg-slate-800 p-1.5 rounded-lg transition cursor-pointer"
           >
@@ -761,7 +768,7 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
         {/* Footer */}
         <div className="pt-4 border-t border-slate-800 text-right shrink-0">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={loading}
             className="py-2 px-5 bg-slate-955 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold cursor-pointer transition-all disabled:opacity-50"
           >
