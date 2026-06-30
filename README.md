@@ -143,6 +143,19 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v3.1.2
+
+**macOS TLS Connection Fix, Staggered Parallel Requests, Skeletal Pulsing Loaders & Pointer Cursor Fixes**
+
+- ✅ **macOS reqwest TLS Backend Switch**: Configured reqwest to use `rustls-tls` instead of macOS's system-default Secure Transport TLS backend, resolving SSL certificate handshake failures and trust issues.
+- ✅ **Staggered Request Dispatching**: Added a 150ms delay between parallel IP checker API calls to eliminate ISP-level connection congestion and rate limits.
+- ✅ **Restored IP-API.com Endpoint**: Re-enabled IP-API.com querying using standard HTTP endpoints to bypass strict SSL blockages on the free tier.
+- ✅ **High-Contrast Error Alerts**: Designed styled, premium containers with soft red background/borders for IP diagnostic connection errors to improve dark-mode readability.
+- ✅ **Interactive Pulsing Skeleton Loaders**: Implemented beautiful custom card pulsing skeleton loaders inside the Login Codes Modal and IP Checker Modal.
+- ✅ **Input Bar IP Detection Spinner**: Embedded a spinning loader icon inside the search box and My IP button while auto-detecting the user's IP.
+- ✅ **Auto-Reset State on Exit**: Configured the IP checker close buttons to clear inputs, check status, and API results so the modal opens clean on next launch.
+- ✅ **Interactive Cursor Hand Indicators**: Fixed the close buttons and selection dropdowns to display the pointer cursor (`cursor-pointer`) on hover in Rule modals.
+
 ### v3.1.1
 
 **Premium Profile Hover Tooltip, Compact Verified Badge Alignment, Tooltip Hover Delay & TypeScript Fix**
