@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { BadgeInfo } from "@/utils/leaderboardHelper";
 
 interface VerifiedBadgeProps {
@@ -7,6 +7,9 @@ interface VerifiedBadgeProps {
 }
 
 export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({ badge, position = 'top' }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const isBlue = badge.badgeType === "blue";
   const colorClass = isBlue
     ? "text-blue-500 hover:text-blue-400"
@@ -16,8 +19,34 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({ badge, position = 
     ? 'top-full mt-2'
     : 'bottom-full mb-2';
 
+  const handleMouseEnter = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShowTooltip(true);
+    }, 2000); // 2 seconds delay
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setShowTooltip(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <span className="relative group inline-flex items-center align-middle ml-1 cursor-help select-none shrink-0">
+    <span 
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="relative group inline-flex items-center align-middle ml-0.5 cursor-help select-none shrink-0"
+    >
       {/* Premium Verified Icon */}
       <svg
         viewBox="0 0 24 24"
@@ -28,28 +57,30 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({ badge, position = 
       </svg>
 
       {/* Tooltip Popup */}
-      <span className={`absolute left-1/2 -translate-x-1/2 ${tooltipPositionClass} hidden group-hover:block z-50 w-56 p-2 text-[10px] leading-relaxed text-slate-350 bg-slate-950/95 border border-slate-800 rounded-lg shadow-2xl backdrop-blur-md`}>
-        <div className="font-bold text-white mb-0.5 flex items-center gap-1">
-          <span className={isBlue ? "text-blue-400" : "text-slate-450"}>✓</span>
-          {isBlue ? "Verified Top 3 Performer" : "Verified Top 5 Performer"}
-        </div>
-        <div className="text-[9px] text-slate-500">for {badge.monthName}</div>
-        <div className="border-t border-slate-800 my-1"></div>
-        <div>
-          🏆 Streak:{" "}
-          <span className="text-white font-semibold">
-            {badge.consecutiveMonths} month(s)
-          </span>{" "}
-          in Top 5
-        </div>
-        <div>
-          📅 Annual Wins:{" "}
-          <span className="text-white font-semibold">
-            {badge.yearlyTopPerformances} times
-          </span>{" "}
-          in {new Date().getFullYear()}
-        </div>
-      </span>
+      {showTooltip && (
+        <span className={`absolute left-1/2 -translate-x-1/2 ${tooltipPositionClass} z-50 w-56 p-2 text-[10px] leading-relaxed text-slate-350 bg-slate-950/95 border border-slate-800 rounded-lg shadow-2xl backdrop-blur-md animate-fade-in`}>
+          <div className="font-bold text-white mb-0.5 flex items-center gap-1">
+            <span className={isBlue ? "text-blue-400" : "text-slate-450"}>✓</span>
+            {isBlue ? "Verified Top 3 Performer" : "Verified Top 5 Performer"}
+          </div>
+          <div className="text-[9px] text-slate-500">for {badge.monthName}</div>
+          <div className="border-t border-slate-800 my-1"></div>
+          <div>
+            🏆 Streak:{" "}
+            <span className="text-white font-semibold">
+              {badge.consecutiveMonths} month(s)
+            </span>{" "}
+            in Top 5
+          </div>
+          <div>
+            📅 Annual Wins:{" "}
+            <span className="text-white font-semibold">
+              {badge.yearlyTopPerformances} times
+            </span>{" "}
+            in {new Date().getFullYear()}
+          </div>
+        </span>
+      )}
     </span>
   );
 };

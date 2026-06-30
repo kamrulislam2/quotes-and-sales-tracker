@@ -36,6 +36,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isTauri, setIsTauri] = React.useState(true);
   const [downloadLoading, setDownloadLoading] = React.useState(false);
   const [showDownloadDropdown, setShowDownloadDropdown] = React.useState(false);
+  const [showNameTooltip, setShowNameTooltip] = React.useState(false);
+  const nameHoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
     const isTauriEnv = typeof window !== 'undefined' && (window as unknown as { __TAURI__?: unknown }).__TAURI__ !== undefined;
@@ -60,6 +62,29 @@ export const Navbar: React.FC<NavbarProps> = ({
       setShowDownloadDropdown(false);
     }
   };
+
+  const handleNameMouseEnter = () => {
+    nameHoverTimeoutRef.current = setTimeout(() => {
+      setShowNameTooltip(true);
+    }, 2000); // 2 seconds delay
+  };
+
+  const handleNameMouseLeave = () => {
+    if (nameHoverTimeoutRef.current) {
+      clearTimeout(nameHoverTimeoutRef.current);
+      nameHoverTimeoutRef.current = null;
+    }
+    setShowNameTooltip(false);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (nameHoverTimeoutRef.current) {
+        clearTimeout(nameHoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <header className="bg-slate-900/40 backdrop-blur-md border-b border-slate-800/50 px-4 py-4 sm:px-6 lg:px-8 z-30">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -69,24 +94,41 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <span className="flex items-center gap-1.5">
-                Welcome,{" "}
-                <span className="inline-flex items-center">
-                  {profile?.full_name || 'User'}
-                  {/* Real Badge */}
-                  {profile && badges && badges[profile.id] && (
-                    <VerifiedBadge badge={badges[profile.id]} position="bottom" />
+              <span className="flex items-center">
+                Welcome,&nbsp;
+                <span 
+                  onMouseEnter={handleNameMouseEnter}
+                  onMouseLeave={handleNameMouseLeave}
+                  className="relative group inline-flex items-center select-none"
+                >
+                  <span className="cursor-help pb-0.5 inline-flex items-center">
+                    {profile?.full_name || 'User'}
+                  </span>
+                  
+                  {/* Custom Hover Tooltip for Codename & Role */}
+                  {showNameTooltip && (
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 flex flex-col gap-1 z-50 w-40 p-2.5 text-[11px] leading-relaxed text-slate-350 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl backdrop-blur-md animate-fade-in pointer-events-auto">
+                      <div className="font-semibold text-white">
+                        Codename: <span className="text-blue-400 font-mono select-all ml-1">{profile?.username ? profile.username.toUpperCase() : ''}</span>
+                      </div>
+                      <div className="border-t border-slate-850 my-0.5"></div>
+                      <div className="text-slate-400 flex items-center gap-1.5">
+                        <span>Role:</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${
+                          profile?.role === 'admin'
+                            ? 'bg-purple-950/60 border-purple-800 text-purple-300' 
+                            : 'bg-blue-950/60 border-blue-800 text-blue-300'
+                        }`}>
+                          {profile?.role === 'admin' ? 'Admin' : 'Staff'}
+                        </span>
+                      </div>
+                    </span>
                   )}
                 </span>
-                {" "}
-                ({profile?.username ? profile.username.toUpperCase() : ''})
-              </span>
-              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
-                profile?.role === 'admin'
-                  ? 'bg-purple-950/60 border-purple-800 text-purple-300' 
-                  : 'bg-blue-950/60 border-blue-800 text-blue-300'
-              }`}>
-                {profile?.role === 'admin' ? 'Admin' : 'Staff'}
+                {/* Real/Mock Verified Badge - placed outside name wrapper for independent hover states */}
+                {profile && badges && badges[profile.id] && (
+                  <VerifiedBadge badge={badges[profile.id]} position="bottom" />
+                )}
               </span>
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">Quotes & Sales Tracking Dashboard</p>

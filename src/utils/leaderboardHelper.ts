@@ -16,7 +16,7 @@ export function getLeaderboardForMonth(
   records: RecordItem[],
   year: string,
   month: string, // '01' through '12'
-  profilesList: Profile[]
+  profilesList: Profile[],
 ) {
   const userCounts: Record<string, number> = {};
 
@@ -55,25 +55,27 @@ export function getLeaderboardForMonth(
  */
 export function calculateTopPerformerBadges(
   records: RecordItem[],
-  profilesList: Profile[]
+  profilesList: Profile[],
 ): Record<string, BadgeInfo> {
   const badges: Record<string, BadgeInfo> = {};
   if (records.length === 0 || profilesList.length === 0) return badges;
 
   const today = new Date();
-  
+
   // Previous month parameters
   const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   const prevYearStr = prevMonthDate.getFullYear().toString();
   const prevMonthStr = String(prevMonthDate.getMonth() + 1).padStart(2, "0");
-  const prevMonthName = prevMonthDate.toLocaleString("default", { month: "long" });
+  const prevMonthName = prevMonthDate.toLocaleString("default", {
+    month: "long",
+  });
 
   // Get previous month's rankings
   const lastMonthRankings = getLeaderboardForMonth(
     records,
     prevYearStr,
     prevMonthStr,
-    profilesList
+    profilesList,
   );
 
   // Top 5 users get badges
@@ -96,7 +98,7 @@ export function calculateTopPerformerBadges(
         records,
         checkYearStr,
         checkMonthStr,
-        profilesList
+        profilesList,
       );
 
       // Check if user is in the top 5 for this month
@@ -121,9 +123,9 @@ export function calculateTopPerformerBadges(
         records,
         checkYearStr,
         checkMonthStr,
-        profilesList
+        profilesList,
       );
-      
+
       const userRankIdx = rankings.findIndex((r) => r.userId === user.userId);
       if (userRankIdx >= 0 && userRankIdx < 5) {
         yearlyTopPerformances++;
