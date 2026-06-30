@@ -70,10 +70,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <span className="flex items-center gap-1.5">
-                Welcome, {profile?.full_name || 'User'} ({profile?.username ? profile.username.toUpperCase() : ''})
-                {profile && badges && badges[profile.id] && (
-                  <VerifiedBadge badge={badges[profile.id]} />
-                )}
+                Welcome,{" "}
+                <span className="inline-flex items-center">
+                  {profile?.full_name || 'User'}
+                  {/* Real Badge */}
+                  {profile && badges && badges[profile.id] && (
+                    <VerifiedBadge badge={badges[profile.id]} position="bottom" />
+                  )}
+                </span>
+                {" "}
+                ({profile?.username ? profile.username.toUpperCase() : ''})
               </span>
               <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${
                 profile?.role === 'admin'
