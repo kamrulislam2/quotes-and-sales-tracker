@@ -142,9 +142,14 @@ async fn fetch_ip_batch(requests: Vec<BatchRequest>) -> Result<Vec<String>, Stri
       }
       match req.send().await {
         Ok(res) => {
-          match res.text().await {
-            Ok(body) => body,
-            Err(e) => format!("{{\"error\":\"{}\"}}", e),
+          let status = res.status();
+          if !status.is_success() {
+            format!("{{\"error\":\"HTTP error {}\"}}", status.as_u16())
+          } else {
+            match res.text().await {
+              Ok(body) => body,
+              Err(e) => format!("{{\"error\":\"{}\"}}", e),
+            }
           }
         }
         Err(e) => format!("{{\"error\":\"{}\"}}", e),
