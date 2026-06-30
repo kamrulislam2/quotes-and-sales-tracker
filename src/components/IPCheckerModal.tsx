@@ -24,12 +24,16 @@ interface SourceResult {
 export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose, showToast }) => {
   const [ipInput, setIpInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [detectingIP, setDetectingIP] = useState(false);
   const [checkRan, setCheckRan] = useState(false);
   const [results, setResults] = useState<Record<string, SourceResult>>({});
 
   const detectMyIP = async () => {
+    setDetectingIP(true);
+    const delayPromise = new Promise((resolve) => setTimeout(resolve, 450));
     try {
       const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__ !== undefined;
+      let ipDetected = '';
       
       if (isTauri) {
         try {
@@ -37,21 +41,29 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
           const resJsonStr = await invoke('detect_my_ip');
           const data = JSON.parse(resJsonStr);
           if (data && data.ip) {
-            setIpInput(data.ip);
-            return;
+            ipDetected = data.ip;
           }
         } catch (err) {
           console.warn('Tauri native IP detection failed, falling back to browser:', err);
         }
       }
       
-      const res = await fetch('https://api.ipify.org?format=json');
-      const data = await res.json();
-      if (data && data.ip) {
-        setIpInput(data.ip);
+      if (!ipDetected) {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        if (data && data.ip) {
+          ipDetected = data.ip;
+        }
+      }
+
+      await delayPromise;
+      if (ipDetected) {
+        setIpInput(ipDetected);
       }
     } catch (err) {
       console.warn('Failed to auto-detect IP:', err);
+    } finally {
+      setDetectingIP(false);
     }
   };
 
@@ -534,28 +546,36 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
           <div className="flex justify-center w-full pb-2">
             <form onSubmit={handleSearch} className="flex gap-2 w-full max-w-md">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                {detectingIP ? (
+                  <Loader2 className="absolute left-3 top-2.5 h-4 w-4 text-blue-500 animate-spin" />
+                ) : (
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                )}
                 <input
                   type="text"
                   required
-                  disabled={loading}
-                  placeholder="e.g. 45.125.223.33"
+                  disabled={loading || detectingIP}
+                  placeholder={detectingIP ? "Detecting current IP..." : "e.g. 45.125.223.33"}
                   value={ipInput}
                   onChange={(e) => setIpInput(e.target.value)}
-                  className="w-full pl-9 pr-20 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-white placeholder-slate-650 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  className="w-full pl-9 pr-20 py-2 bg-slate-955/80 border border-slate-800 rounded-xl text-white placeholder-slate-650 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-60"
                 />
                 <button
                   type="button"
                   onClick={detectMyIP}
-                  disabled={loading}
-                  className="absolute right-1.5 top-1.5 px-2 py-0.5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white text-[10px] font-semibold rounded-md transition-all cursor-pointer hover:bg-slate-800"
+                  disabled={loading || detectingIP}
+                  className="absolute right-1.5 top-1.5 px-2 py-0.5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white text-[10px] font-semibold rounded-md transition-all cursor-pointer hover:bg-slate-800 flex items-center justify-center min-w-[48px] disabled:opacity-50"
                 >
-                  My IP
+                  {detectingIP ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-slate-500" />
+                  ) : (
+                    "My IP"
+                  )}
                 </button>
               </div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || detectingIP}
                 className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-md shadow-blue-500/10 hover:shadow-blue-500/20"
               >
                 {loading ? (
