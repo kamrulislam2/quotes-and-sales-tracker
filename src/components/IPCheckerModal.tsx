@@ -265,7 +265,7 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
         const scoreIn = data.score?.inbound || 1;
         const scoreOut = data.score?.outbound || 1;
 
-        if (scoreIn > 3 || scoreOut > 3) risks.push(`High Risk Level (${scoreIn}/${scoreOut})`);
+        if (scoreIn > 3 || scoreOut > 3) risks.push("High Risk Level");
 
         return {
           success: true,
@@ -387,7 +387,7 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
               const risks: string[] = [];
               const scoreIn = data.score?.inbound || 1;
               const scoreOut = data.score?.outbound || 1;
-              if (scoreIn > 3 || scoreOut > 3) risks.push(`High Risk Level (${scoreIn}/${scoreOut})`);
+              if (scoreIn > 3 || scoreOut > 3) risks.push("High Risk Level");
               return {
                 success: true, countryCode: data.country_code,
                 countryName: `${data.city ? data.city + ', ' : ''}${data.region ? data.region + ', ' : ''}${data.country || ''}`,

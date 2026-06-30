@@ -69,6 +69,7 @@ fn overwrite_file(file_path: String, content: Vec<u8>) -> Result<(), String> {
 async fn detect_my_ip() -> Result<String, String> {
   let client = reqwest::Client::builder()
     .timeout(std::time::Duration::from_secs(5))
+    .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     .build()
     .map_err(|e| e.to_string())?;
 
@@ -85,6 +86,7 @@ async fn detect_my_ip() -> Result<String, String> {
 async fn fetch_ip_data(url: String, headers: Option<std::collections::HashMap<String, String>>) -> Result<String, String> {
   let client = reqwest::Client::builder()
     .timeout(std::time::Duration::from_secs(8))
+    .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     .build()
     .map_err(|e| e.to_string())?;
 
@@ -123,6 +125,7 @@ async fn fetch_ip_batch(requests: Vec<BatchRequest>) -> Result<Vec<String>, Stri
   let client = reqwest::Client::builder()
     .timeout(std::time::Duration::from_secs(8))
     .pool_max_idle_per_host(6)
+    .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     .build()
     .map_err(|e| e.to_string())?;
 
