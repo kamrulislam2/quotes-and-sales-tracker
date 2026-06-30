@@ -55,6 +55,11 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v3.1.3 (Patch Release):
+            * **macOS TLS Root Certificates Load (rustls-tls-native-roots)**: Upgraded reqwest client's TLS settings to native roots to resolve SSL certificate trust errors and handshake failures on macOS.
+            * **Bypassed Cloudflare HTTP/2 Fingerprinting Blockage (http1_only)**: Configured reqwest clients with `http1_only` to prevent Cloudflare's bot firewall from blocking `ipwho.is` requests with HTTP 403 Forbidden.
+            * **Direct Tauri Error Outputs**: Disabled silent browser CORS redirects inside the Tauri desktop client context to display exact backend invoke errors inside the diagnostic UI.
+
             ### 🚀 What's New in v3.1.2 (Patch Release):
             * **macOS reqwest TLS Backend Switch (rustls-tls)**: Configured reqwest to use `rustls-tls` instead of macOS's system-default Secure Transport TLS backend, resolving SSL certificate handshake failures and trust issues.
             * **Staggered Request Dispatching (Batch Check)**: Added a 150ms delay between parallel IP checker API calls to eliminate ISP-level connection congestion and rate limits.

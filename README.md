@@ -143,6 +143,14 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v3.1.3
+
+**macOS TLS Root Certificates Load, Cloudflare HTTP/2 Bypass (http1_only) & Tauri Direct Error Output**
+
+- ✅ **macOS Root Certificates Switch**: Changed the reqwest TLS configuration to `rustls-tls-native-roots` to correctly load root certificates from macOS Keychain and Windows Certificate Store.
+- ✅ **Bypassed Cloudflare HTTP/2 Blockage**: Configured reqwest clients to use `http1_only` to prevent Cloudflare JA3/JA4 bot detection from blocking `ipwho.is` requests with HTTP 403.
+- ✅ **Disabled Tauri Browser Fallback**: Blocked browser CORS fallback redirects in Tauri desktop context to show direct, actionable backend errors inside the IP Checker UI.
+
 ### v3.1.2
 
 **macOS TLS Connection Fix, Staggered Parallel Requests, Skeletal Pulsing Loaders & Pointer Cursor Fixes**
