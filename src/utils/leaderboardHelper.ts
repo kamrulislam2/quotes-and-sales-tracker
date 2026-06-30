@@ -88,7 +88,7 @@ export function calculateTopPerformerBadges(
 
     // Calculate Consecutive Months Streak ending at the previous month
     let consecutiveMonths = 0;
-    let checkDate = new Date(prevMonthDate);
+    const checkDate = new Date(prevMonthDate);
 
     while (true) {
       const checkYearStr = checkDate.getFullYear().toString();

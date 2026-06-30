@@ -143,6 +143,16 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v3.1.1
+
+**Premium Profile Hover Tooltip, Compact Verified Badge Alignment, Tooltip Hover Delay & TypeScript Fix**
+
+- ✅ **Premium Profile Hover Tooltip**: Replaced static codename and role tags in the header with a clean hover-activated glassmorphic tooltip, displaying the user's role and monospaced codename.
+- ✅ **Compact Verified Badge Alignment**: Reduced spacing (`ml-0.5` / 2px) and removed flexbox gaps to position the verified checkmark badge immediately adjacent to the user's name (Facebook style).
+- ✅ **Verified Badge & Name Hover Delay**: Configured a 2-second hover delay on both user name and verified badge tooltips to eliminate accidental hover popups during general mouse movement.
+- ✅ **Isolated Tooltip Hover States**: Extracted the verified badge outside the name's hover container to make tooltips mutually exclusive, preventing overlapping popups.
+- ✅ **TypeScript ESLint Fix**: Corrected a `prefer-const` variable declaration error in `leaderboardHelper.ts` to ensure 100% clean linting and builds.
+
 ### v3.1.0
 
 **Tauri Geolocation User-Agent Fix, Category Checkbox List Sanitization, Sidebar Alignment & Parallelized CI Build**
