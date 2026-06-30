@@ -762,12 +762,6 @@ export default function Dashboard() {
     );
   };
 
-  // Clear filters
-  const handleClearFilters = () => {
-    setSearchQuery("");
-    setSelectedBranch("");
-  };
-
   // Open native picker for specific date
   const handleOpenSpecificDatePicker = () => {
     if (specificDateRef.current) {
@@ -1368,7 +1362,9 @@ export default function Dashboard() {
           className="w-full shrink-0 bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 shadow-xl"
         >
           <div
-            className="flex items-center justify-between gap-2 mb-3"
+            className={`flex items-center mb-3 ${
+              isSidebarCollapsed ? "justify-center gap-0" : "justify-between gap-2"
+            }`}
           >
             <span
               className={`text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap inline-block transition-all duration-300 ease-out ${
@@ -1401,8 +1397,8 @@ export default function Dashboard() {
               title={isSidebarCollapsed ? "Daily Entry" : undefined}
               className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isSidebarCollapsed
-                  ? "px-3.5 py-3 gap-0"
-                  : "px-4 py-3 gap-3"
+                  ? "justify-center px-0 py-3 gap-0"
+                  : "justify-start px-4 py-3 gap-3"
               } ${
                 activeTab === "entry"
                   ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1425,8 +1421,8 @@ export default function Dashboard() {
               title={isSidebarCollapsed ? "Monthly Entry List" : undefined}
               className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isSidebarCollapsed
-                  ? "px-3.5 py-3 gap-0"
-                  : "px-4 py-3 gap-3"
+                  ? "justify-center px-0 py-3 gap-0"
+                  : "justify-start px-4 py-3 gap-3"
               } ${
                 activeTab === "monthly"
                   ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1449,8 +1445,8 @@ export default function Dashboard() {
               title={isSidebarCollapsed ? "Quotes Portal" : undefined}
               className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isSidebarCollapsed
-                  ? "px-3.5 py-3 gap-0"
-                  : "px-4 py-3 gap-3"
+                  ? "justify-center px-0 py-3 gap-0"
+                  : "justify-start px-4 py-3 gap-3"
               } ${
                 activeTab === "rules"
                   ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1474,8 +1470,8 @@ export default function Dashboard() {
                 title={isSidebarCollapsed ? "Analytics" : undefined}
                 className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                   isSidebarCollapsed
-                    ? "px-3.5 py-3 gap-0"
-                    : "px-4 py-3 gap-3"
+                    ? "justify-center px-0 py-3 gap-0"
+                    : "justify-start px-4 py-3 gap-3"
                 } ${
                   activeTab === "analytics"
                     ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1500,8 +1496,8 @@ export default function Dashboard() {
                 title={isSidebarCollapsed ? "User Management" : undefined}
                 className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                   isSidebarCollapsed
-                    ? "px-3.5 py-3 gap-0"
-                    : "px-4 py-3 gap-3"
+                    ? "justify-center px-0 py-3 gap-0"
+                    : "justify-start px-4 py-3 gap-3"
                 } ${
                   activeTab === "users"
                     ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1526,8 +1522,8 @@ export default function Dashboard() {
                 title={isSidebarCollapsed ? "Audit Logs" : undefined}
                 className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                   isSidebarCollapsed
-                    ? "px-3.5 py-3 gap-0"
-                    : "px-4 py-3 gap-3"
+                    ? "justify-center px-0 py-3 gap-0"
+                    : "justify-start px-4 py-3 gap-3"
                 } ${
                   activeTab === "audit_logs"
                     ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"

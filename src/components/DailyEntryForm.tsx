@@ -1,5 +1,5 @@
 import React from "react";
-import { FileText, MapPin, UserCheck, Plus, Loader2 } from "lucide-react";
+import { FileText, MapPin, UserCheck, Plus, Loader2, X } from "lucide-react";
 import { FileType } from "@/types";
 import { CategorySelector } from "./CategorySelector";
 import { BranchSelector } from "./BranchSelector";
@@ -43,9 +43,20 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
       {/* Left side inputs */}
       <div className="space-y-4">
         <div>
-          <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
-            <FileText className="h-3.5 w-3.5 text-blue-500" /> File Name
-          </label>
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="flex text-xs font-semibold text-slate-355 items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-blue-500" /> File Name
+            </label>
+            {fileName && (
+              <button
+                type="button"
+                onClick={() => setFileName("")}
+                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+              >
+                <X className="h-3 w-3" /> Clear
+              </button>
+            )}
+          </div>
           <input
             type="text"
             required
@@ -57,9 +68,20 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
         </div>
 
         <div>
-          <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-blue-500" /> Branch Name
-          </label>
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="flex text-xs font-semibold text-slate-355 items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-blue-500" /> Branch Name
+            </label>
+            {branchName && (
+              <button
+                type="button"
+                onClick={() => setBranchName("")}
+                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+              >
+                <X className="h-3 w-3" /> Clear
+              </button>
+            )}
+          </div>
           <BranchSelector
             value={branchName}
             onChange={setBranchName}
@@ -67,14 +89,25 @@ export const DailyEntryForm: React.FC<DailyEntryFormProps> = ({
         </div>
 
         <div>
-          <label className="flex text-xs font-semibold text-slate-355 mb-1.5 items-center gap-1.5">
-            <UserCheck className="h-3.5 w-3.5 text-blue-500" /> Codename{" "}
-            {!isAdmin && (
-              <span className="text-[10px] text-slate-500 font-normal">
-                (Locked)
-              </span>
+          <div className="flex justify-between items-center mb-1.5">
+            <label className="flex text-xs font-semibold text-slate-355 items-center gap-1.5">
+              <UserCheck className="h-3.5 w-3.5 text-blue-500" /> Codename{" "}
+              {!isAdmin && (
+                <span className="text-[10px] text-slate-500 font-normal">
+                  (Locked)
+                </span>
+              )}
+            </label>
+            {isAdmin && codenameInput && (
+              <button
+                type="button"
+                onClick={() => setCodenameInput("")}
+                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+              >
+                <X className="h-3 w-3" /> Clear
+              </button>
             )}
-          </label>
+          </div>
           <input
             type="text"
             required
