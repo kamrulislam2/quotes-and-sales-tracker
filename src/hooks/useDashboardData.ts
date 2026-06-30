@@ -22,15 +22,42 @@ import {
   clearAllCache
 } from '@/utils/offlineSync';
 
+const sanitizeProfile = (p: Profile | null): Profile | null => {
+  if (!p) return null;
+  if (Array.isArray(p.allowed_types)) {
+    return {
+      ...p,
+      allowed_types: p.allowed_types.filter((t: string) => t !== 'Review Van' && t !== 'Review Bike')
+    };
+  }
+  return p;
+};
+
+const sanitizeProfilesList = (list: Profile[]): Profile[] => {
+  if (!list) return [];
+  return list.map(p => sanitizeProfile(p) as Profile);
+};
+
 export const useDashboardData = () => {
   const router = useRouter();
   const [sessionUser, setSessionUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setRawProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(true);
   const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+
+  const setProfile = useCallback((val: Profile | null | ((prev: Profile | null) => Profile | null)) => {
+    setRawProfile(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      const sanitized = sanitizeProfile(next);
+      if (typeof window !== 'undefined' && sanitized) {
+        localStorage.setItem('quotes_sales_profile', JSON.stringify(sanitized));
+      }
+      return sanitized;
+    });
+  }, []);
 
   // Helper to update last activity timestamp in localStorage
   const updateLastActivity = useCallback(() => {
@@ -41,7 +68,14 @@ export const useDashboardData = () => {
 
   // Records and Profiles lists
   const [records, setRecords] = useState<RecordItem[]>([]);
-  const [profilesList, setProfilesList] = useState<Profile[]>([]);
+  const [profilesList, setRawProfilesList] = useState<Profile[]>([]);
+
+  const setProfilesList = useCallback((val: Profile[] | ((prev: Profile[]) => Profile[])) => {
+    setRawProfilesList(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      return sanitizeProfilesList(next);
+    });
+  }, []);
   const [availableDates, setAvailableDates] = useState<{ year: string; month: string }[]>([]);
 
   // Audit Logs
@@ -375,7 +409,7 @@ export const useDashboardData = () => {
       setRecordsLoading(false);
       setInitialFetchDone(true);
     }
-  }, [sessionUser, profile, selectedYear, selectedMonth, showToast]);
+  }, [sessionUser, profile, selectedYear, selectedMonth, showToast, setProfilesList]);
 
   // Fetch unique month/year dates that contain submitted records for the logged-in user (or anyone if admin)
   const fetchAvailableDates = useCallback(async () => {
@@ -729,7 +763,7 @@ export const useDashboardData = () => {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [router, showToast]);
+  }, [router, showToast, setProfile]);
 
   // Fetch records once authenticated & loaded
   useEffect(() => {
@@ -828,6 +862,7 @@ export const useDashboardData = () => {
       )
       .subscribe();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let auditLogsChannel: any = null;
     if (profile?.role === 'admin') {
       auditLogsChannel = supabase
@@ -850,7 +885,7 @@ export const useDashboardData = () => {
         supabase.removeChannel(auditLogsChannel);
       }
     };
-  }, [sessionUser, profile, fetchRecords, fetchAvailableDates, fetchAuditLogs, router]);
+  }, [sessionUser, profile, fetchRecords, fetchAvailableDates, fetchAuditLogs, router, setProfile, setProfilesList]);
 
   const handleLogout = async () => {
     if (typeof window !== 'undefined') {

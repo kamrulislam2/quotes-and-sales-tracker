@@ -55,14 +55,12 @@ import {
   Save,
 } from "lucide-react";
 
-const ALL_12_FILE_TYPES = [
+const ALL_10_FILE_TYPES = [
   "Quote",
   "Requote",
   "Requote Van",
   "Requote Bike",
   "Review",
-  "Review Van",
-  "Review Bike",
   "Individual Review",
   "Other Site",
   "Van",
@@ -360,7 +358,7 @@ export default function Dashboard() {
   const [newRole, setNewRole] = useState<"user" | "admin">("user");
   const [newPassword, setNewPassword] = useState("1234");
   const [allowedTypesSelect, setAllowedTypesSelect] =
-    useState<string[]>(ALL_12_FILE_TYPES);
+    useState<string[]>(ALL_10_FILE_TYPES);
   const [newCanManageRules, setNewCanManageRules] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(
     null,
@@ -646,7 +644,7 @@ export default function Dashboard() {
       if (searchQuery) {
         const q = searchQuery.toLowerCase().trim();
         // Check if search query matches a known file type exactly (case-insensitive)
-        const matchedFileType = ALL_12_FILE_TYPES.find(
+        const matchedFileType = ALL_10_FILE_TYPES.find(
           (ft) => ft.toLowerCase() === q,
         );
 
@@ -697,7 +695,7 @@ export default function Dashboard() {
       if (todaySearchQuery) {
         const q = todaySearchQuery.toLowerCase().trim();
         // Check if search query matches a known file type exactly (case-insensitive)
-        const matchedFileType = ALL_12_FILE_TYPES.find(
+        const matchedFileType = ALL_10_FILE_TYPES.find(
           (ft) => ft.toLowerCase() === q,
         );
 
@@ -1120,7 +1118,7 @@ export default function Dashboard() {
       setNewFullName("");
       setNewRole("user");
       setNewPassword("1234");
-      setAllowedTypesSelect(ALL_12_FILE_TYPES);
+      setAllowedTypesSelect(ALL_10_FILE_TYPES);
       setNewCanManageRules(false);
       setIsAddUserModalOpen(false);
     }
@@ -1338,7 +1336,7 @@ export default function Dashboard() {
   }
 
   // Filter allowed categories for the daily form
-  const allowedCategories = profile?.allowed_types || ALL_12_FILE_TYPES;
+  const allowedCategories = profile?.allowed_types || ALL_10_FILE_TYPES;
 
   return (
     <div className="flex-1 min-h-screen flex flex-col bg-slate-955 relative overflow-hidden pb-12">
@@ -2040,7 +2038,7 @@ export default function Dashboard() {
 
       {/* MODAL 0: SOLD/UNSOLD CHOICE */}
       {showSaleModal && saleFormDetails && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center px-4 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center px-4 animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl relative text-center space-y-6">
             <div>
               <h3 className="text-lg font-bold text-white mb-2">Sale Status</h3>
@@ -2054,14 +2052,14 @@ export default function Dashboard() {
                 onClick={() => handleConfirmSaleStatus("UNSOLD")}
                 className="flex-1 py-2.5 px-3.5 bg-slate-950 border border-slate-800 hover:border-rose-950/40 hover:bg-rose-950/10 text-slate-300 hover:text-rose-400 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
-                <XCircle className="h-3.5 w-3.5 stroke-[2] shrink-0" />
+                <XCircle className="h-3.5 w-3.5 stroke-2 shrink-0" />
                 <span>Unsold</span>
               </button>
               <button
                 onClick={() => handleConfirmSaleStatus("SOLD")}
-                className="flex-1 py-2.5 px-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-950/20 cursor-pointer"
+                className="flex-1 py-2.5 px-3.5 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-950/20 cursor-pointer"
               >
-                <CheckCircle className="h-3.5 w-3.5 stroke-[2] shrink-0" />
+                <CheckCircle className="h-3.5 w-3.5 stroke-2 shrink-0" />
                 <span>Sold</span>
               </button>
             </div>
@@ -2266,7 +2264,7 @@ export default function Dashboard() {
 
       {/* BULK DELETING OVERLAY */}
       {isBulkDeletingInProgress && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-[9999] flex flex-col items-center justify-center select-none">
+        <div className="fixed inset-0 bg-slate-955/70 backdrop-blur-xs z-9999 flex flex-col items-center justify-center select-none">
           <div className="flex flex-col items-center p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl animate-fade-in max-w-sm w-full mx-4 text-center">
             <div className="relative w-12 h-12 flex items-center justify-center">
               <div className="w-10 h-10 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin"></div>
