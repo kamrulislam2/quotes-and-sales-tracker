@@ -514,7 +514,7 @@ export const useDashboardData = () => {
   }, [sessionUser, profile, fetchAuditLogs]);
 
   // ── Record CRUD (extracted hook) ──────────────────────────────────
-  const { addRecord, deleteRecord, deleteRecords, updateRecord } = useRecordActions({
+  const { addRecord, deleteRecord, deleteRecords, updateRecord, bulkUpdateRecords } = useRecordActions({
     sessionUser,
     profile,
     showToast,
@@ -889,6 +889,7 @@ export const useDashboardData = () => {
     deleteRecord,
     deleteRecords,
     updateRecord,
+    bulkUpdateRecords,
     createUser,
     resetUserPassword,
     deleteUser,

@@ -49,34 +49,25 @@ ALTER TABLE public.rules_history ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION public.archive_rule_changes()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF TG_OP = 'UPDATE' THEN
-    -- Archive if it's a soft delete (is_deleted goes from false to true)
-    IF (OLD.is_deleted = false AND NEW.is_deleted = true) THEN
-      INSERT INTO public.rules_history (
-        rule_id, category, sub_category, company_name, company_tags, title, content, extra_info, action_type, archived_by
-      )
-      VALUES (
-        OLD.id, OLD.category, OLD.sub_category, OLD.company_name, OLD.company_tags, OLD.title, OLD.content, OLD.extra_info, 'DELETE', auth.uid()
-      );
-    -- Only archive if the content, title, extra_info, or company info actually changed
-    ELSIF (OLD.content <> NEW.content OR OLD.title IS DISTINCT FROM NEW.title OR OLD.extra_info IS DISTINCT FROM NEW.extra_info OR OLD.company_name IS DISTINCT FROM NEW.company_name) THEN
-      INSERT INTO public.rules_history (
-        rule_id, category, sub_category, company_name, company_tags, title, content, extra_info, action_type, archived_by
-      )
-      VALUES (
-        OLD.id, OLD.category, OLD.sub_category, OLD.company_name, OLD.company_tags, OLD.title, OLD.content, OLD.extra_info, 'UPDATE', auth.uid()
-      );
-    END IF;
-    NEW.updated_at := now();
-    NEW.updated_by := auth.uid();
-  ELSIF TG_OP = 'DELETE' THEN
+  -- Archive if it's a soft delete (is_deleted goes from false to true)
+  IF (OLD.is_deleted = false AND NEW.is_deleted = true) THEN
     INSERT INTO public.rules_history (
       rule_id, category, sub_category, company_name, company_tags, title, content, extra_info, action_type, archived_by
     )
     VALUES (
       OLD.id, OLD.category, OLD.sub_category, OLD.company_name, OLD.company_tags, OLD.title, OLD.content, OLD.extra_info, 'DELETE', auth.uid()
     );
+  -- Only archive if the content, title, extra_info, or company info actually changed
+  ELSIF (OLD.content <> NEW.content OR OLD.title IS DISTINCT FROM NEW.title OR OLD.extra_info IS DISTINCT FROM NEW.extra_info OR OLD.company_name IS DISTINCT FROM NEW.company_name) THEN
+    INSERT INTO public.rules_history (
+      rule_id, category, sub_category, company_name, company_tags, title, content, extra_info, action_type, archived_by
+    )
+    VALUES (
+      OLD.id, OLD.category, OLD.sub_category, OLD.company_name, OLD.company_tags, OLD.title, OLD.content, OLD.extra_info, 'UPDATE', auth.uid()
+    );
   END IF;
+  NEW.updated_at := now();
+  NEW.updated_by := auth.uid();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -84,7 +75,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Bind trigger to compliance_rules
 DROP TRIGGER IF EXISTS trg_archive_rule_changes ON public.compliance_rules;
 CREATE TRIGGER trg_archive_rule_changes
-  BEFORE UPDATE OR DELETE ON public.compliance_rules
+  BEFORE UPDATE ON public.compliance_rules
   FOR EACH ROW EXECUTE FUNCTION public.archive_rule_changes();
 
 -- 6. Setup RLS policies

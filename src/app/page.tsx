@@ -93,6 +93,7 @@ export default function Dashboard() {
     deleteRecord,
     deleteRecords,
     updateRecord,
+    bulkUpdateRecords,
     createUser,
     resetUserPassword,
     deleteUser,
@@ -139,6 +140,26 @@ export default function Dashboard() {
     return "entry";
   });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const [isMd, setIsMd] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    setIsMd(media.matches);
+    const listener = (e: MediaQueryListEvent) => setIsMd(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
+
+  const sidebarStyle = useMemo(() => {
+    if (!isMd) return {};
+    const widthVal = isSidebarCollapsed ? "80px" : "256px";
+    return {
+      width: widthVal,
+      minWidth: widthVal,
+      maxWidth: widthVal,
+      transition: "width 300ms ease-out, min-width 300ms ease-out, max-width 300ms ease-out",
+    };
+  }, [isSidebarCollapsed, isMd]);
 
   // Load active tab preference in localStorage on mount or when profile loads
   useEffect(() => {
@@ -234,6 +255,10 @@ export default function Dashboard() {
 
   // Today's Table Search Query
   const [todaySearchQuery, setTodaySearchQuery] = useState("");
+
+  // Branch Selection Filters
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [todaySelectedBranch, setTodaySelectedBranch] = useState("");
 
   // User Management Search Query
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -562,6 +587,17 @@ export default function Dashboard() {
     }
   }, [dynamicYears, selectedYear, setSelectedYear]);
 
+  // Unique branches extracted dynamically from all records
+  const uniqueBranches = useMemo(() => {
+    const branches = new Set<string>();
+    records.forEach((r) => {
+      if (r.branch_name) {
+        branches.add(r.branch_name.toUpperCase().trim());
+      }
+    });
+    return Array.from(branches).sort();
+  }, [records]);
+
   // Filtered records for Monthly Tab
   const monthlyFilteredRecords = useMemo(() => {
     return records.filter((r) => {
@@ -580,6 +616,12 @@ export default function Dashboard() {
           return false;
         }
       }
+      // Branch Dropdown filter
+      if (selectedBranch) {
+        if (r.branch_name.toUpperCase().trim() !== selectedBranch.toUpperCase().trim()) {
+          return false;
+        }
+      }
       if (searchQuery) {
         const q = searchQuery.toLowerCase().trim();
         // Check if search query matches a known file type exactly (case-insensitive)
@@ -593,18 +635,17 @@ export default function Dashboard() {
             return false;
           }
         } else {
-          // Otherwise, search in name, branch, and codename fields only
+          // Otherwise, search in filename and codename fields only (NOT branch_name)
           const matchFileName = r.file_name.toLowerCase().includes(q);
-          const matchBranch = r.branch_name.toLowerCase().includes(q);
           const matchCodename = r.codename.toLowerCase().includes(q);
-          if (!matchFileName && !matchBranch && !matchCodename) {
+          if (!matchFileName && !matchCodename) {
             return false;
           }
         }
       }
       return true;
     });
-  }, [records, adminViewMode, selectedDate, searchQuery, profile, sessionUser]);
+  }, [records, adminViewMode, selectedDate, searchQuery, selectedBranch, profile, sessionUser]);
 
   // Today's entries (submitted on the current local day)
   const todayRecords = useMemo(() => {
@@ -626,6 +667,12 @@ export default function Dashboard() {
   // Filtered entries for Today's list table
   const todayFilteredRecords = useMemo(() => {
     return todayRecords.filter((r) => {
+      // Branch Dropdown filter
+      if (todaySelectedBranch) {
+        if (r.branch_name.toUpperCase().trim() !== todaySelectedBranch.toUpperCase().trim()) {
+          return false;
+        }
+      }
       if (todaySearchQuery) {
         const q = todaySearchQuery.toLowerCase().trim();
         // Check if search query matches a known file type exactly (case-insensitive)
@@ -639,18 +686,17 @@ export default function Dashboard() {
             return false;
           }
         } else {
-          // Otherwise, search in name, branch, and codename fields only
+          // Otherwise, search in filename and codename fields only (NOT branch_name)
           const matchFileName = r.file_name.toLowerCase().includes(q);
-          const matchBranch = r.branch_name.toLowerCase().includes(q);
           const matchCodename = r.codename.toLowerCase().includes(q);
-          if (!matchFileName && !matchBranch && !matchCodename) {
+          if (!matchFileName && !matchCodename) {
             return false;
           }
         }
       }
       return true;
     });
-  }, [todayRecords, todaySearchQuery]);
+  }, [todayRecords, todaySearchQuery, todaySelectedBranch]);
 
   // Filtered users for User Management Tab
   const filteredProfiles = useMemo(() => {
@@ -698,6 +744,7 @@ export default function Dashboard() {
   // Clear filters
   const handleClearFilters = () => {
     setSearchQuery("");
+    setSelectedBranch("");
   };
 
   // Open native picker for specific date
@@ -785,6 +832,7 @@ export default function Dashboard() {
 
   const handleClearTodayFilters = () => {
     setTodaySearchQuery("");
+    setTodaySelectedBranch("");
   };
 
   const submitNewEntry = async (
@@ -922,6 +970,62 @@ export default function Dashboard() {
     if (success) {
       setEditingRecord(null);
     }
+  };
+
+  const handleSaveInline = async (id: string, updates: Partial<RecordItem>): Promise<boolean> => {
+    if (updates.file_name !== undefined && !updates.file_name.trim()) {
+      showToast("error", "File name cannot be empty.");
+      return false;
+    }
+    if (updates.branch_name !== undefined && !updates.branch_name.trim()) {
+      showToast("error", "Branch name cannot be empty.");
+      return false;
+    }
+    if (updates.codename !== undefined && !updates.codename.trim()) {
+      showToast("error", "Codename cannot be empty.");
+      return false;
+    }
+
+    const originalRecord = records.find(r => r.id === id);
+    if (!originalRecord) return false;
+
+    const finalFileName = updates.file_name !== undefined ? updates.file_name : originalRecord.file_name;
+    const finalBranchName = updates.branch_name !== undefined ? updates.branch_name : originalRecord.branch_name;
+    const finalCodename = updates.codename !== undefined ? updates.codename : originalRecord.codename;
+    const finalFileType = updates.file_type !== undefined ? updates.file_type : originalRecord.file_type;
+    const finalSubmittedAt = updates.submitted_at !== undefined ? updates.submitted_at : originalRecord.submitted_at;
+
+    const success = await updateRecord(
+      id,
+      finalFileName,
+      finalBranchName,
+      finalCodename,
+      finalFileType,
+      finalSubmittedAt
+    );
+
+    return success;
+  };
+
+  const handleBulkSaveInline = async (updatesMap: Record<string, Partial<RecordItem>>): Promise<boolean> => {
+    for (const id of Object.keys(updatesMap)) {
+      const updates = updatesMap[id];
+      if (updates.file_name !== undefined && !updates.file_name.trim()) {
+        showToast("error", "File name cannot be empty.");
+        return false;
+      }
+      if (updates.branch_name !== undefined && !updates.branch_name.trim()) {
+        showToast("error", "Branch name cannot be empty.");
+        return false;
+      }
+      if (updates.codename !== undefined && !updates.codename.trim()) {
+        showToast("error", "Codename cannot be empty.");
+        return false;
+      }
+    }
+
+    const success = await bulkUpdateRecords(updatesMap);
+    return success;
   };
 
   const handleOpenEditRecord = (
@@ -1237,24 +1341,18 @@ export default function Dashboard() {
       />
       {/* Main Body Layout */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 w-full z-10 flex-1 flex flex-col md:flex-row gap-6 items-start">
-        {/* Sidebar Navigation */}
         <aside
-          className={`w-full shrink-0 bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 shadow-xl transition-all duration-300 ease-out ${
-            isSidebarCollapsed ? "md:w-20" : "md:w-64"
-          }`}
+          style={sidebarStyle}
+          className="w-full shrink-0 bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 shadow-xl"
         >
           <div
-            className={`flex items-center gap-2 mb-3 ${
-              isSidebarCollapsed
-                ? "justify-between md:justify-center md:gap-0"
-                : "justify-between"
-            }`}
+            className="flex items-center justify-between gap-2 mb-3"
           >
             <span
-              className={`text-[11px] font-semibold uppercase tracking-wider text-slate-500 transition-all duration-200 ${
+              className={`text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap inline-block transition-all duration-300 ease-out ${
                 isSidebarCollapsed
-                  ? "md:w-0 md:opacity-0 md:overflow-hidden"
-                  : "opacity-100"
+                  ? "max-w-0 opacity-0 overflow-hidden"
+                  : "max-w-[100px] opacity-100"
               }`}
             >
               Menu
@@ -1279,10 +1377,10 @@ export default function Dashboard() {
             <button
               onClick={() => handleTabChange("entry")}
               title={isSidebarCollapsed ? "Daily Entry" : undefined}
-              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isSidebarCollapsed
-                  ? "justify-center gap-3 md:gap-0 px-3 py-3"
-                  : "gap-3 px-4 py-3"
+                  ? "px-3.5 py-3 gap-0"
+                  : "px-4 py-3 gap-3"
               } ${
                 activeTab === "entry"
                   ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1291,10 +1389,10 @@ export default function Dashboard() {
             >
               <FileText className="h-5 w-5 shrink-0" />
               <span
-                className={`whitespace-nowrap transition-all duration-200 ${
+                className={`whitespace-nowrap inline-block transition-all duration-300 ease-out ${
                   isSidebarCollapsed
-                    ? "md:w-0 md:opacity-0 md:overflow-hidden"
-                    : "opacity-100"
+                    ? "max-w-0 opacity-0 overflow-hidden"
+                    : "max-w-[180px] opacity-100"
                 }`}
               >
                 Daily Entry
@@ -1303,10 +1401,10 @@ export default function Dashboard() {
             <button
               onClick={() => handleTabChange("monthly")}
               title={isSidebarCollapsed ? "Monthly Entry List" : undefined}
-              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isSidebarCollapsed
-                  ? "justify-center gap-3 md:gap-0 px-3 py-3"
-                  : "gap-3 px-4 py-3"
+                  ? "px-3.5 py-3 gap-0"
+                  : "px-4 py-3 gap-3"
               } ${
                 activeTab === "monthly"
                   ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1315,10 +1413,10 @@ export default function Dashboard() {
             >
               <Calendar className="h-5 w-5 shrink-0" />
               <span
-                className={`whitespace-nowrap transition-all duration-200 ${
+                className={`whitespace-nowrap inline-block transition-all duration-300 ease-out ${
                   isSidebarCollapsed
-                    ? "md:w-0 md:opacity-0 md:overflow-hidden"
-                    : "opacity-100"
+                    ? "max-w-0 opacity-0 overflow-hidden"
+                    : "max-w-[180px] opacity-100"
                 }`}
               >
                 Monthly Entry List
@@ -1327,10 +1425,10 @@ export default function Dashboard() {
             <button
               onClick={() => handleTabChange("rules")}
               title={isSidebarCollapsed ? "Quotes Portal" : undefined}
-              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+              className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isSidebarCollapsed
-                  ? "justify-center gap-3 md:gap-0 px-3 py-3"
-                  : "gap-3 px-4 py-3"
+                  ? "px-3.5 py-3 gap-0"
+                  : "px-4 py-3 gap-3"
               } ${
                 activeTab === "rules"
                   ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1339,10 +1437,10 @@ export default function Dashboard() {
             >
               <BookOpen className="h-5 w-5 shrink-0" />
               <span
-                className={`whitespace-nowrap transition-all duration-200 ${
+                className={`whitespace-nowrap inline-block transition-all duration-300 ease-out ${
                   isSidebarCollapsed
-                    ? "md:w-0 md:opacity-0 md:overflow-hidden"
-                    : "opacity-100"
+                    ? "max-w-0 opacity-0 overflow-hidden"
+                    : "max-w-[180px] opacity-100"
                 }`}
               >
                 Quotes Portal
@@ -1352,10 +1450,10 @@ export default function Dashboard() {
               <button
                 onClick={() => handleTabChange("analytics")}
                 title={isSidebarCollapsed ? "Analytics" : undefined}
-                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                   isSidebarCollapsed
-                    ? "justify-center gap-3 md:gap-0 px-3 py-3"
-                    : "gap-3 px-4 py-3"
+                    ? "px-3.5 py-3 gap-0"
+                    : "px-4 py-3 gap-3"
                 } ${
                   activeTab === "analytics"
                     ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1364,10 +1462,10 @@ export default function Dashboard() {
               >
                 <TrendingUp className="h-5 w-5 shrink-0" />
                 <span
-                  className={`whitespace-nowrap transition-all duration-200 ${
+                  className={`whitespace-nowrap inline-block transition-all duration-300 ease-out ${
                     isSidebarCollapsed
-                      ? "md:w-0 md:opacity-0 md:overflow-hidden"
-                      : "opacity-100"
+                      ? "max-w-0 opacity-0 overflow-hidden"
+                      : "max-w-[180px] opacity-100"
                   }`}
                 >
                   Analytics
@@ -1378,10 +1476,10 @@ export default function Dashboard() {
               <button
                 onClick={() => handleTabChange("users")}
                 title={isSidebarCollapsed ? "User Management" : undefined}
-                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                   isSidebarCollapsed
-                    ? "justify-center gap-3 md:gap-0 px-3 py-3"
-                    : "gap-3 px-4 py-3"
+                    ? "px-3.5 py-3 gap-0"
+                    : "px-4 py-3 gap-3"
                 } ${
                   activeTab === "users"
                     ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1390,10 +1488,10 @@ export default function Dashboard() {
               >
                 <Users className="h-5 w-5 shrink-0" />
                 <span
-                  className={`whitespace-nowrap transition-all duration-200 ${
+                  className={`whitespace-nowrap inline-block transition-all duration-300 ease-out ${
                     isSidebarCollapsed
-                      ? "md:w-0 md:opacity-0 md:overflow-hidden"
-                      : "opacity-100"
+                      ? "max-w-0 opacity-0 overflow-hidden"
+                      : "max-w-[180px] opacity-100"
                   }`}
                 >
                   User Management
@@ -1404,10 +1502,10 @@ export default function Dashboard() {
               <button
                 onClick={() => handleTabChange("audit_logs")}
                 title={isSidebarCollapsed ? "Audit Logs" : undefined}
-                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                   isSidebarCollapsed
-                    ? "justify-center gap-3 md:gap-0 px-3 py-3"
-                    : "gap-3 px-4 py-3"
+                    ? "px-3.5 py-3 gap-0"
+                    : "px-4 py-3 gap-3"
                 } ${
                   activeTab === "audit_logs"
                     ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
@@ -1416,10 +1514,10 @@ export default function Dashboard() {
               >
                 <ScrollText className="h-5 w-5 shrink-0" />
                 <span
-                  className={`whitespace-nowrap transition-all duration-200 ${
+                  className={`whitespace-nowrap inline-block transition-all duration-300 ease-out ${
                     isSidebarCollapsed
-                      ? "md:w-0 md:opacity-0 md:overflow-hidden"
-                      : "opacity-100"
+                      ? "max-w-0 opacity-0 overflow-hidden"
+                      : "max-w-[180px] opacity-100"
                   }`}
                 >
                   Audit Logs
@@ -1580,11 +1678,11 @@ export default function Dashboard() {
                 ) : (
                   <>
                     {/* Search Filters for Today's Table - BEFORE Stats */}
-                    <div className="space-y-2">
-                      <div className="relative">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
                         <input
                           type="text"
-                          placeholder="Search name, codename, branch..."
+                          placeholder="Search name, codename..."
                           value={todaySearchQuery}
                           onChange={(e) => setTodaySearchQuery(e.target.value)}
                           className="block w-full pl-8 pr-8 py-1.5 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs h-8"
@@ -1593,14 +1691,38 @@ export default function Dashboard() {
                         {todaySearchQuery && (
                           <button
                             type="button"
-                            onClick={handleClearTodayFilters}
-                            className="absolute right-2.5 top-1.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
+                            onClick={() => setTodaySearchQuery("")}
+                            className="absolute right-2.5 top-1.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-405 hover:text-white transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
                             title="Clear search"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
+
+                      <select
+                        value={todaySelectedBranch}
+                        onChange={(e) => setTodaySelectedBranch(e.target.value)}
+                        className="block w-full sm:w-44 px-3 py-1 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer h-8"
+                      >
+                        <option value="">All Branches</option>
+                        {uniqueBranches.map((b) => (
+                          <option key={b} value={b}>
+                            {b}
+                          </option>
+                        ))}
+                      </select>
+
+                      {(todaySearchQuery || todaySelectedBranch) && (
+                        <button
+                          type="button"
+                          onClick={handleClearTodayFilters}
+                          className="px-3 py-1 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[10px] text-slate-400 hover:text-white font-semibold rounded-lg transition-all h-8 cursor-pointer flex items-center gap-1 shrink-0"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          Clear
+                        </button>
+                      )}
                     </div>
 
                     {/* Stat pills summary Component */}
@@ -1620,6 +1742,10 @@ export default function Dashboard() {
                         currentUserId={sessionUser?.id}
                         isAdmin={profile?.role === "admin"}
                         onBulkDelete={setBulkDeletingRecordIds}
+                        onSaveInline={handleSaveInline}
+                        onBulkSaveInline={handleBulkSaveInline}
+                        allowedCategories={allowedCategories}
+                        submitting={submitting}
                       />
                     </Suspense>
                   </>
@@ -1672,14 +1798,14 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <div className="bg-slate-955/40 p-4 rounded-2xl border border-slate-850 grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end w-full">
                   {/* 1. Search Box */}
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-3">
                     <label className="block text-[11px] font-semibold text-slate-350 mb-1">
                       Search
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder="Search name, codename, branch..."
+                        placeholder="Search name, codename..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="block w-full pl-8 pr-8 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white placeholder-slate-650 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs h-9"
@@ -1688,7 +1814,7 @@ export default function Dashboard() {
                       {searchQuery && (
                         <button
                           type="button"
-                          onClick={handleClearFilters}
+                          onClick={() => setSearchQuery("")}
                           className="absolute right-2.5 top-2.5 flex items-center justify-center p-0.5 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all duration-200 hover:scale-110 active:scale-90 cursor-pointer"
                           title="Clear search"
                         >
@@ -1696,6 +1822,25 @@ export default function Dashboard() {
                         </button>
                       )}
                     </div>
+                  </div>
+
+                  {/* 2. Branch Selector */}
+                  <div className="md:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-350 mb-1">
+                      Branch
+                    </label>
+                    <select
+                      value={selectedBranch}
+                      onChange={(e) => setSelectedBranch(e.target.value)}
+                      className="block w-full px-3 py-2 bg-slate-955 border border-slate-800 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer h-9"
+                    >
+                      <option value="">All Branches</option>
+                      {uniqueBranches.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* 2. Year Selection */}
@@ -1743,7 +1888,7 @@ export default function Dashboard() {
                   </div>
 
                   {/* 4. Specific Date Input */}
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-3">
                     <label className="block text-[11px] font-semibold text-slate-350 mb-1">
                       Specific Date
                     </label>
@@ -1774,11 +1919,15 @@ export default function Dashboard() {
                       <button
                         type="button"
                         onClick={() => {
+                          setSearchQuery("");
+                          setSelectedBranch("");
+                          setSelectedYear(new Date().getFullYear().toString());
+                          setSelectedMonth(String(new Date().getMonth() + 1).padStart(2, '0'));
                           setSelectedDate("");
                           setDateInputVal("");
                         }}
                         className="p-2 bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-white text-slate-400 rounded-lg transition-all duration-200 flex items-center justify-center shrink-0 w-9 h-9 cursor-pointer"
-                        title="Reset specific date"
+                        title="Reset all filters"
                       >
                         <RefreshCw className="h-4 w-4" />
                       </button>
@@ -1804,6 +1953,10 @@ export default function Dashboard() {
                   currentUserId={sessionUser?.id}
                   isAdmin={profile?.role === "admin"}
                   onBulkDelete={setBulkDeletingRecordIds}
+                  onSaveInline={handleSaveInline}
+                  onBulkSaveInline={handleBulkSaveInline}
+                  allowedCategories={allowedCategories}
+                  submitting={submitting}
                 />
               </Suspense>
             </div>
@@ -1918,6 +2071,7 @@ export default function Dashboard() {
           onSave={handleSaveEdit}
           editSaleStatus={editSaleStatus}
           setEditSaleStatus={setEditSaleStatus}
+          submitting={submitting}
         />
       )}
 

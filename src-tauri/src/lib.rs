@@ -66,8 +66,28 @@ fn overwrite_file(file_path: String, content: Vec<u8>) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn detect_my_ip() -> Result<String, String> {
+  let client = reqwest::Client::builder()
+    .timeout(std::time::Duration::from_secs(5))
+    .build()
+    .map_err(|e| e.to_string())?;
+
+  let res = client.get("https://api.ipify.org?format=json")
+    .send()
+    .await
+    .map_err(|e| e.to_string())?;
+
+  let body = res.text().await.map_err(|e| e.to_string())?;
+  Ok(body)
+}
+
+#[tauri::command]
 async fn fetch_ip_data(url: String, headers: Option<std::collections::HashMap<String, String>>) -> Result<String, String> {
-  let client = reqwest::Client::new();
+  let client = reqwest::Client::builder()
+    .timeout(std::time::Duration::from_secs(8))
+    .build()
+    .map_err(|e| e.to_string())?;
+
   let mut req = client.get(&url);
   
   if let Some(h) = headers {
@@ -92,6 +112,55 @@ async fn fetch_ip_data(url: String, headers: Option<std::collections::HashMap<St
   Ok(body)
 }
 
+#[derive(serde::Deserialize)]
+struct BatchRequest {
+  url: String,
+  headers: Option<std::collections::HashMap<String, String>>,
+}
+
+#[tauri::command]
+async fn fetch_ip_batch(requests: Vec<BatchRequest>) -> Result<Vec<String>, String> {
+  let client = reqwest::Client::builder()
+    .timeout(std::time::Duration::from_secs(8))
+    .pool_max_idle_per_host(6)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+  let mut handles = Vec::new();
+  
+  for req_data in requests {
+    let c = client.clone();
+    let handle = tokio::spawn(async move {
+      let mut req = c.get(&req_data.url);
+      if let Some(h) = req_data.headers {
+        for (k, v) in h {
+          req = req.header(k, v);
+        }
+      }
+      match req.send().await {
+        Ok(res) => {
+          match res.text().await {
+            Ok(body) => body,
+            Err(e) => format!("{{\"error\":\"{}\"}}", e),
+          }
+        }
+        Err(e) => format!("{{\"error\":\"{}\"}}", e),
+      }
+    });
+    handles.push(handle);
+  }
+
+  let mut results = Vec::new();
+  for handle in handles {
+    match handle.await {
+      Ok(body) => results.push(body),
+      Err(e) => results.push(format!("{{\"error\":\"{}\"}}", e)),
+    }
+  }
+  
+  Ok(results)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   #[cfg(target_os = "windows")]
@@ -105,7 +174,7 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_log::Builder::default().build())
     .plugin(tauri_plugin_process::init())
-    .invoke_handler(tauri::generate_handler![save_file, custom_relaunch, overwrite_file, pick_directory, save_file_to_dir, fetch_ip_data])
+    .invoke_handler(tauri::generate_handler![save_file, custom_relaunch, overwrite_file, pick_directory, save_file_to_dir, fetch_ip_data, fetch_ip_batch, detect_my_ip])
     .setup(|app| {
       #[cfg(desktop)]
       app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;

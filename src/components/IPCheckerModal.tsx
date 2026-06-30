@@ -29,6 +29,22 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
 
   const detectMyIP = async () => {
     try {
+      const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__ !== undefined;
+      
+      if (isTauri) {
+        try {
+          const { invoke } = (window as any).__TAURI__.core;
+          const resJsonStr = await invoke('detect_my_ip');
+          const data = JSON.parse(resJsonStr);
+          if (data && data.ip) {
+            setIpInput(data.ip);
+            return;
+          }
+        } catch (err) {
+          console.warn('Tauri native IP detection failed, falling back to browser:', err);
+        }
+      }
+      
       const res = await fetch('https://api.ipify.org?format=json');
       const data = await res.json();
       if (data && data.ip) {
@@ -295,7 +311,128 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
       }
     };
 
-    // Execute concurrently
+    // ─── TAURI DESKTOP: TRUE PARALLEL NATIVE BATCH FETCH ───
+    const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__ !== undefined;
+
+    if (isTauri) {
+      try {
+        const { invoke } = (window as any).__TAURI__.core;
+        
+        const batchRequests = [
+          { url: `https://api.iplocation.net/?ip=${ip}`, headers: null },
+          { url: `https://ipwho.is/${ip}`, headers: null },
+          { url: `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,isp,proxy,hosting,city,regionName`, headers: null },
+          { url: `https://api.ip2location.io/?key=${keys.ip2location}&ip=${ip}`, headers: null },
+          { url: `https://api.criminalip.io/v1/ip/summary?ip=${ip}`, headers: { 'x-api-key': keys.criminalip } },
+          { url: `https://ipinfo.io/${ip}/json?token=${keys.ipinfo}`, headers: null },
+        ];
+
+        const rawResults: string[] = await invoke('fetch_ip_batch', { requests: batchRequests });
+
+        // Parse each result using inline parsers
+        const parsers: Array<{ name: string; parse: (data: any) => SourceResult }> = [
+          {
+            name: 'IPLocation.net',
+            parse: (data) => {
+              if (data.error || data.response_code !== '200') return { success: false, error: data.error || data.response_message || 'Fetch failed' };
+              return { success: true, countryCode: data.country_code2, countryName: data.country_name, isp: data.isp, isProxyOrVpn: false, rawData: data };
+            }
+          },
+          {
+            name: 'IPWho.is',
+            parse: (data) => {
+              if (data.error || !data.success) return { success: false, error: data.error || data.message || 'Lookup failed' };
+              const risks: string[] = [];
+              if (data.security?.vpn) risks.push('VPN');
+              if (data.security?.proxy) risks.push('Proxy');
+              if (data.security?.tor) risks.push('Tor exit node');
+              return {
+                success: true, countryCode: data.country_code,
+                countryName: `${data.city ? data.city + ', ' : ''}${data.region ? data.region + ', ' : ''}${data.country || ''}`,
+                isp: data.connection?.isp, isProxyOrVpn: risks.length > 0, riskDetails: risks, rawData: data
+              };
+            }
+          },
+          {
+            name: 'IP-API.com',
+            parse: (data) => {
+              if (data.error || data.status !== 'success') return { success: false, error: data.error || data.message || 'Lookup failed' };
+              const risks: string[] = [];
+              if (data.proxy) risks.push('Proxy');
+              if (data.hosting) risks.push('Hosting network');
+              return {
+                success: true, countryCode: data.countryCode,
+                countryName: `${data.city ? data.city + ', ' : ''}${data.regionName ? data.regionName + ', ' : ''}${data.country || ''}`,
+                isp: data.isp, isProxyOrVpn: data.proxy || data.hosting, riskDetails: risks, rawData: data
+              };
+            }
+          },
+          {
+            name: 'IP2Location.io',
+            parse: (data) => {
+              if (data.error) return { success: false, error: typeof data.error === 'object' ? data.error.error_message : data.error };
+              const risks: string[] = [];
+              if (data.is_proxy) risks.push('Proxy/VPN/Tor');
+              return {
+                success: true, countryCode: data.country_code,
+                countryName: `${data.city_name ? data.city_name + ', ' : ''}${data.region_name ? data.region_name + ', ' : ''}${data.country_name || ''}`,
+                isp: data.as, isProxyOrVpn: data.is_proxy === true, riskDetails: risks, rawData: data
+              };
+            }
+          },
+          {
+            name: 'CriminalIP.io',
+            parse: (data) => {
+              if (data.error) return { success: false, error: data.error };
+              const risks: string[] = [];
+              const scoreIn = data.score?.inbound || 1;
+              const scoreOut = data.score?.outbound || 1;
+              if (scoreIn > 3 || scoreOut > 3) risks.push(`High Risk Level (${scoreIn}/${scoreOut})`);
+              return {
+                success: true, countryCode: data.country_code,
+                countryName: `${data.city ? data.city + ', ' : ''}${data.region ? data.region + ', ' : ''}${data.country || ''}`,
+                isp: data.isp || data.org_name, isProxyOrVpn: scoreIn > 3, riskDetails: risks, rawData: data
+              };
+            }
+          },
+          {
+            name: 'IPInfo.io',
+            parse: (data) => {
+              if (data.error) return { success: false, error: typeof data.error === 'object' ? data.error.title : data.error };
+              const risks: string[] = [];
+              if (data.privacy?.vpn) risks.push('VPN');
+              if (data.privacy?.proxy) risks.push('Proxy');
+              if (data.privacy?.tor) risks.push('Tor Exit');
+              if (data.privacy?.hosting) risks.push('Hosting/Data Center');
+              return {
+                success: true, countryCode: data.country,
+                countryName: `${data.city ? data.city + ', ' : ''}${data.region ? data.region + ', ' : ''}${data.country || ''}`,
+                isp: data.org, isProxyOrVpn: !!(data.privacy?.vpn || data.privacy?.proxy || data.privacy?.tor || data.privacy?.hosting),
+                riskDetails: risks, rawData: data
+              };
+            }
+          }
+        ];
+
+        const parsed: Record<string, SourceResult> = {};
+        rawResults.forEach((raw, i) => {
+          try {
+            const data = JSON.parse(raw);
+            parsed[parsers[i].name] = parsers[i].parse(data);
+          } catch {
+            parsed[parsers[i].name] = { success: false, error: 'Failed to parse response' };
+          }
+        });
+
+        setResults(parsed);
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.warn('Tauri batch fetch failed, falling back to browser mode:', err);
+      }
+    }
+
+    // ─── BROWSER FALLBACK: Promise.all with secureFetch ───
     const [iploc, whois, ipapi, ip2loc, criminal, ipinfo] = await Promise.all([
       fetchIPLocationNet(),
       fetchIPWhoIs(),

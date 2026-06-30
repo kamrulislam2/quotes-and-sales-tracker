@@ -249,6 +249,7 @@ export const useRecordActions = ({
     submittedAt?: string
   ) => {
     if (!sessionUser) return false;
+    setSubmitting(true);
     updateLastActivity();
 
     let oldDetails = `ID ${id}`;
@@ -319,6 +320,7 @@ export const useRecordActions = ({
         await fetchRecords(true);
         await fetchAvailableDates();
         showToast('success', 'Updated offline! Data will sync when online.');
+        setSubmitting(false);
         return true;
       }
 
@@ -339,18 +341,126 @@ export const useRecordActions = ({
       await fetchRecords(true);
       await fetchAvailableDates();
       showToast('success', 'Record updated successfully!');
+      setSubmitting(false);
       return true;
     } catch (err) {
       console.error('Error updating record:', err);
       showToast('error', 'Failed to update record: ' + (err instanceof Error ? err.message : String(err)));
+      setSubmitting(false);
       return false;
     }
-  }, [sessionUser, showToast, logActivity, fetchRecords, fetchAvailableDates, updateLastActivity]);
+  }, [sessionUser, showToast, logActivity, fetchRecords, fetchAvailableDates, setSubmitting, updateLastActivity]);
+
+  const bulkUpdateRecords = useCallback(async (
+    updatesMap: Record<string, Partial<RecordItem>>
+  ) => {
+    if (!sessionUser) return false;
+    const recordIds = Object.keys(updatesMap);
+    if (recordIds.length === 0) return true;
+
+    setSubmitting(true);
+    updateLastActivity();
+
+    try {
+      if (!navigator.onLine) {
+        const pending = await getOfflineRecords();
+        
+        for (const id of recordIds) {
+          const updates = updatesMap[id];
+          const dbUpdates: any = {};
+          if (updates.file_name !== undefined) dbUpdates.file_name = updates.file_name;
+          if (updates.branch_name !== undefined) dbUpdates.branch_name = updates.branch_name.toUpperCase().trim();
+          if (updates.codename !== undefined) dbUpdates.codename = updates.codename.toUpperCase().trim();
+          if (updates.file_type !== undefined) dbUpdates.file_type = updates.file_type;
+          if (updates.submitted_at !== undefined) dbUpdates.submitted_at = updates.submitted_at;
+
+          const pendingInsert = pending.find(r => r.localId === id || r.id === id);
+          if (pendingInsert && pendingInsert.action === 'insert') {
+            if (pendingInsert.localId) {
+              await updateOfflineRecordAction(pendingInsert.localId, dbUpdates);
+            }
+          } else {
+            await saveOfflineUpdate(id, sessionUser.id, dbUpdates);
+          }
+        }
+
+        // Update local cache optimistically
+        const cached = await getCacheData<RecordItem>('records_cache');
+        const updatedCache = cached.map(r => {
+          if (updatesMap[r.id]) {
+            const rowUpdates = updatesMap[r.id];
+            const dbUpdates: any = {};
+            if (rowUpdates.file_name !== undefined) dbUpdates.file_name = rowUpdates.file_name;
+            if (rowUpdates.branch_name !== undefined) dbUpdates.branch_name = rowUpdates.branch_name.toUpperCase().trim();
+            if (rowUpdates.codename !== undefined) dbUpdates.codename = rowUpdates.codename.toUpperCase().trim();
+            if (rowUpdates.file_type !== undefined) dbUpdates.file_type = rowUpdates.file_type;
+            if (rowUpdates.submitted_at !== undefined) dbUpdates.submitted_at = rowUpdates.submitted_at;
+
+            return {
+              ...r,
+              ...dbUpdates,
+              profiles: {
+                username: dbUpdates.codename || (r.profiles?.username || r.codename),
+                full_name: r.profiles?.full_name || null
+              }
+            };
+          }
+          return r;
+        });
+        await setCacheData('records_cache', updatedCache);
+
+        await fetchRecords(true);
+        await fetchAvailableDates();
+        showToast('success', `Updated ${recordIds.length} records offline!`);
+        setSubmitting(false);
+        return true;
+      }
+
+      // Online: Run all updates in parallel
+      const updatePromises = recordIds.map(async (id) => {
+        const rowUpdates = updatesMap[id];
+        const dbUpdates: any = {};
+        if (rowUpdates.file_name !== undefined) dbUpdates.file_name = rowUpdates.file_name;
+        if (rowUpdates.branch_name !== undefined) dbUpdates.branch_name = rowUpdates.branch_name.toUpperCase().trim();
+        if (rowUpdates.codename !== undefined) dbUpdates.codename = rowUpdates.codename.toUpperCase().trim();
+        if (rowUpdates.file_type !== undefined) dbUpdates.file_type = rowUpdates.file_type;
+        if (rowUpdates.submitted_at !== undefined) dbUpdates.submitted_at = rowUpdates.submitted_at;
+
+        const { error } = await supabase
+          .from('records')
+          .update(dbUpdates)
+          .eq('id', id);
+
+        if (error) throw error;
+      });
+
+      await Promise.all(updatePromises);
+
+      // Bulk Audit Log
+      await logActivity(
+        'UPDATE_RECORD',
+        recordIds[0],
+        `Bulk updated ${recordIds.length} records in grid edit`
+      );
+
+      await fetchRecords(true);
+      await fetchAvailableDates();
+      showToast('success', `Successfully saved ${recordIds.length} changes!`);
+      setSubmitting(false);
+      return true;
+    } catch (err) {
+      console.error('Error bulk updating records:', err);
+      showToast('error', 'Failed to save changes: ' + (err instanceof Error ? err.message : String(err)));
+      setSubmitting(false);
+      return false;
+    }
+  }, [sessionUser, showToast, logActivity, fetchRecords, fetchAvailableDates, setSubmitting, updateLastActivity]);
 
   return {
     addRecord,
     deleteRecord,
     deleteRecords,
     updateRecord,
+    bulkUpdateRecords,
   };
 };
