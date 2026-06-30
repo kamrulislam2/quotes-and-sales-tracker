@@ -131,9 +131,12 @@ async fn fetch_ip_batch(requests: Vec<BatchRequest>) -> Result<Vec<String>, Stri
 
   let mut handles = Vec::new();
   
-  for req_data in requests {
+  for (i, req_data) in requests.into_iter().enumerate() {
     let c = client.clone();
     let handle = tokio::spawn(async move {
+      if i > 0 {
+        tokio::time::sleep(std::time::Duration::from_millis((i as u64) * 150)).await;
+      }
       let mut req = c.get(&req_data.url);
       if let Some(h) = req_data.headers {
         for (k, v) in h {

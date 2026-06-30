@@ -204,21 +204,22 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
       }
     };
 
-    // ─── QUERY SOURCE 3: FREEIPAPI.COM ───
-    const fetchFreeIPApi = async (): Promise<SourceResult> => {
+    // ─── QUERY SOURCE 3: IP-API.COM ───
+    const fetchIPApi = async (): Promise<SourceResult> => {
       try {
-        const data = await secureFetch(`https://freeipapi.com/api/json/${ip}`);
-        if (data.is_valid === false) throw new Error('Lookup failed');
+        const data = await secureFetch(`http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,isp,org,as,proxy,hosting,query`);
+        if (data.status !== 'success') throw new Error(data.message || 'Lookup failed');
 
         const risks: string[] = [];
-        if (data.is_proxy) risks.push('Proxy/VPN/Hosting');
+        if (data.proxy) risks.push('Proxy/VPN');
+        if (data.hosting) risks.push('Hosting/Data Center');
 
         return {
           success: true,
-          countryCode: data.country_code,
-          countryName: `${data.city ? data.city + ', ' : ''}${data.region ? data.region + ', ' : ''}${data.country || ''}`,
-          isp: data.asn_org,
-          isProxyOrVpn: data.is_proxy === true,
+          countryCode: data.countryCode,
+          countryName: `${data.city ? data.city + ', ' : ''}${data.regionName ? data.regionName + ', ' : ''}${data.country || ''}`,
+          isp: data.isp || data.org,
+          isProxyOrVpn: data.proxy === true || data.hosting === true,
           riskDetails: risks,
           rawData: data
         };
@@ -318,7 +319,7 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
         const batchRequests = [
           { url: `https://api.iplocation.net/?ip=${ip}`, headers: null },
           { url: `https://ipwho.is/${ip}`, headers: null },
-          { url: `https://freeipapi.com/api/json/${ip}`, headers: null },
+          { url: `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,isp,org,as,proxy,hosting,query`, headers: null },
           { url: `https://api.ip2location.io/?key=${keys.ip2location}&ip=${ip}`, headers: null },
           { url: `https://api.criminalip.io/v1/ip/summary?ip=${ip}`, headers: { 'x-api-key': keys.criminalip } },
           { url: `https://ipinfo.io/${ip}/json?token=${keys.ipinfo}`, headers: null },
@@ -351,15 +352,16 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
             }
           },
           {
-            name: 'FreeIPAPI.com',
+            name: 'IP-API.com',
             parse: (data) => {
-              if (data.error || data.is_valid === false) return { success: false, error: data.error || 'Lookup failed' };
+              if (data.error || data.status !== 'success') return { success: false, error: data.error || data.message || 'Lookup failed' };
               const risks: string[] = [];
-              if (data.is_proxy) risks.push('Proxy/VPN/Hosting');
+              if (data.proxy) risks.push('Proxy/VPN');
+              if (data.hosting) risks.push('Hosting/Data Center');
               return {
-                success: true, countryCode: data.country_code,
-                countryName: `${data.city ? data.city + ', ' : ''}${data.region ? data.region + ', ' : ''}${data.country || ''}`,
-                isp: data.asn_org, isProxyOrVpn: data.is_proxy === true, riskDetails: risks, rawData: data
+                success: true, countryCode: data.countryCode,
+                countryName: `${data.city ? data.city + ', ' : ''}${data.regionName ? data.regionName + ', ' : ''}${data.country || ''}`,
+                isp: data.isp || data.org, isProxyOrVpn: data.proxy === true || data.hosting === true, riskDetails: risks, rawData: data
               };
             }
           },
@@ -432,7 +434,7 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
     const [iploc, whois, ipapi, ip2loc, criminal, ipinfo] = await Promise.all([
       fetchIPLocationNet(),
       fetchIPWhoIs(),
-      fetchFreeIPApi(),
+      fetchIPApi(),
       fetchIP2LocationIo(),
       fetchCriminalIP(),
       fetchIPInfoIo()
@@ -441,7 +443,7 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
     setResults({
       'IPLocation.net': iploc,
       'IPWho.is': whois,
-      'FreeIPAPI.com': ipapi,
+      'IP-API.com': ipapi,
       'IP2Location.io': ip2loc,
       'CriminalIP.io': criminal,
       'IPInfo.io': ipinfo
@@ -678,9 +680,9 @@ export const IPCheckerModal: React.FC<IPCheckerModalProps> = ({ isOpen, onClose,
                           )}
                         </div>
                       ) : (
-                        <p className="text-xs text-slate-600 italic py-2">
-                          Error: {result.error}
-                        </p>
+                        <div className="mt-2 p-2 bg-rose-950/20 border border-rose-900/30 rounded-lg text-[10px] text-rose-400 font-medium">
+                          Error: {result.error || 'Request failed'}
+                        </div>
                       )}
                     </div>
 
