@@ -861,15 +861,15 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
                         <tr className="bg-slate-950 border-b border-slate-850/80 text-[10px] text-slate-550 uppercase tracking-wider font-bold">
-                          <th className="px-4 py-3 w-[60%]">Task Name</th>
-                          <th className="px-4 py-3 w-[15%] text-center">Status</th>
-                          <th className="px-4 py-3 w-[25%]">Notes / Comments</th>
+                          <th className="px-3 py-2 w-[60%]">Task Name</th>
+                          <th className="px-3 py-2 w-[15%] text-center">Status</th>
+                          <th className="px-3 py-2 w-[25%]">Notes / Comments</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-850/40 text-slate-350">
                         {list.map((item) => (
                           <tr key={item.id} className="hover:bg-slate-900/35 transition-colors">
-                            <td className="px-4 py-2.5 font-medium text-slate-200">
+                            <td className="px-3 py-1.5 font-medium text-slate-200">
                               <div className="flex items-center gap-2">
                                 {item.status === 'Completed' ? (
                                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -881,7 +881,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 py-2.5 text-center">
+                            <td className="px-3 py-1.5 text-center">
                               <span
                                 className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wider border ${
                                   item.status === 'Completed'
@@ -892,7 +892,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                                 {item.status}
                               </span>
                             </td>
-                            <td className="px-4 py-2.5 text-xs text-slate-450 italic truncate max-w-[200px]" title={item.comment || ''}>
+                            <td className="px-3 py-1.5 text-xs text-slate-450 italic truncate max-w-[200px]" title={item.comment || ''}>
                               {item.comment || <span className="text-slate-650 select-none">-</span>}
                             </td>
                           </tr>
@@ -996,6 +996,26 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
           </div>,
           document.body
         )}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+          height: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 9999px;
+          transition: background 0.2s ease;
+        }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+          background: rgba(148, 163, 184, 0.2);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(148, 163, 184, 0.35);
+        }
+      `}} />
     </div>
   );
 };

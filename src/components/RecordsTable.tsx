@@ -532,14 +532,14 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
           <thead className="bg-slate-900/50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
             <tr>
               <th
-                className={`px-5 py-3.5 ${showDate ? "w-[7.5rem] min-w-[7.5rem]" : "w-28 min-w-28"}`}
+                className={`px-4 py-2 ${showDate ? "w-[7.5rem] min-w-[7.5rem]" : "w-28 min-w-28"}`}
               >
                 {showDate ? "Date/Time" : "Submitted Time"}
               </th>
-              <th className="px-5 py-3.5">File Name</th>
-              <th className="px-5 py-3.5 text-center">Branch</th>
-              <th className="px-5 py-3.5 text-center">Codename</th>
-              <th className="px-5 py-3.5 min-w-32 text-center">Type</th>
+              <th className="px-4 py-2">File Name</th>
+              <th className="px-4 py-2 text-center">Branch</th>
+              <th className="px-4 py-2 text-center">Codename</th>
+              <th className="px-4 py-2 min-w-32 text-center">Type</th>
               <th
                 className="p-0 text-right overflow-hidden border-0"
                 style={cellStyle}
@@ -605,24 +605,24 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                   key={idx}
                   className="hover:bg-slate-900/10 border-b border-slate-850/40"
                 >
-                  <td className="px-5 py-4 w-28">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="h-3.5 w-16 bg-slate-800 rounded animate-pulse" />
+                  <td className="px-4 py-2.5 w-28">
+                    <div className="flex flex-col gap-1">
+                      <div className="h-3 w-16 bg-slate-800 rounded animate-pulse" />
                       {showDate && (
-                        <div className="h-2.5 w-10 bg-slate-850 rounded animate-pulse" />
+                        <div className="h-2 w-10 bg-slate-850 rounded animate-pulse" />
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="h-3.5 w-40 bg-slate-800 rounded animate-pulse" />
+                  <td className="px-4 py-2.5">
+                    <div className="h-3 w-40 bg-slate-800 rounded animate-pulse" />
                   </td>
-                  <td className="px-5 py-4 text-center">
-                    <div className="h-3.5 w-12 bg-slate-800 rounded animate-pulse mx-auto" />
+                  <td className="px-4 py-2.5 text-center">
+                    <div className="h-3 w-12 bg-slate-800 rounded animate-pulse mx-auto" />
                   </td>
-                  <td className="px-5 py-4 text-center">
-                    <div className="h-3.5 w-16 bg-slate-800 rounded animate-pulse mx-auto" />
+                  <td className="px-4 py-2.5 text-center">
+                    <div className="h-3 w-16 bg-slate-800 rounded animate-pulse mx-auto" />
                   </td>
-                  <td className="px-5 py-4 w-32 text-center">
+                  <td className="px-4 py-2.5 w-32 text-center">
                     <div className="h-5 w-20 bg-slate-800/80 rounded-full animate-pulse mx-auto" />
                   </td>
                   <td
@@ -642,7 +642,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
               <tr>
                 <td
                   colSpan={6}
-                  className="px-5 py-8 text-center text-xs text-slate-500 font-medium"
+                  className="px-4 py-5 text-center text-xs text-slate-500 font-medium"
                 >
                   {emptyMessage}
                 </td>
@@ -660,7 +660,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                   }`}
                 >
                   <td
-                    className={`px-5 py-3 ${showDate ? "w-[7.5rem] min-w-[7.5rem]" : "w-28 min-w-28"}`}
+                    className={`px-4 py-1.5 ${showDate ? "w-[7.5rem] min-w-[7.5rem]" : "w-28 min-w-28"}`}
                   >
                     {showDate ? (
                       <div className="flex flex-col">
@@ -679,7 +679,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                   </td>
 
                   {/* File Name Cell */}
-                  <td className="px-5 py-3 font-semibold text-white">
+                  <td className="px-4 py-1.5 font-semibold text-white">
                     {editingCell &&
                     editingCell.id === r.id &&
                     editingCell.field === "file_name" ? (
@@ -734,7 +734,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                   </td>
 
                   {/* Branch Name Cell */}
-                  <td className="px-5 py-3 text-slate-355 text-center">
+                  <td className="px-4 py-1.5 text-slate-355 text-center">
                     {editingCell &&
                     editingCell.id === r.id &&
                     editingCell.field === "branch_name" ? (
@@ -809,7 +809,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                   </td>
 
                   {/* Codename Cell */}
-                  <td className="px-5 py-3 text-slate-355 font-semibold text-center">
+                  <td className="px-4 py-1.5 text-slate-355 font-semibold text-center">
                     {editingCell &&
                     editingCell.id === r.id &&
                     editingCell.field === "codename" ? (
@@ -855,7 +855,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                   </td>
 
                   {/* File Type Cell */}
-                  <td className="px-5 py-3 min-w-32 text-center">
+                  <td className="px-4 py-1.5 min-w-32 text-center">
                     {editingCell &&
                     editingCell.id === r.id &&
                     editingCell.field === "file_type" ? (
