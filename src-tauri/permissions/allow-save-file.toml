@@ -1,5 +1,13 @@
 [[permission]]
 identifier = "allow-save-file"
-description = "Enables the save_file, overwrite_file, pick_directory, save_file_to_dir, and custom_relaunch commands"
-commands.allow = ["save_file", "overwrite_file", "pick_directory", "save_file_to_dir", "custom_relaunch"]
-
+description = "Enables the save_file, overwrite_file, pick_directory, save_file_to_dir, custom_relaunch, detect_my_ip, fetch_ip_data, and fetch_ip_batch commands"
+commands.allow = [
+  "save_file", 
+  "overwrite_file", 
+  "pick_directory", 
+  "save_file_to_dir", 
+  "custom_relaunch",
+  "detect_my_ip",
+  "fetch_ip_data",
+  "fetch_ip_batch"
+]

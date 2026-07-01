@@ -143,6 +143,12 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v3.1.4
+
+**Tauri v2 IPC Access Control List (ACL) Fix**
+
+- ✅ **Tauri Capabilities Permission Update**: Appended `detect_my_ip`, `fetch_ip_data`, and `fetch_ip_batch` native IPC commands to the `allow-save-file.toml` capabilities manifest, fixing the `Command not allowed by ACL` frontend errors when checking IPs on desktop.
+
 ### v3.1.3
 
 **macOS TLS Root Certificates Load, Cloudflare HTTP/2 Bypass (http1_only) & Tauri Direct Error Output**
