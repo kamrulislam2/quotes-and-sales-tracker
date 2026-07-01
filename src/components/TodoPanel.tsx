@@ -14,10 +14,12 @@ import {
   AlertCircle,
   Clock,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
+  Edit
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { ConfirmModal } from '@/components/modals/ConfirmModal';
+import { createPortal } from 'react-dom';
 
 interface TodoPanelProps {
   profile: Profile | null;
@@ -32,6 +34,18 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
   const [newTask, setNewTask] = useState('');
   const [isAllTime, setIsAllTime] = useState(false);
   const [todoToDelete, setTodoToDelete] = useState<string | null>(null);
+  
+  // Inline edit, bulk select and custom context menu state
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
+  const [editingTaskText, setEditingTaskText] = useState('');
+  const [lastClickTime, setLastClickTime] = useState<{ id: string; time: number } | null>(null);
+  const [selectedTodoIds, setSelectedTodoIds] = useState<string[]>([]);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    todoId: string;
+  } | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Daily State
   const [todayStr] = useState(() => new Date().toLocaleDateString('en-CA')); // Local YYYY-MM-DD
@@ -173,6 +187,12 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
     }
   }, [profile, selectedYear, selectedMonth]);
 
+  // Handle Mounting state for Portals
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
   // Handle Initial Load and Sub-tab toggle updates
   useEffect(() => {
     if (subTab === 'daily') {
@@ -275,6 +295,86 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
       );
     } catch (err: any) {
       console.error('Failed to update comment:', err?.message || err);
+    }
+  };
+
+  // Close context menu on click anywhere
+  useEffect(() => {
+    const handleCloseMenu = () => setContextMenu(null);
+    window.addEventListener('click', handleCloseMenu);
+    return () => window.removeEventListener('click', handleCloseMenu);
+  }, []);
+
+  // Context Menu trigger
+  const handleContextMenu = (e: React.MouseEvent, todoId: string) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      todoId
+    });
+  };
+
+  // Double click / consecutive click edit handler
+  const handleTaskClick = (todo: TodoItem) => {
+    const now = Date.now();
+    if (lastClickTime && lastClickTime.id === todo.id && now - lastClickTime.time < 2000) {
+      setEditingTodoId(todo.id);
+      setEditingTaskText(todo.task);
+      setLastClickTime(null);
+    } else {
+      setLastClickTime({ id: todo.id, time: now });
+    }
+  };
+
+  // Save inline edit
+  const handleSaveEdit = async (todoId: string) => {
+    if (!editingTaskText.trim()) {
+      setEditingTodoId(null);
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .update({ task: editingTaskText.trim() })
+        .eq('id', todoId);
+
+      if (error) throw error;
+      setTodos((prev) =>
+        prev.map((t) => (t.id === todoId ? { ...t, task: editingTaskText.trim() } : t))
+      );
+      toast.success('Task name updated!');
+    } catch (err: any) {
+      console.error('Failed to update task name:', err?.message || err);
+      toast.error('Failed to update task name.');
+    } finally {
+      setEditingTodoId(null);
+    }
+  };
+
+  // Toggle selection for bulk actions
+  const handleToggleSelect = (todoId: string) => {
+    setSelectedTodoIds((prev) =>
+      prev.includes(todoId) ? prev.filter((id) => id !== todoId) : [...prev, todoId]
+    );
+  };
+
+  // Bulk Delete implementation
+  const handleBulkDelete = async () => {
+    if (selectedTodoIds.length === 0) return;
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .in('id', selectedTodoIds);
+
+      if (error) throw error;
+      setTodos((prev) => prev.filter((t) => !selectedTodoIds.includes(t.id)));
+      setSelectedTodoIds([]);
+      toast.success('Selected tasks deleted successfully.');
+    } catch (err: any) {
+      console.error('Failed to bulk delete todos:', err?.message || err);
+      toast.error('Failed to delete selected tasks.');
     }
   };
 
@@ -452,6 +552,31 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
             </div>
           </div>
 
+          {/* Bulk Action Bar */}
+          {selectedTodoIds.length > 0 && (
+            <div className="flex items-center justify-between bg-indigo-950/15 border border-indigo-500/25 px-4 py-3 rounded-xl animate-fade-in shadow-lg">
+              <span className="text-xs text-indigo-400 font-bold">
+                {selectedTodoIds.length} {selectedTodoIds.length === 1 ? 'task' : 'tasks'} selected
+              </span>
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTodoIds([])}
+                  className="px-3.5 py-1.5 bg-slate-900 border border-slate-800 hover:border-slate-750 text-slate-300 hover:text-white rounded-lg text-xs font-semibold cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Clear Selection
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTodoToDelete('bulk')}
+                  className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-md shadow-rose-950/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete Selected
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* List display */}
           {loading ? (
             <div className="space-y-4">
@@ -481,17 +606,31 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
             <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1 custom-scrollbar">
               {todos.map((todo) => {
                 const isCompleted = todo.status === 'Completed';
+                const isSelected = selectedTodoIds.includes(todo.id);
                 return (
                   <div
                     key={todo.id}
+                    onContextMenu={(e) => handleContextMenu(e, todo.id)}
                     className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-200 ${
-                      isCompleted
+                      isSelected
+                        ? 'bg-indigo-950/15 border-indigo-500/40 shadow-inner'
+                        : isCompleted
                         ? 'bg-emerald-950/5 border-emerald-500/10 hover:border-emerald-500/20'
                         : 'bg-slate-950/25 border-slate-800/70 hover:border-slate-800'
                     }`}
                   >
                     {/* Task and Comment Layout */}
                     <div className="flex-1 min-w-0 flex items-start gap-3">
+                      {/* Bulk selection checkbox */}
+                      {selectedTodoIds.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelect(todo.id)}
+                          className="mt-1 w-3.5 h-3.5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0"
+                        />
+                      )}
+
                       {/* Interactive checkmark toggle */}
                       <button
                         onClick={() => handleToggleStatus(todo)}
@@ -505,15 +644,34 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                       </button>
 
                       <div className="flex-1 space-y-1.5 min-w-0">
-                        <p
-                          onClick={() => handleToggleStatus(todo)}
-                          className={`text-xs font-semibold leading-relaxed cursor-pointer select-none truncate ${
-                            isCompleted ? 'text-slate-550 line-through' : 'text-slate-200'
-                          }`}
-                          title={todo.task}
-                        >
-                          {todo.task}
-                        </p>
+                        {editingTodoId === todo.id ? (
+                          <input
+                            type="text"
+                            value={editingTaskText}
+                            onChange={(e) => setEditingTaskText(e.target.value)}
+                            onBlur={() => handleSaveEdit(todo.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(todo.id);
+                              if (e.key === 'Escape') setEditingTodoId(null);
+                            }}
+                            autoFocus
+                            className="w-full max-w-lg px-2.5 py-1 bg-slate-900 border border-indigo-500 rounded-lg text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                        ) : (
+                          <p
+                            onClick={() => handleTaskClick(todo)}
+                            onDoubleClick={() => {
+                              setEditingTodoId(todo.id);
+                              setEditingTaskText(todo.task);
+                            }}
+                            className={`text-xs font-semibold leading-relaxed cursor-text select-none truncate ${
+                              isCompleted ? 'text-slate-550 line-through' : 'text-slate-200'
+                            }`}
+                            title="Click twice or double-click to edit name"
+                          >
+                            {todo.task}
+                          </p>
+                        )}
 
                         {/* Comment Input Box */}
                         <div className="flex items-center gap-2">
@@ -549,24 +707,21 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                         >
                           {todo.is_all_time ? 'All-Time' : 'Regular'}
                         </button>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
+                        <div
+                          className={`p-1 rounded-full border shrink-0 ${
                             isCompleted
                               ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/20'
                               : 'bg-amber-600/10 text-amber-400 border-amber-500/20'
                           }`}
+                          title={todo.status}
                         >
-                          {todo.status}
-                        </span>
+                          {isCompleted ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-450" />
+                          ) : (
+                            <Clock className="w-3.5 h-3.5 text-amber-450 animate-pulse" />
+                          )}
+                        </div>
                       </div>
-
-                      <button
-                        onClick={() => setTodoToDelete(todo.id)}
-                        className="p-1.5 text-slate-500 hover:text-rose-450 hover:bg-rose-950/20 rounded-lg transition-colors cursor-pointer"
-                        title="Delete task"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
                 );
@@ -717,17 +872,80 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
         isOpen={todoToDelete !== null}
         onClose={() => setTodoToDelete(null)}
         onConfirm={async () => {
-          if (todoToDelete) {
+          if (todoToDelete === 'bulk') {
+            await handleBulkDelete();
+          } else if (todoToDelete) {
             await handleDeleteTodo(todoToDelete);
-            setTodoToDelete(null);
           }
+          setTodoToDelete(null);
         }}
-        title="Delete Task"
-        message="Are you sure you want to delete this task? This action cannot be undone."
+        title={todoToDelete === 'bulk' ? 'Delete Selected Tasks' : 'Delete Task'}
+        message={
+          todoToDelete === 'bulk'
+            ? `Are you sure you want to delete these ${selectedTodoIds.length} selected tasks? This action cannot be undone.`
+            : 'Are you sure you want to delete this task? This action cannot be undone.'
+        }
         confirmText="Delete"
         cancelText="Cancel"
         isDanger={true}
       />
+
+      {/* Premium Glassmorphic Context Menu */}
+      {contextMenu &&
+        isMounted &&
+        createPortal(
+          <div
+            style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+            className="fixed z-50 backdrop-blur-lg bg-slate-900/95 border border-slate-800 rounded-xl shadow-2xl p-1 w-36 select-none animate-fadeIn"
+          >
+            {selectedTodoIds.includes(contextMenu.todoId) ? (
+              <button
+                onClick={() => {
+                  handleToggleSelect(contextMenu.todoId);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-350 hover:text-white hover:bg-slate-800 rounded-lg transition-all cursor-pointer flex items-center gap-2"
+              >
+                <div className="h-2 w-2 rounded-full bg-slate-500 animate-pulse" />
+                Deselect
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  handleToggleSelect(contextMenu.todoId);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-350 hover:text-white hover:bg-slate-800 rounded-lg transition-all cursor-pointer flex items-center gap-2"
+              >
+                <div className="h-2 w-2 rounded-full bg-blue-500" />
+                Select
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setEditingTodoId(contextMenu.todoId);
+                const t = todos.find((x) => x.id === contextMenu.todoId);
+                setEditingTaskText(t ? t.task : '');
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-350 hover:text-white hover:bg-slate-800 rounded-lg transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Edit className="h-3.5 w-3.5 text-slate-500" />
+              Edit
+            </button>
+            <button
+              onClick={() => {
+                setTodoToDelete(contextMenu.todoId);
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-3 py-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-955/20 rounded-lg transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Trash2 className="h-3.5 w-3.5 text-red-500 stroke-[2]" />
+              Delete
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
