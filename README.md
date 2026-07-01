@@ -143,6 +143,14 @@ quotes-sales-tracker/
 
 ## 📝 Changelog
 
+### v3.2.0
+
+**Todo Carry-over Performance Tuning, Compact Layouts & Premium Scrollbar**
+
+- ✅ **Optimized Todo Carry-over**: Reduced database query footprint for daily carry-overs by resolving the full-history query bug.
+- ✅ **Compact Table Density**: Increased visual density of the submissions `RecordsTable` and `TodoPanel` tables for better screen utilization.
+- ✅ **Subtle Scrollbar**: Integrated a modern, premium hover-revealed scrollbar across scrollable containers.
+
 ### v3.1.4
 
 **Tauri v2 IPC Access Control List (ACL) Fix**

@@ -55,6 +55,11 @@ jobs:
           releaseBody: |
             Download the appropriate installer below.
 
+            ### 🚀 What's New in v3.2.0 (Minor Release):
+            * **Todo Carry-over Performance Tuning**: Reduced database query footprint for daily carry-overs by resolving the full-history query bug.
+            * **Compact Table Density**: Increased visual density of the submissions `RecordsTable` and `TodoPanel` tables for better screen utilization.
+            * **Subtle Scrollbar**: Integrated a modern, premium hover-revealed scrollbar across scrollable containers.
+
             ### 🚀 What's New in v3.1.4 (Patch Release):
             * **Tauri v2 IPC Access Control List (ACL) Fix**: Appended the new IP Checker native IPC commands (`detect_my_ip`, `fetch_ip_data`, and `fetch_ip_batch`) to the Tauri `allow-save-file.toml` capabilities manifest, fixing the `Command not allowed by ACL` frontend errors when checking IPs on desktop.
 
