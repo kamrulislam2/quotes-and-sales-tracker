@@ -17,23 +17,21 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { ConfirmModal } from '@/components/modals/ConfirmModal';
 
 interface TodoPanelProps {
   profile: Profile | null;
 }
 
-// Configurable all-time tasks that will be auto-generated at the start of a new day
-const ALL_TIME_TODOS = [
-  'Routine check on quotes validation logs',
-  'Verify database backup and offline sync state',
-  'Review active branch pricing rules updates'
-];
+// All-time tasks are dynamically managed by the user using the "All-Time" checkbox when adding a task.
 
 export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
   const [subTab, setSubTab] = useState<'daily' | 'all'>('daily');
   const [loading, setLoading] = useState(false);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [newTask, setNewTask] = useState('');
+  const [isAllTime, setIsAllTime] = useState(false);
+  const [todoToDelete, setTodoToDelete] = useState<string | null>(null);
 
   // Daily State
   const [todayStr] = useState(() => new Date().toLocaleDateString('en-CA')); // Local YYYY-MM-DD
@@ -98,39 +96,28 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
 
         if (lastTodos && lastTodos.length > 0) {
           const lastActiveDate = lastTodos[0].todo_date;
-          // Filter tasks from that active date that are still 'Working'
-          const incompleteTasks = lastTodos.filter(
-            (t) => t.todo_date === lastActiveDate && t.status === 'Working'
+          // Filter tasks from that active date
+          const lastActiveTodos = lastTodos.filter(
+            (t) => t.todo_date === lastActiveDate
           );
 
-          incompleteTasks.forEach((task) => {
-            tempInserted.push({
-              user_id: profile.id,
-              codename: profile.username.toUpperCase(),
-              task: task.task,
-              status: 'Working',
-              comment: task.comment || '',
-              todo_date: todayStr,
-              is_all_time: task.is_all_time
-            });
+          lastActiveTodos.forEach((task) => {
+            // Carry over if it was 'Working' OR if it is an 'All-Time' task (recreated daily)
+            const shouldCarryOver = task.status === 'Working' || task.is_all_time;
+            
+            if (shouldCarryOver) {
+              tempInserted.push({
+                user_id: profile.id,
+                codename: profile.username.toUpperCase(),
+                task: task.task,
+                status: 'Working',
+                comment: task.status === 'Working' ? (task.comment || '') : '', // reset comment if it was completed all-time task
+                todo_date: todayStr,
+                is_all_time: task.is_all_time
+              });
+            }
           });
         }
-
-        // B. Add All-Time specific tasks if they are not already in the list
-        ALL_TIME_TODOS.forEach((taskText) => {
-          const alreadyExists = tempInserted.some((t) => t.task === taskText);
-          if (!alreadyExists) {
-            tempInserted.push({
-              user_id: profile.id,
-              codename: profile.username.toUpperCase(),
-              task: taskText,
-              status: 'Working',
-              comment: '',
-              todo_date: todayStr,
-              is_all_time: true
-            });
-          }
-        });
 
         // Insert carried-over and all-time tasks into database
         if (tempInserted.length > 0) {
@@ -217,7 +204,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
           status: 'Working',
           comment: '',
           todo_date: todayStr,
-          is_all_time: false
+          is_all_time: isAllTime
         })
         .select();
 
@@ -225,6 +212,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
       if (data) {
         setTodos((prev) => [...prev, ...data]);
         setNewTask('');
+        setIsAllTime(false);
         toast.success('Task added successfully!');
       }
     } catch (err: any) {
@@ -253,6 +241,26 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
     }
   };
 
+  // Toggle All-Time Status for a task
+  const handleToggleAllTime = async (todo: TodoItem) => {
+    const nextAllTime = !todo.is_all_time;
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .update({ is_all_time: nextAllTime })
+        .eq('id', todo.id);
+
+      if (error) throw error;
+      setTodos((prev) =>
+        prev.map((t) => (t.id === todo.id ? { ...t, is_all_time: nextAllTime } : t))
+      );
+      toast.success(nextAllTime ? 'Task marked as All-Time!' : 'Removed from All-Time routine.');
+    } catch (err: any) {
+      console.error('Failed to toggle all-time status:', err?.message || err);
+      toast.error('Failed to update task type.');
+    }
+  };
+
   // Update Task Comment Inline
   const handleUpdateComment = async (id: string, commentVal: string) => {
     try {
@@ -272,7 +280,6 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
 
   // Delete a Todo Item
   const handleDeleteTodo = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
     try {
       const { error } = await supabase
         .from('todos')
@@ -295,19 +302,26 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
       return;
     }
 
-    const formattedList = todos
+    const [yyyy, mm, dd] = todayStr.split('-');
+    const formattedDate = `${dd}/${mm}/${yyyy}`;
+    const header = `✅ *Tasks Summery — ${formattedDate}*\n`;
+
+    const body = todos
       .map((t) => {
         if (t.status === 'Completed') {
-          return `${t.task} - Completed`;
+          if (t.comment && t.comment.trim() !== '') {
+            return `- ${t.task} — Completed — ${t.comment.trim()}`;
+          }
+          return `- ${t.task} — Completed`;
         }
         if (t.comment && t.comment.trim() !== '') {
-          return `${t.task} - Working - ${t.comment.trim()}`;
+          return `- ${t.task} — Working — ${t.comment.trim()}`;
         }
-        return `${t.task} - Working`;
+        return `- ${t.task} — Working`;
       })
       .join('\n');
 
-    navigator.clipboard.writeText(formattedList);
+    navigator.clipboard.writeText(header + body);
     toast.success('Todo list copied to clipboard!');
   };
 
@@ -387,6 +401,25 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                 disabled={loading}
                 className="flex-1 min-w-0 px-4 py-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-60"
               />
+              <label className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-900/40 border border-slate-800/80 rounded-xl cursor-pointer select-none hover:bg-slate-900 transition-colors shrink-0">
+                <input
+                  type="checkbox"
+                  checked={isAllTime}
+                  onChange={(e) => setIsAllTime(e.target.checked)}
+                  disabled={loading}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
+                    isAllTime
+                      ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400'
+                      : 'border-slate-700 hover:border-slate-500 bg-slate-950/40'
+                  }`}
+                >
+                  {isAllTime && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                </div>
+                <span className="text-[11px] text-slate-350 hover:text-white font-bold tracking-wide transition-colors">All-Time</span>
+              </label>
               <button
                 type="submit"
                 disabled={loading || !newTask.trim()}
@@ -462,7 +495,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                       {/* Interactive checkmark toggle */}
                       <button
                         onClick={() => handleToggleStatus(todo)}
-                        className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
+                        className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
                           isCompleted
                             ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
                             : 'border-slate-700 text-transparent hover:border-slate-500 hover:bg-slate-800/40'
@@ -505,11 +538,17 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                     {/* Meta Indicators and Actions */}
                     <div className="flex items-center gap-3 shrink-0 justify-end border-t sm:border-0 border-slate-900/50 pt-3 sm:pt-0">
                       <div className="flex items-center gap-2">
-                        {todo.is_all_time && (
-                          <span className="px-2 py-0.5 bg-indigo-550/10 text-indigo-400 border border-indigo-500/10 rounded text-[9px] font-bold uppercase tracking-wider">
-                            All-Time
-                          </span>
-                        )}
+                        <button
+                          onClick={() => handleToggleAllTime(todo)}
+                          className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider transition-all cursor-pointer ${
+                            todo.is_all_time
+                              ? 'bg-indigo-600/15 text-indigo-400 border-indigo-500/20 hover:bg-rose-950/20 hover:text-rose-450 hover:border-rose-950/40'
+                              : 'bg-slate-900 text-slate-500 border-slate-850 hover:text-slate-350 hover:border-slate-800'
+                          }`}
+                          title={todo.is_all_time ? "Remove from All-Time routine" : "Make All-Time routine"}
+                        >
+                          {todo.is_all_time ? 'All-Time' : 'Regular'}
+                        </button>
                         <span
                           className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
                             isCompleted
@@ -522,7 +561,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                       </div>
 
                       <button
-                        onClick={() => handleDeleteTodo(todo.id)}
+                        onClick={() => setTodoToDelete(todo.id)}
                         className="p-1.5 text-slate-500 hover:text-rose-450 hover:bg-rose-950/20 rounded-lg transition-colors cursor-pointer"
                         title="Delete task"
                       >
@@ -673,6 +712,22 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
           )}
         </div>
       )}
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={todoToDelete !== null}
+        onClose={() => setTodoToDelete(null)}
+        onConfirm={async () => {
+          if (todoToDelete) {
+            await handleDeleteTodo(todoToDelete);
+            setTodoToDelete(null);
+          }
+        }}
+        title="Delete Task"
+        message="Are you sure you want to delete this task? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger={true}
+      />
     </div>
   );
 };
