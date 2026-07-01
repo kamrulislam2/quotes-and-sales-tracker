@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS public.todos (
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   codename TEXT NOT NULL,
   task TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'Working' CHECK (status IN ('Working', 'Completed')),
+  status TEXT NOT NULL DEFAULT 'Idle' CHECK (status IN ('Idle', 'Working', 'Completed')),
   comment TEXT,
   todo_date DATE DEFAULT CURRENT_DATE NOT NULL,
   is_all_time BOOLEAN DEFAULT false NOT NULL,
