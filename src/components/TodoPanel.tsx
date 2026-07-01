@@ -27,7 +27,18 @@ interface TodoPanelProps {
 // All-time tasks are dynamically managed by the user using the "All-Time" checkbox when adding a task.
 
 export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
-  const [subTab, setSubTab] = useState<'daily' | 'all'>('daily');
+  const [subTab, setSubTab] = useState<'daily' | 'all'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('todoTabPrefs');
+      if (saved === 'daily' || saved === 'all') return saved;
+    }
+    return 'daily';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('todoTabPrefs', subTab);
+  }, [subTab]);
+
   const [loading, setLoading] = useState(false);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [newTask, setNewTask] = useState('');
@@ -180,6 +191,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
         .eq('user_id', profile.id)
         .gte('todo_date', startDate)
         .lte('todo_date', endDate)
+        .neq('status', 'Idle')
         .order('todo_date', { ascending: false })
         .order('created_at', { ascending: true });
 
