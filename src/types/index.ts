@@ -89,3 +89,16 @@ export interface LoginCode {
   name?: string | null;
   updated_at?: string;
 }
+
+export interface TodoItem {
+  id: string;
+  user_id: string;
+  codename: string;
+  task: string;
+  status: 'Working' | 'Completed';
+  comment?: string | null;
+  todo_date: string; // Format: 'YYYY-MM-DD'
+  is_all_time: boolean;
+  created_at: string;
+}
+

@@ -24,6 +24,7 @@ const QuoteRulesPanel = lazy(() => import("@/components/QuoteRulesPanel").then(m
 const CopyHelperPanel = lazy(() => import("@/components/CopyHelperPanel").then(m => ({ default: m.CopyHelperPanel })));
 const SaveFileHelperPanel = lazy(() => import("@/components/SaveFileHelperPanel").then(m => ({ default: m.SaveFileHelperPanel })));
 const UserManagementPanel = lazy(() => import("@/components/UserManagementPanel").then(m => ({ default: m.UserManagementPanel })));
+const TodoPanel = lazy(() => import("@/components/TodoPanel").then(m => ({ default: m.TodoPanel })));
 import { validator } from "@/utils/validator";
 import {
   calculateSummaryStats,
@@ -54,6 +55,7 @@ import {
   ScrollText,
   BookOpen,
   Save,
+  ListTodo,
 } from "lucide-react";
 
 const ALL_10_FILE_TYPES = [
@@ -107,9 +109,9 @@ export default function Dashboard() {
     logActivity,
   } = dashboardData;
 
-  // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics), 'audit_logs' (Audit Logs), 'rules' (Quote Rules)
+  // Tabs: 'entry' (Daily Entry), 'monthly' (Month's Data), 'users' (User Management), 'analytics' (Analytics), 'audit_logs' (Audit Logs), 'rules' (Quote Rules), 'todo' (Superadmin Todos)
   const [activeTab, setActiveTab] = useState<
-    "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules"
+    "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules" | "todo"
   >(() => {
     if (typeof window !== "undefined") {
       const savedTab = localStorage.getItem("quotes_sales_active_tab");
@@ -120,7 +122,8 @@ export default function Dashboard() {
           savedTab === "users" ||
           savedTab === "analytics" ||
           savedTab === "audit_logs" ||
-          savedTab === "rules")
+          savedTab === "rules" ||
+          savedTab === "todo")
       ) {
         // Safe check for role restriction using cached profile to prevent initial flash of admin tabs for regular users
         const cachedProfileStr = localStorage.getItem("quotes_sales_profile");
@@ -133,9 +136,12 @@ export default function Dashboard() {
             ) {
               return "entry";
             }
+            if (savedTab === "todo" && cachedProfile?.username?.toUpperCase() !== "KI1024") {
+              return "entry";
+            }
           } catch {}
         }
-        return savedTab as "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules";
+        return savedTab as "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules" | "todo";
       }
     }
     return "entry";
@@ -174,28 +180,34 @@ export default function Dashboard() {
         savedTab === "users" ||
         savedTab === "analytics" ||
         savedTab === "audit_logs" ||
-        savedTab === "rules")
+        savedTab === "rules" ||
+        savedTab === "todo")
     ) {
       if (
         (savedTab === "users" || savedTab === "analytics" || savedTab === "audit_logs") &&
         profile.role !== "admin"
       ) {
         setActiveTab("entry");
+      } else if (savedTab === "todo" && profile.username?.toUpperCase() !== "KI1024") {
+        setActiveTab("entry");
       } else {
         setActiveTab(
-          savedTab as "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules",
+          savedTab as "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules" | "todo",
         );
       }
     }
   }, [profile]);
 
   const handleTabChange = (
-    tab: "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules",
+    tab: "entry" | "monthly" | "users" | "analytics" | "audit_logs" | "rules" | "todo",
   ) => {
     if (
       (tab === "users" || tab === "analytics" || tab === "audit_logs") &&
       profile?.role !== "admin"
     ) {
+      return;
+    }
+    if (tab === "todo" && profile?.username?.toUpperCase() !== "KI1024") {
       return;
     }
     setActiveTab(tab);
@@ -1426,6 +1438,32 @@ export default function Dashboard() {
                 Monthly Entry List
               </span>
             </button>
+            {profile?.username?.toUpperCase() === "KI1024" && (
+              <button
+                onClick={() => handleTabChange("todo")}
+                title={isSidebarCollapsed ? "Todo" : undefined}
+                className={`w-full flex items-center rounded-xl text-sm font-semibold transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                  isSidebarCollapsed
+                    ? "justify-center px-0 py-3 gap-0"
+                    : "justify-start px-4 py-3 gap-3"
+                } ${
+                  activeTab === "todo"
+                    ? "bg-blue-600/15 border border-blue-500/30 text-blue-400 shadow-md shadow-blue-900/5"
+                    : "text-slate-400 hover:bg-slate-850/80 hover:text-white border border-transparent"
+                }`}
+              >
+                <ListTodo className="h-5 w-5 shrink-0" />
+                <span
+                  className={`whitespace-nowrap inline-block transition-all duration-300 ease-out ${
+                    isSidebarCollapsed
+                      ? "max-w-0 opacity-0 overflow-hidden"
+                      : "max-w-[180px] opacity-100"
+                  }`}
+                >
+                  Todo
+                </span>
+              </button>
+            )}
             <button
               onClick={() => handleTabChange("rules")}
               title={isSidebarCollapsed ? "Quotes Portal" : undefined}
@@ -2019,6 +2057,13 @@ export default function Dashboard() {
                 isOnline={isOnline}
                 showToast={showToast}
               />
+            </Suspense>
+          )}
+
+          {/* TAB 7: SUPERADMIN TODO */}
+          {activeTab === "todo" && profile?.username?.toUpperCase() === "KI1024" && (
+            <Suspense fallback={<div className="h-48 flex items-center justify-center"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /></div>}>
+              <TodoPanel profile={profile} />
             </Suspense>
           )}
         </section>
