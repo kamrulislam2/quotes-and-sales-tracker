@@ -95,7 +95,7 @@ export interface TodoItem {
   user_id: string;
   codename: string;
   task: string;
-  status: 'Working' | 'Completed';
+  status: 'Working' | 'Completed' | 'Idle';
   comment?: string | null;
   todo_date: string; // Format: 'YYYY-MM-DD'
   is_all_time: boolean;

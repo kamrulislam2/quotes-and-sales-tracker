@@ -11,7 +11,6 @@ import {
   RefreshCw, 
   CalendarDays, 
   ListTodo, 
-  AlertCircle,
   Clock,
   CheckCircle2,
   ChevronDown,
@@ -97,23 +96,30 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
       if (currentTodayTodos.length === 0) {
         const tempInserted: Partial<TodoItem>[] = [];
 
-        // A. Carry over "Working" tasks from the most recent active day
-        const { data: lastTodos, error: lastErr } = await supabase
+        // A. Find the most recent active day to carry over "Working" tasks
+        const { data: lastDateData, error: lastDateErr } = await supabase
           .from('todos')
-          .select('*')
+          .select('todo_date')
           .eq('user_id', profile.id)
           .lt('todo_date', todayStr)
           .order('todo_date', { ascending: false })
-          .order('created_at', { ascending: true });
+          .limit(1);
 
-        if (lastErr) throw lastErr;
+        if (lastDateErr) throw lastDateErr;
 
-        if (lastTodos && lastTodos.length > 0) {
-          const lastActiveDate = lastTodos[0].todo_date;
-          // Filter tasks from that active date
-          const lastActiveTodos = lastTodos.filter(
-            (t) => t.todo_date === lastActiveDate
-          );
+        if (lastDateData && lastDateData.length > 0) {
+          const lastActiveDate = lastDateData[0].todo_date;
+          
+          const { data: lastTodos, error: lastErr } = await supabase
+            .from('todos')
+            .select('*')
+            .eq('user_id', profile.id)
+            .eq('todo_date', lastActiveDate)
+            .order('created_at', { ascending: true });
+
+          if (lastErr) throw lastErr;
+
+          const lastActiveTodos = lastTodos || [];
 
           lastActiveTodos.forEach((task) => {
             // Carry over if it was not completed ('Working' or 'Idle') OR if it is an 'All-Time' task (recreated daily)
@@ -221,7 +227,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
           user_id: profile.id,
           codename: profile.username.toUpperCase(),
           task: newTask.trim(),
-          status: 'Working',
+          status: 'Idle',
           comment: '',
           todo_date: todayStr,
           is_all_time: isAllTime
@@ -324,7 +330,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
   };
 
   // Double click / consecutive click edit handler
-  const handleTaskClick = (todo: TodoItem) => {
+  const handleTaskClick = React.useCallback((todo: TodoItem) => {
     const now = Date.now();
     if (lastClickTime && lastClickTime.id === todo.id && now - lastClickTime.time < 2000) {
       setEditingTodoId(todo.id);
@@ -333,7 +339,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
     } else {
       setLastClickTime({ id: todo.id, time: now });
     }
-  };
+  }, [lastClickTime]);
 
   // Save inline edit
   const handleSaveEdit = async (todoId: string) => {
@@ -566,7 +572,7 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                       setSelectedTodoIds(todos.map((t) => t.id));
                     }
                   }}
-                  className="rounded-full border border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-indigo-500 checked:border-indigo-500 relative checked:after:content-[''] checked:after:absolute checked:after:left-[5px] checked:after:top-[5px] checked:after:w-[6px] checked:after:h-[6px] checked:after:rounded-full checked:after:bg-white transition-all duration-300 shrink-0"
+                  className="rounded-full border border-slate-700 bg-slate-955 text-indigo-500 focus:ring-indigo-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-indigo-500 checked:border-indigo-500 flex items-center justify-center checked:after:content-[''] checked:after:w-1.5 checked:after:h-1.5 checked:after:rounded-full checked:after:bg-white transition-all duration-300 shrink-0"
                   title="Select/Deselect All Tasks"
                 />
                 <div className="h-5 w-[1px] bg-slate-800 mx-1" />
@@ -639,26 +645,6 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                   >
                     {/* Task and Comment Layout */}
                     <div className="flex-1 min-w-0 flex items-start gap-3">
-                      {/* Interactive checkmark toggle */}
-                      <button
-                        onClick={() => handleToggleStatus(todo)}
-                        className={`mt-0.5 w-5 h-5 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
-                          todo.status === 'Completed'
-                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-                            : todo.status === 'Working'
-                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                            : 'border-slate-700 text-transparent hover:border-slate-500 hover:bg-slate-800/40 text-slate-500'
-                        }`}
-                      >
-                        {todo.status === 'Completed' ? (
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                        ) : todo.status === 'Working' ? (
-                          <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5 opacity-0 hover:opacity-40 transition-opacity stroke-[3]" />
-                        )}
-                      </button>
-
                       <div className="flex-1 space-y-1.5 min-w-0">
                         {editingTodoId === todo.id ? (
                           <input
@@ -730,30 +716,33 @@ export const TodoPanel: React.FC<TodoPanelProps> = ({ profile }) => {
                     {/* Meta Indicators and Actions */}
                     <div className="flex items-center gap-3 shrink-0 justify-end border-t sm:border-0 border-slate-900/50 pt-3 sm:pt-0">
                       <div className="flex items-center gap-2">
-                        <div
-                          className={`p-1 rounded-full border shrink-0 ${
+                        {/* Interactive checkmark toggle - moved to the RIGHT */}
+                        <button
+                          onClick={() => handleToggleStatus(todo)}
+                          className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                             todo.status === 'Completed'
-                              ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/20'
+                              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
                               : todo.status === 'Working'
-                              ? 'bg-amber-600/10 text-amber-400 border-amber-500/20'
-                              : 'bg-slate-900 text-slate-500 border-slate-850'
+                              ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                              : 'border-slate-700 text-transparent hover:border-slate-500 hover:bg-slate-800/40 text-slate-500'
                           }`}
-                          title={todo.status}
+                          title={`Status: ${todo.status}. Click to cycle status.`}
                         >
                           {todo.status === 'Completed' ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-455" />
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
                           ) : todo.status === 'Working' ? (
-                            <Clock className="w-3.5 h-3.5 text-amber-455 animate-pulse" />
+                            <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                           ) : (
-                            <Clock className="w-3.5 h-3.5 text-slate-500" />
+                            <Check className="w-3.5 h-3.5 opacity-0 hover:opacity-40 transition-opacity stroke-[3]" />
                           )}
-                        </div>
+                        </button>
+
                         {/* Checkbox for bulk selection - on the RIGHT with smooth transition animation */}
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleToggleSelect(todo.id)}
-                          className={`rounded-full border border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-indigo-500 checked:border-indigo-500 relative checked:after:content-[''] checked:after:absolute checked:after:left-[5px] checked:after:top-[5px] checked:after:w-[6px] checked:after:h-[6px] checked:after:rounded-full checked:after:bg-white transition-all duration-300 transform shrink-0 ${
+                          className={`rounded-full border border-slate-700 bg-slate-955 text-indigo-500 focus:ring-indigo-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-indigo-500 checked:border-indigo-500 flex items-center justify-center checked:after:content-[''] checked:after:w-1.5 checked:after:h-1.5 checked:after:rounded-full checked:after:bg-white transition-all duration-300 transform shrink-0 ${
                             selectedTodoIds.length > 0
                               ? 'scale-100 opacity-100 w-4 ml-1'
                               : 'scale-0 opacity-0 w-0 pointer-events-none ml-0'

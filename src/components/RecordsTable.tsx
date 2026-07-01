@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   Edit,
@@ -75,7 +75,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
   const [bulkSaving, setBulkSaving] = useState(false);
   const isCancelledRef = useRef(false);
 
-  const getCellValue = (
+  const getCellValue = useCallback((
     r: RecordItem,
     field: "file_name" | "branch_name" | "codename" | "file_type",
   ) => {
@@ -83,7 +83,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
       return editedRecords[r.id][field]!;
     }
     return r[field];
-  };
+  }, [editedRecords]);
 
   const handleCellClick = (
     record: RecordItem,
@@ -275,7 +275,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
         }
       }
     }
-  }, [editingCell]);
+  }, [editingCell, records, getCellValue]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -586,7 +586,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                           )
                         }
                         onChange={handleSelectAllToggle}
-                        className={`rounded-full border border-slate-700 bg-slate-955 text-blue-500 focus:ring-blue-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-blue-500 checked:border-blue-500 relative checked:after:content-[''] checked:after:absolute checked:after:left-[5px] checked:after:top-[5px] checked:after:w-[6px] checked:after:h-[6px] checked:after:rounded-full checked:after:bg-white transition-all duration-300 transform shrink-0 ${
+                        className={`rounded-full border border-slate-700 bg-slate-955 text-blue-500 focus:ring-blue-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-blue-500 checked:border-blue-500 flex items-center justify-center checked:after:content-[''] checked:after:w-1.5 checked:after:h-1.5 checked:after:rounded-full checked:after:bg-white transition-all duration-300 transform shrink-0 ${
                           isSelectionMode
                             ? "scale-100 opacity-100"
                             : "scale-0 opacity-0"
@@ -970,7 +970,7 @@ export const RecordsTable: React.FC<RecordsTableProps> = ({
                           checked={selectedIds.includes(r.id)}
                           disabled={!isAdmin && r.user_id !== currentUserId}
                           onChange={() => handleSelectRow(r.id)}
-                          className={`rounded-full border border-slate-700 bg-slate-950 text-blue-500 focus:ring-blue-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-blue-500 checked:border-blue-500 relative checked:after:content-[''] checked:after:absolute checked:after:left-[5px] checked:after:top-[5px] checked:after:w-[6px] checked:after:h-[6px] checked:after:rounded-full checked:after:bg-white transition-all duration-300 transform shrink-0 disabled:opacity-20 disabled:cursor-not-allowed ${
+                          className={`rounded-full border border-slate-700 bg-slate-955 text-blue-500 focus:ring-blue-500/30 cursor-pointer h-4 w-4 appearance-none checked:bg-blue-500 checked:border-blue-500 flex items-center justify-center checked:after:content-[''] checked:after:w-1.5 checked:after:h-1.5 checked:after:rounded-full checked:after:bg-white transition-all duration-300 transform shrink-0 disabled:opacity-20 disabled:cursor-not-allowed ${
                             isSelectionMode
                               ? "scale-100 opacity-100"
                               : "scale-0 opacity-0"
